@@ -7,6 +7,7 @@
     "slowRequest": false,
     "accessLogs": true
   },
+  "jwtSecret": "A?D(G+KbPeShVmYq3t6w9z$B&E)H@McQ",
   "redis": {
     "host": "xpastagingnode.redis.cache.windows.net",
     "port" : 6379,

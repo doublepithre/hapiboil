@@ -24,12 +24,12 @@ const createUser = async (request, h) => {
     }
     if (password.length < 8) {
       throw new Error('Password must contain atleast 8 characters');
-    } else if (password.length > 25) {
-      throw new Error('Password should be atmost 25 characters');
+    } else if (password.length > 100) {
+      throw new Error('Password should be atmost 100 characters');
     }
     const validAccountTypes = ['candidate', 'employer', 'mentor'];
     if (!validAccountTypes.includes(accountType)) {
-      throw new Error('Please check your account type');
+      throw new Error('Invalid account type');
     }
     
     const hashedPassword = bcrypt.hashSync(password, 12);
@@ -46,8 +46,9 @@ const createUser = async (request, h) => {
       }
     });
     const roleId = userRoleRecord.dataValues.roleId;
+    const emailLower = email.toLowerCase().trim();
     const udata = await User.create({
-      email,
+      email: emailLower,
       password: hashedPassword,
     });
     const userRes = udata && udata.toJSON();
@@ -55,7 +56,7 @@ const createUser = async (request, h) => {
     const uidata = await Userinfo.create({
       userId,
       userUuid,
-      email,
+      email: emailLower,
       roleId,
       userTypeId,
       active: true,

@@ -26,6 +26,7 @@ function init(sequelize) {
     model.Userquesresponse = sequelize.import('./definition/userquesresponses.js');
     model.Userrole = sequelize.import('./definition/userrole.js');
     model.Usertype = sequelize.import('./definition/usertype.js');
+    model.Accesstoken = sequelize.import('./definitions/accesstoken.js');
 
     // All models are initialized. Now connect them with relations.
     require('./definition/attributeset.js').initRelations();
@@ -43,6 +44,7 @@ function init(sequelize) {
     require('./definition/userquesresponses.js').initRelations();
     require('./definition/userrole.js').initRelations();
     require('./definition/usertype.js').initRelations();
+    require('./definition/accesstoken.js').initRelations();
     return model;
 }
 

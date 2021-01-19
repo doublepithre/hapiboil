@@ -3,8 +3,8 @@ const apiRootPrefix = '/em/api/v1';
 
 const sequelizeInstance = new Sequelize('canopus', null, null, {
   replication: {
-    read: [{ host: 'localhost', username: 'postgres', password: 'postgres' }],
-    write: { host: 'localhost', username: 'postgres', password: 'postgres' },
+    read: [{ host: 'localhost', username: 'postgres', password: '!Qwerty@123' }],
+    write: { host: 'localhost', username: 'postgres', password: '!Qwerty@123' },
   },
   dialect: 'postgres',
   searchPath: 'hris',
@@ -32,7 +32,13 @@ const manifest = {
         routes: {
           prefix: `${apiRootPrefix}/account`,
         },
-      }
+      }, 
+      {
+        plugin: require('./routes/login'),
+        routes: {
+          prefix: `${apiRootPrefix}/login`,
+        },
+      },
     ],
     options: {},
   },
