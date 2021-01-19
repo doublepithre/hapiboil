@@ -1,0 +1,26 @@
+{
+  "port": 4585,
+  "env": "development",
+  "sessionSecret": "hola!Pihthre5007",
+  "log": {
+    "level": "info",
+    "slowRequest": false,
+    "accessLogs": true
+  },
+  "redis": {
+    "host": "xpastagingnode.redis.cache.windows.net",
+    "port" : 6379,
+    "password": "Cqt9LQuLu6jgFziat8zH9YM+6psjc9FMDAkdbOwavhQ="
+  },
+  "db": {
+    "connectionString": "postgres://postgres:postgres@localhost/astra",
+    "options": {
+      "pool": {
+        "min": 5,
+        "max": 10,
+        "acquire": 1200000
+      },
+      "logging": false
+    }
+  }
+}

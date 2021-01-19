@@ -1,0 +1,44 @@
+lib-cov
+*.DS_Store
+*.seed
+*.log
+*.csv
+*.dat
+*.out
+*.pid
+*.gz
+*.bk
+
+node_modules
+coverage
+logs
+dbdumps
+test-results.xml
+dist
+yarn.lock
+.nyc_output
+temp.js
+tempStripe.js
+
+.env
+.env.*
+
+!.env.development
+!.env.test
+
+# IDE files
+jsconfig.json
+typings
+.gtm
+# VSCode
+.history
+.vscode
+# JetBrains
+.idea/
+*.iml
+
+# test artifacts
+output/
+
+*.swp
+bk/

@@ -1,0 +1,16 @@
+{
+  "apps": [{
+    "name": "xemstag",
+    "script": "dist/index.js",
+    "exec_mode": "cluster",
+    "instances": 0,
+    "instance_var": "xemstag",
+    "env": {
+      "NODE_ENV": "staging",
+      "TZ": "UTC",
+      "PORT": 4585,
+      "APPINSIGHTS_INSTRUMENTATIONKEY": "4444"
+    },
+    "log_date_format": "DD-MM-YYYY HH:mm:ss.SSS"
+  }]
+}
