@@ -9,14 +9,20 @@ const createUser = async (request, h) => {
     const { User } = request.getModels('xpaxr');
     const {
       email,
+      password,
+      accountType,
     } = request.payload || {};
-    const leadData = await User.create({
+    const hashedPassword = password;
+    const udata = await User.create({
       email,
+      password: hashedPassword,
     });
-    return h.response(leadData).code(200);
+    return h.response(udata).code(200);
   } catch (error) {
     console.error(error);
-    return h.response({ error: true, message: 'Invalid' }).code(400);
+    return h.response({
+      error: true, message: 'Bad Request'
+    }).code(400);
   }
 };
 
