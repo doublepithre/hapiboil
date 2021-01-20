@@ -7,13 +7,8 @@ const createUser = async (request, h) => {
     if (request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    // console.log('request.payload', request.payload);
     const { User, Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
-    const {
-      email,
-      password,
-      accountType,
-    } = request.payload || {};
+    const { email, password, accountType, } = request.payload || {};
 
     if ( !(email && password && accountType)) {
       throw new Error('Please provide necessary details');
@@ -31,6 +26,12 @@ const createUser = async (request, h) => {
     if (!validAccountTypes.includes(accountType)) {
       throw new Error('Invalid account type');
     }
+
+    const userRecord = await User.findOne({ where: { email }});
+    const record = userRecord && userRecord.toJSON();
+    if (record) {
+      throw new Error('User already exists!');
+    }
     
     const hashedPassword = bcrypt.hashSync(password, 12);
     const userTypeRecord = await Usertype.findOne({
@@ -39,18 +40,15 @@ const createUser = async (request, h) => {
       }, 
       attributes: ['userTypeId']
     });
-    const userTypeId = userTypeRecord.dataValues.userTypeId;
+    const { userTypeId } = userTypeRecord && userTypeRecord.toJSON();
     const userRoleRecord = await Userrole.findOne({
       where: {
         role_name: accountType
       }
     });
-    const roleId = userRoleRecord.dataValues.roleId;
+    const { roleId } = userRoleRecord && userRoleRecord.toJSON();
     const emailLower = email.toLowerCase().trim();
-    const udata = await User.create({
-      email: emailLower,
-      password: hashedPassword,
-    });
+    const udata = await User.create({ email: emailLower, password: hashedPassword, });
     const userRes = udata && udata.toJSON();
     const { userId, userUuid } = userRes || {};
     const uidata = await Userinfo.create({
@@ -72,7 +70,86 @@ const createUser = async (request, h) => {
   }
 };
 
+const getUser = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+    
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const luser = userRecord && userRecord.toJSON();
+    const { userTypeId, roleId } = luser || {};
+    
+    const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
+    const userRoleRecord = await Userrole.findOne({ where: { roleId }});
+    const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
+    const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+
+    luser.userTypeName = userTypeName;
+    luser.roleName = roleName;
+
+    return h.response(luser).code(200);
+  }
+  catch(error) {
+    return h.response({
+      error: true, message: error.message
+    }).code(400);
+  }
+}
+
+const updateUser = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const validUpdateRequests = [
+      'active',      'firstName',
+      'lastName',    'isAdmin',
+      'tzid',        'primaryMobile',
+      'roleId',      'isAdmin'
+    ];
+    const requestedUpdateOperations = Object.keys(request.payload) || [];
+    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+    if (!isAllReqsValid) {
+      throw new Error('Invalid update requests');
+    }
+
+    const { Userinfo } = request.getModels('xpaxr');
+    
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+    const userRecord = await Userinfo.findOne({ where: { userId } });
+    const luser = userRecord && userRecord.toJSON();
+    const { userId: luserId, isAdmin } = luser || {};
+    
+    const { userUuid } = request.params || {};
+    const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
+    const { userId: rForUserId } = requestedForUser && requestedForUser.toJSON();
+
+    if (luserId !== rForUserId && !isAdmin) {    // when request is (not from self) and (if other -> not admin)
+      throw new Error('Not the right person to update!');
+    }
+    
+    await Userinfo.update( request.payload, { where: { userUuid: userUuid }} );
+    const updatedUinfo = await Userinfo.findOne({
+        where:{ userUuid: userUuid },
+        attributes: { exclude: ['createdAt', 'updatedAt']
+      }
+    });
+    const uinfo = updatedUinfo && updatedUinfo.toJSON();
+    return h.response(uinfo).code(200);
+  }
+  catch(error) {
+    return h.response({ error: true, message: error.message }).code(400);
+  }
+}
+
 module.exports = {
   createUser,
+  getUser,
+  updateUser
 };
 

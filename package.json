@@ -58,6 +58,7 @@
     "file-type": "^16.1.0",
     "handlebars": "^4.7.6",
     "hapi-auth-bearer-token": "^8.0.0",
+    "hapi-auth-jwt2": "^10.2.0",
     "hapi-sequelizejs": "^4.3.0",
     "helmet": "^4.3.1",
     "husky": "^4.3.6",

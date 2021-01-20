@@ -1,18 +1,16 @@
 import Sequelize from 'sequelize';
 const apiRootPrefix = '/em/api/v1';
+const config = require('config');
 
 const sequelizeInstance = new Sequelize('canopus', null, null, {
-  replication: {
-    read: [{ host: 'localhost', username: 'postgres', password: '!Qwerty@123' }],
-    write: { host: 'localhost', username: 'postgres', password: '!Qwerty@123' },
-  },
+  replication: config.get('replication'),
   dialect: 'postgres',
   searchPath: 'hris',
 });
 
 const manifest = {
   server: {
-    port: 4585,
+    port: config.get('port'),
   },
   register: {
     plugins: [
