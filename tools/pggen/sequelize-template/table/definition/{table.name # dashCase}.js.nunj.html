@@ -3,7 +3,7 @@
 {% set c = custom[modelName(table)] -%} {# Custom Data for this table i.e. "custom.Account" #}
 {% set templateDataFields = ['schema', 'tableName', 'comment', 'attributes', 'hasMany', 'belongsTo', 'belongsToMany', 'hasOne', 'timestamps'] -%}
 module.exports = (sequelize, DataTypes) => {
-    {{ modelName(table) }} =  sequelize.define('{{ modelName(table) }}', {
+    const {{ modelName(table) }} =  sequelize.define('{{ modelName(table) }}', {
         {%- include "../../partials/columns.nunj.html" -%}
         {% include '../../partials/extra-attributes.nunj.html' -%}
     }, {
@@ -29,7 +29,6 @@ const initRelations = (model) => {
     {% set uniqueRelatedTables = util.uniqueRelatedTables(table) -%}
 
     {% if uniqueRelatedTables | length > 0 -%}
-    const model = require('../index');
     const {{ modelName(table) }} = model.{{ modelName(table) }};
 
     {%- for targetTable in uniqueRelatedTables  -%}

@@ -1,12 +1,13 @@
 /* eslint new-cap: "off", global-require: "off" */
 
 module.exports = (sequelize, DataTypes) => {
-    return sequelize.define('Questionmapping', {
+    const Questionmapping = sequelize.define('Questionmapping', {
         qmId: {
             type: DataTypes.BIGINT,
             field: 'qm_id',
             allowNull: false,
-            autoIncrement: true
+            autoIncrement: true,
+            primaryKey: true
         },
         empauwerAllQid: {
             type: DataTypes.BIGINT,
@@ -41,12 +42,13 @@ module.exports = (sequelize, DataTypes) => {
         tableName: 'questionmapping',
         timestamps: false
     });
+    Questionmapping.associate = function(model) {
+        initRelations(model)
+    }
+    return Questionmapping;
 };
 
-module.exports.initRelations = () => {
-    delete module.exports.initRelations; // Destroy itself to prevent repeated calls.
-
-    const model = require('../index');
+const initRelations = (model) => {
     const Questionmapping = model.Questionmapping;
     const Questionnaire = model.Questionnaire;
 
