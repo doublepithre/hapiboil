@@ -30,6 +30,7 @@ function init(sequelize) {
     model.Companyinfo = sequelize.import('./definitions/companyinfo.js');
     model.Emaillogs = sequelize.import('./definitions/emaillogs.js');
     model.Emailtemplates = sequelize.import('./definition/emailtemplates.js');
+    model.Requesttoken = sequelize.import('./definition/requesttoken.js');
 
     // All models are initialized. Now connect them with relations.
     require('./definition/attributeset.js').initRelations();
@@ -51,6 +52,7 @@ function init(sequelize) {
     require('./definition/companyinfo.js').initRelations();
     require('./definition/emaillogs.js').initRelations();
     require('./definition/emailtemplates.js').initRelations();
+    require('./definition/requesttoken.js').initRelations();
     return model;
 }
 
