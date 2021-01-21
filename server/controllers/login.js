@@ -22,8 +22,8 @@ const loginUser = async (request, h) => {
     }
     if (password.length < 8) {
       throw new Error('Password must contain atleast 8 characters');
-    } else if (password.length > 25) {
-      throw new Error('Password should be atmost 25 characters');
+    } else if (password.length > 100) {
+      throw new Error('Password should be atmost 100 characters');
     }
 
     const udata = await User.findAll({
@@ -67,9 +67,6 @@ const loginUser = async (request, h) => {
         primaryMobile
     } = userInfoRes || {};
     const token = await jwt.sign({userUuid, userTypeId, email: userEmail, roleId, active, companyId, companyUuid, firstName, lastName, isAdmin, tzid, primaryMobile}, config.get('jwtSecret'), {expiresIn: '24h'});
-
-    // const {user_id} = user;
-    console.log("--test--", user);
 
     const tokendata = await Accesstoken.create({
         token,

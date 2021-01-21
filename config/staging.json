@@ -7,6 +7,11 @@
     "slowRequest": false,
     "accessLogs": true
   },
+  "jwtSecret": "A?D(G+KbPeShVmYq3t6w9z$B&E)H@McQ",
+  "replication": {
+    "read": [{ "host": "localhost", "username": "cira@xempstagdb", "password": "x0pa" }],
+    "write": { "host": "localhost", "username": "cira@xempstagdb", "password": "x0pa" }
+  },
   "redis": {
     "host": "xpastagingnode.redis.cache.windows.net",
     "port" : 6379,

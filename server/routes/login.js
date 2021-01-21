@@ -6,13 +6,19 @@ const xlogin = {
   name: 'xlogin',
   version: '0.1.0',
   register: async (server, options) => {
-    server.route({
-      method: 'POST',
-      path: '/',
-      options: {
-        handler: loginUser
-      },
-    });
+    try{
+      server.route({
+        method: 'POST',
+        path: '/',
+        options: {
+          auth: false,
+          handler: loginUser
+        },
+      });
+    }
+    catch(error) {
+      console.log(error);
+    }
   },
 };
 
