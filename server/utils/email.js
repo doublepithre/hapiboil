@@ -473,7 +473,7 @@ const recordSentEmail = async (recordEmailData, additionalEData) => {
       profileId,
       displayName,
     } = recordEmailData || {};
-    const applicationEmailModel = additionalEData.Applicationemail;
+    const applicationEmailModel = additionalEData.Emaillogs;
     const recordedEmailRes = await applicationEmailModel.upsert({
       appId: appId || 0,
       templateName: templateName || "unknown",
@@ -768,12 +768,7 @@ const sendEmailAsync = async (edata, additionalEData) => {
         console.log("PROXYING EMAIL:", emails);
         console.log("PROXYING CC EMAILS:", ccEmails);
         toAddresses = [
-          "sriharsha@x0pa.com",
-          "bhadra@x0pa.com",
-          "akhil@x0pa.com",
-          "sanjay@x0pa.com",
-          "vinay@x0pa.com",
-          "anant@x0pa.com",
+          "hemanth@x0pa.com",
         ];
       } else {
         console.log("PROXYING EMAIL:", email);
@@ -788,9 +783,9 @@ const sendEmailAsync = async (edata, additionalEData) => {
         // bccAddresses.push("bcc@x0pa.ai");
       }
     }
-    let emailFrom = "TMI <no-reply@x0pa.com>";
+    let emailFrom = "EMPAUWER <no-reply@x0pa.com>";
     if (!isProductionEnv) {
-      emailFrom = "TMI Internal <no-reply-internal@x0pa.ai>";
+      emailFrom = "EMPAUWER Internal <no-reply-internal@x0pa.ai>";
     }
     const fccAddresses = getValidEmails(ccAddresses);
     const ftoAddresses = getValidEmails(toAddresses);

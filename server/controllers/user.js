@@ -1,6 +1,8 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const { sendEmailAsync } = require('../utils/email');
+const { first } = require('lodash');
 
 const createUser = async (request, h) => {
   try {
@@ -30,7 +32,7 @@ const createUser = async (request, h) => {
     const userRecord = await User.findOne({ where: { email }});
     const record = userRecord && userRecord.toJSON();
     if (record) {
-      throw new Error('User already exists!');
+      throw new Error('Account with this email already exists!');
     }
     
     const hashedPassword = bcrypt.hashSync(password, 12);
@@ -147,9 +149,59 @@ const updateUser = async (request, h) => {
   }
 }
 
+const forgotPassword = async (request, h) => {
+  try{
+    const { email } = request.payload || {};
+    if (!validator.isEmail(email)) {
+      throw new Error('Invalid Email!');
+    }
+    const { User, Emailtemplates, Userinfo, Companyinfo, Emaillogs } = request.getModels('xpaxr');
+    const userRecord = await User.findOne({ where: { email }});
+    const user = userRecord && userRecord.toJSON();
+    if (!user) { throw new Error('No account found!'); }
+    const { userId } = user || {};
+
+    const emailData = {
+      email,
+      emails: [email],
+      ccEmails: [],
+      templateName: 'reset-password',
+      resetLink: 'www.x0pa.com',
+      // ownerId: 0,
+      // html: 0,
+      // text: 0,
+      // status: "active",
+      subject: "Password Reset Request for {{email}}",
+      // sendRaw: false,
+      // appId: 0,
+      // isUserTemplate: false,
+      // metaProfileId,
+      isX0PATemplate: true,
+      // sendViaNylas: false,
+    };
+
+    const additionalEData = {
+      userId,
+      Emailtemplates,
+      Userinfo,
+      Companyinfo,
+      Emaillogs,
+    };
+
+    sendEmailAsync(emailData, additionalEData);
+
+    return h.response(emailData).code(200);
+  }
+  catch(error) {
+    // console.log(error);
+    return h.response({ error: true, message: error.message }).code(400);
+  }
+}
+
 module.exports = {
   createUser,
   getUser,
-  updateUser
+  updateUser,
+  forgotPassword,
 };
 
