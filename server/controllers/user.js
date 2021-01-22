@@ -239,9 +239,12 @@ const createProfile = async (request, h) => {
     const { responses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    
+    //Ensure to overwrite userid with userid from jwt
+    for(let respond of responses){
+      respond.userId = userId
+    }
     const { Userquesresponse } = request.getModels('xpaxr');
-    const resRecord = await Userquesresponse.bulkCreate(responses);
+    const resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
 
     return h.response(resRecord).code(200);
   }
