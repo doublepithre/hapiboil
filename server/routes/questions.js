@@ -19,5 +19,4 @@ const xquestions = {
     }
   }
 };
-
 export default xquestions;
