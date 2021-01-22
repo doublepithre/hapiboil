@@ -4,6 +4,7 @@ const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 const config = require('config');
+const axios = require('axios')
 
 const createUser = async (request, h) => {
   try {
@@ -262,13 +263,37 @@ const getJobRecommendations = async (request,h) => {
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
-    console.log(config)
+    if (!isQuestionnaireDone(userId)){
+      return h.response({error:"Questionnaire Not Done"}).code(403)
+    }
     let recommendations = await axios.get(`${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
     return h.response(recommendations).code(200);
   }
   catch (error) {
     return h.response({error: true, message: error.message}).code(403);
   }
+}
+
+const isQuestionnaireDone = async(userId)=>{
+  const COMPANY_NAME = "empauwer - x0pa";
+  const { Userquesresponse,Questionnaire } = request.getModels('xpaxr');
+  let questionnaireCount = await Questionnaire.count({
+    include:[{
+        model:Company,
+        as:"Company",
+        where:{
+            companyName:COMPANY_NAME
+        },
+        required:true
+    }],
+    required:true
+  })
+
+  let responsesCount = await Userquesresponse.count({
+    where:{
+      userId
+    }});
+    return questionnaireCount === responsesCount;
 }
 
 module.exports = {
