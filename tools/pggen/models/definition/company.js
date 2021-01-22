@@ -176,15 +176,6 @@ const initRelations = (model) => {
         onUpdate: 'NO ACTION'
     });
 
-    Company.belongsToMany(Usertype, {
-        as: 'UserinfoUserTypes',
-        through: Userinfo,
-        foreignKey: 'company_uuid',
-        otherKey: 'user_type_id',
-        onDelete: 'NO ACTION',
-        onUpdate: 'NO ACTION'
-    });
-
     Company.belongsToMany(User, {
         as: 'UserinfoUserUus',
         through: Userinfo,

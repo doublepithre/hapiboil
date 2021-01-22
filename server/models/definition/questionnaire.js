@@ -97,6 +97,7 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) => {
     const Questionnaire = model.Questionnaire;
     const Questionmapping = model.Questionmapping;
+    const Userquesresponse = model.Userquesresponse;
     const Company = model.Company;
     const Userinfo = model.Userinfo;
     const Questioncategory = model.Questioncategory;
@@ -112,6 +113,13 @@ const initRelations = (model) => {
     Questionnaire.hasMany(Questionmapping, {
         as: 'EmpauwerMeFkeys',
         foreignKey: 'empauwer_me_qid',
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION'
+    });
+
+    Questionnaire.hasMany(Userquesresponse, {
+        as: 'UserquesresponsesQuestionIdFkeys',
+        foreignKey: 'question_id',
         onDelete: 'NO ACTION',
         onUpdate: 'NO ACTION'
     });
@@ -158,6 +166,15 @@ const initRelations = (model) => {
         through: Questionmapping,
         foreignKey: 'empauwer_me_qid',
         otherKey: 'empauwer_all_qid',
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION'
+    });
+
+    Questionnaire.belongsToMany(Userinfo, {
+        as: 'UserquesresponseUsers',
+        through: Userquesresponse,
+        foreignKey: 'question_id',
+        otherKey: 'user_id',
         onDelete: 'NO ACTION',
         onUpdate: 'NO ACTION'
     });

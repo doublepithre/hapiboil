@@ -210,4 +210,13 @@ const initRelations = (model) => {
         onUpdate: 'NO ACTION'
     });
 
+    Userinfo.belongsToMany(Questionnaire, {
+        as: 'UserquesresponseQuestions',
+        through: Userquesresponse,
+        foreignKey: 'user_id',
+        otherKey: 'question_id',
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION'
+    });
+
 };

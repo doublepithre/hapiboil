@@ -110,6 +110,7 @@ const initRelations = (model) => {
         onUpdate: 'NO ACTION'
     });
 
+
     User.belongsToMany(User, {
         as: 'UserinfoUsers',
         through: Userinfo,

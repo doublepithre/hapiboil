@@ -109,38 +109,11 @@ const initRelations = (model) => {
         onUpdate: 'NO ACTION'
     });
 
-    User.belongsToMany(Company, {
-        as: 'UserinfoCompanies',
-        through: Userinfo,
-        foreignKey: 'user_uuid',
-        otherKey: 'company_id',
-        onDelete: 'NO ACTION',
-        onUpdate: 'NO ACTION'
-    });
-
-    User.belongsToMany(Company, {
-        as: 'UserinfoCompanyUus',
-        through: Userinfo,
-        foreignKey: 'user_uuid',
-        otherKey: 'company_uuid',
-        onDelete: 'NO ACTION',
-        onUpdate: 'NO ACTION'
-    });
-
     User.belongsToMany(User, {
         as: 'UserinfoUsers',
         through: Userinfo,
         foreignKey: 'user_uuid',
         otherKey: 'user_id',
-        onDelete: 'NO ACTION',
-        onUpdate: 'NO ACTION'
-    });
-
-    User.belongsToMany(Usertype, {
-        as: 'UserinfoUserTypes',
-        through: Userinfo,
-        foreignKey: 'user_uuid',
-        otherKey: 'user_type_id',
         onDelete: 'NO ACTION',
         onUpdate: 'NO ACTION'
     });

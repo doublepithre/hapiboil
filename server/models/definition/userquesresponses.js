@@ -6,13 +6,19 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BIGINT,
             field: 'response_id',
             allowNull: false,
-            primaryKey: true,
             autoIncrement: true
         },
         questionId: {
             type: DataTypes.BIGINT,
             field: 'question_id',
-            allowNull: false
+            allowNull: false,
+            primaryKey: true,
+            references: {
+                model: 'questionnaire',
+                key: 'question_id'
+            },
+            onUpdate: 'NO ACTION',
+            onDelete: 'NO ACTION'
         },
         responseVal: {
             type: DataTypes.JSONB,
@@ -23,6 +29,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BIGINT,
             field: 'user_id',
             allowNull: false,
+            primaryKey: true,
             references: {
                 model: 'userinfo',
                 key: 'user_id'
@@ -53,7 +60,15 @@ module.exports = (sequelize, DataTypes) => {
 
 const initRelations = (model) => {
     const Userquesresponse = model.Userquesresponse;
+    const Questionnaire = model.Questionnaire;
     const Userinfo = model.Userinfo;
+
+    Userquesresponse.belongsTo(Questionnaire, {
+        as: 'Question',
+        foreignKey: 'question_id',
+        onDelete: 'NO ACTION',
+        onUpdate: 'NO ACTION'
+    });
 
     Userquesresponse.belongsTo(Userinfo, {
         as: 'User',

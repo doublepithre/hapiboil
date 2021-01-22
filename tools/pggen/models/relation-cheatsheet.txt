@@ -63,12 +63,14 @@ Questionnaire
 -------------
 has many          questionmapping                          as EmpauwerAllFkeys 
 has many          questionmapping                          as EmpauwerMeFkeys 
+has many          userquesresponses                        as UserquesresponsesQuestionIdFkeys 
 belongs to        company                                  as Company 
 belongs to        userinfo                                 as RelatedCreatedBy 
 belongs to        questioncategory                         as QuestionCategory 
 belongs to        questiontype                             as QuestionType 
 belongs to many   questionnaire                            as QuestionmappingEmpauwerMeQs 
 belongs to many   questionnaire                            as QuestionmappingEmpauwerAllQs 
+belongs to many   userinfo                                 as UserquesresponseUsers 
 
 
 Questionnaireanswer
@@ -112,10 +114,12 @@ belongs to        user                                     as UserUu
 belongs to many   company                                  as QuestionnaireCompanies 
 belongs to many   questioncategory                         as QuestionnaireQuestionCategories 
 belongs to many   questiontype                             as QuestionnaireQuestionTypes 
+belongs to many   questionnaire                            as UserquesresponseQuestions 
 
 
 Userquesresponse
 ----------------
+belongs to        questionnaire                            as Question 
 belongs to        userinfo                                 as User 
 
 

@@ -97,6 +97,7 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) => {
     const Questionnaire = model.Questionnaire;
     const Questionmapping = model.Questionmapping;
+    const Userquesresponse = model.Userquesresponse;
     const Company = model.Company;
     const Userinfo = model.Userinfo;
     const Questioncategory = model.Questioncategory;
