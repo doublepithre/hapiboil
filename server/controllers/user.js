@@ -253,6 +253,24 @@ const createProfile = async (request, h) => {
   }
 }
 
+//No need to pass in userid as we can get the id form the jwt
+const getJobRecommendations = async (request,h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+
+    console.log(config)
+    let recommendations = await axios.get(`${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
+    return h.response(recommendations).code(200);
+  }
+  catch (error) {
+    return h.response({error: true, message: error.message}).code(403);
+  }
+}
+
 module.exports = {
   createUser,
   getUser,
@@ -260,5 +278,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   createProfile,
+  getJobRecommendations
 };
 

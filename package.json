@@ -8,7 +8,7 @@
     "build:server": "babel server --extensions .js,.ts -d ./dist",
     "clean": "npm run build:clean && npm run test:clean",
     "dev": "set NODE_ENV=dev&&nodemon server/index.js -x \"babel-node --extensions .js,.ts\" . -e js,hbs,ts",
-    "debug":"set NODE_ENV=dev&&nodemon --inspect server/index.js -x \"babel-node --extensions .js,.ts\" . -e js,hbs,ts"
+    "debug": "set NODE_ENV=dev&&nodemon --inspect server/index.js -x \"babel-node --extensions .js,.ts\" . -e js,hbs,ts"
   },
   "license": "MIT",
   "dependencies": {

@@ -28,5 +28,9 @@
       },
       "logging": false
     }
+  },
+  "dsServer":{
+    "host":"localhost",
+    "port":8000
   }
 }
