@@ -25,7 +25,7 @@ const getQuestions = async (request,h)=>{
         })
         return h.response(questions).code(200)
     }catch(err){
-        console.log(err.stack)
+        console.error(err.stack)
     }
 
 }
