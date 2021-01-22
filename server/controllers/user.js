@@ -4,7 +4,7 @@ const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 const config = require('config');
-const { getDomainURL } = require('../utils/toolbox.js');
+import { formatQueryRes } from '../utils/index';
 
 const createUser = async (request, h) => {
   try {
@@ -237,6 +237,27 @@ const resetPassword = async (request, h) => {
   }
 }
 
+const getQuestionnaire = async (request, h) => {
+  try{
+    const db1 = request.getDb('xpaxr');
+    const sqlStmt = `select * from hris.questionnaire q
+                    inner join hris.questiontype qt on q.question_type_id = qt.question_type_id`;
+    const sequelize = db1.sequelize;
+    const responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT });
+    const questions = [];
+    for (const response of responses) {
+      const { question_id, question_name, question_config, question_type_name } = response || {};
+      const question = {question_id, question_name, question_config, 'QuestionType': { question_type_name } };
+      questions.push(question);
+    }
+    return h.response(questions).code(200);
+  }
+  catch (error) {
+    // console.log(error);
+    return h.response({error: true, message: error.message});
+  }
+}
+
 const createProfile = async (request, h) => {
   // Tasks remaining
     // Need to change code acc. to format of response received
@@ -276,5 +297,6 @@ module.exports = {
   forgotPassword,
   resetPassword,
   createProfile,
+  getQuestionnaire,
 };
 

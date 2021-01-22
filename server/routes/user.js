@@ -1,6 +1,13 @@
 import { QueryTypes } from 'sequelize';
 import { formatQueryRes } from '../utils/index';
-import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile } from "../controllers/user";
+import { 
+  createUser, 
+  getUser, 
+  updateUser, 
+  forgotPassword, 
+  resetPassword, 
+  createProfile, 
+  getQuestionnaire } from "../controllers/user";
 
 const xuser = {
   name: 'xuser',
@@ -51,6 +58,14 @@ const xuser = {
         options: {
           auth: false,
           handler: resetPassword,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getQuestionnaire',
+        options: {
+          auth: false,
+          handler: getQuestionnaire,
         },
       });
       server.route({
