@@ -1,8 +1,11 @@
 const COMPANY_NAME = "empauwer - x0pa"
 const getQuestions = async (request,h)=>{
     try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+          }
         const {Questionnaire,Questiontype,Company} = request.getModels('xpaxr');
-        let x =  await Questionnaire.findAll({
+        let questions =  await Questionnaire.findAll({
             include:[{
                 model:Questiontype,
                 as:"QuestionType",
@@ -20,7 +23,7 @@ const getQuestions = async (request,h)=>{
             attributes:["question_id","question_name","question_config"],
             required:true
         })
-        return x
+        return h.response(questions).code(200)
     }catch(err){
         console.log(err.stack)
     }

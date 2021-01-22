@@ -9,7 +9,9 @@ const xquestions = {
         method: 'GET',
         path: '/',
         options: {
-          auth: false,
+          auth: {
+            mode: 'try',
+          },
           handler: getQuestions,
         },
       });

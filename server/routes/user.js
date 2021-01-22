@@ -8,7 +8,6 @@ const xuser = {
   
   register: async (server, options) => {
     try {
-      await server.register(require('./xjwt'));
       server.route({
         method: 'POST',
         path: '/',
