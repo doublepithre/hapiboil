@@ -14,7 +14,8 @@ const getQuestions = async (request,h)=>{
                 attributes:[],
                 where:{
                     companyName:COMPANY_NAME
-                }
+                },
+                required:true
             }],
             attributes:["question_id","question_name","question_config"],
             required:true
