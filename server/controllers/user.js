@@ -3,8 +3,6 @@ const bcrypt = require('bcrypt');
 const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
-const config = require('config');
-import { formatQueryRes } from '../utils/index';
 
 const createUser = async (request, h) => {
   try {
@@ -262,28 +260,20 @@ const getQuestionnaire = async (request, h) => {
 }
 
 const createProfile = async (request, h) => {
-  // Tasks remaining
-    // Need to change code acc. to format of response received
   try{
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { responses: receivedResponses } = request.payload || {};
+    const { responses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
-    let responses = [];
-    let record = {};
-    
-    for (const key of Object.keys(receivedResponses)) {
-      record['question_id'] = key;
-      record['response_val'] = receivedResponses[key];
-      record['user_id'] = userId;
-      responses.push(record);
-    }
-    responses = JSON.stringify(responses);
-    console.log(responses);
     const { Userquesresponse } = request.getModels('xpaxr');
+    for (const response of responses) {
+      const { responseVal } = response || {};
+      response['responseVal'] = `{answer: ${responseVal}}`;
+      response['userId'] = userId; 
+    }
     const resRecord = await Userquesresponse.bulkCreate(responses);
 
     return h.response(resRecord).code(200);
