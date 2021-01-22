@@ -205,8 +205,6 @@ const forgotPassword = async (request, h) => {
 }
 
 const resetPassword = async (request, h) => {
-  // Tasks remaining
-    // Before resetting, need to check expiry of requestKey once that column added in table.
   try {
     const { requestKey } = request.params || {};
     const { password1, password2 } = request.payload || {};
@@ -218,10 +216,12 @@ const resetPassword = async (request, h) => {
     
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
-    if (!requestToken) { throw new Error('Bad Request! URL might be expired'); }
+    if (!requestToken) { throw new Error('Bad Request!'); }
 
     const { expiresAt } = requestToken || {};
-    if (expiresAt - new Date() < 0) { throw new Error('Bad Request! URL might be expired'); }   // Token expired!
+    var now = new Date();
+    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    if (expiresAt - utcNow < 0) { throw new Error('Bad Request! URL expired'); }   // Token expired!
     const { userId } = requestToken || {};
 
     const userRecord = await User.findOne({ where: { userId }});
