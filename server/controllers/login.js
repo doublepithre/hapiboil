@@ -10,7 +10,7 @@ const loginUser = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     // console.log('request.payload', request.payload);
-    const { User, Userinfo, Accesstoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
     const { email, password } = request.payload || {};
 
     if ( !(email && password) ) {
@@ -28,7 +28,7 @@ const loginUser = async (request, h) => {
 
     const udata = await User.findAll({
         where: {
-            email
+          email
         },
         attributes: ['email', 'password', 'user_id']
     });
@@ -68,13 +68,19 @@ const loginUser = async (request, h) => {
     } = userInfoRes || {};
     const token = await jwt.sign({userUuid, userTypeId, email: userEmail, roleId, active, companyId, companyUuid, firstName, lastName, isAdmin, tzid, primaryMobile}, config.get('jwtSecret'), {expiresIn: '24h'});
 
+    const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
+    const userRoleRecord = await Userrole.findOne({ where: { roleId }});
+    const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
+    const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+    userInfoRes.userTypeName = userTypeName;
+    userInfoRes.roleName = roleName;
+
     const tokendata = await Accesstoken.create({
         token,
         userId: Number(user.user_id),
         isValid: true
     });
 
-    const payload = await jwt.verify(token, config.get('jwtSecret'));
     return h.response({user: userInfoRes, token});
   } 
   catch (error) {

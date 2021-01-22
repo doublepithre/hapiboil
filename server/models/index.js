@@ -27,6 +27,10 @@ function init(sequelize) {
     model.Userrole = sequelize.import('./definition/userrole.js');
     model.Usertype = sequelize.import('./definition/usertype.js');
     model.Accesstoken = sequelize.import('./definitions/accesstoken.js');
+    model.Companyinfo = sequelize.import('./definitions/companyinfo.js');
+    model.Emaillogs = sequelize.import('./definitions/emaillogs.js');
+    model.Emailtemplates = sequelize.import('./definition/emailtemplates.js');
+    model.Requesttoken = sequelize.import('./definition/requesttoken.js');
 
     // All models are initialized. Now connect them with relations.
     require('./definition/attributeset.js').initRelations();
@@ -45,6 +49,10 @@ function init(sequelize) {
     require('./definition/userrole.js').initRelations();
     require('./definition/usertype.js').initRelations();
     require('./definition/accesstoken.js').initRelations();
+    require('./definition/companyinfo.js').initRelations();
+    require('./definition/emaillogs.js').initRelations();
+    require('./definition/emailtemplates.js').initRelations();
+    require('./definition/requesttoken.js').initRelations();
     return model;
 }
 

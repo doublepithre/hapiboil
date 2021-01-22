@@ -1,6 +1,9 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const { sendEmailAsync } = require('../utils/email');
+const randtoken = require('rand-token');
+const config = require('config');
 
 const createUser = async (request, h) => {
   try {
@@ -30,7 +33,7 @@ const createUser = async (request, h) => {
     const userRecord = await User.findOne({ where: { email }});
     const record = userRecord && userRecord.toJSON();
     if (record) {
-      throw new Error('User already exists!');
+      throw new Error('Account with this email already exists!');
     }
     
     const hashedPassword = bcrypt.hashSync(password, 12);
@@ -147,9 +150,112 @@ const updateUser = async (request, h) => {
   }
 }
 
+const forgotPassword = async (request, h) => {
+  try{
+    const { email } = request.payload || {};
+    if (!validator.isEmail(email)) { throw new Error('Invalid Email!'); }
+
+    const { User, Emailtemplates, Userinfo, Companyinfo, Emaillogs, Requesttoken } = request.getModels('xpaxr');
+    const userRecord = await User.findOne({ where: { email }});
+    const user = userRecord && userRecord.toJSON();
+    if (!user) { throw new Error('No account found!'); }
+    const { userId } = user || {};
+
+    const token = randtoken.generate(16);
+    const reqTokenRecord = await Requesttoken.create({ 
+      requestKey: token, 
+      userId, 
+      resourceType: 'user', 
+      actionType: 'reset-password'
+    });
+    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
+
+    let resetLink = config.get('resetLink');
+    resetLink += `/${token}`;
+
+    const emailData = {
+      email,
+      emails: [email],
+      ccEmails: [],
+      templateName: 'reset-password',
+      resetLink,
+      subject: "Password Reset Request for {{email}}",
+      isX0PATemplate: true,
+    };
+
+    const additionalEData = {
+      userId,
+      Emailtemplates,
+      Userinfo,
+      Companyinfo,
+      Emaillogs,
+    };
+    sendEmailAsync(emailData, additionalEData);
+    return h.response(reqToken).code(200);
+  }
+  catch(error) {
+    return h.response({ error: true, message: error.message }).code(400);
+  }
+}
+
+const resetPassword = async (request, h) => {
+  // Tasks remaining
+    // Before resetting, need to check expiry of requestKey once that column added in table.
+  try {
+    const { requestKey } = request.params || {};
+    const { password1, password2 } = request.payload || {};
+    
+    if (requestKey.length !== 16) { throw new Error('Invalid URL!'); }  // Token length is 16.
+    if (password1 !== password2) { throw new Error('Passwords are not matching!'); }
+    
+    const { User, Requesttoken } = request.getModels('xpaxr');
+    
+    const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
+    const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
+    if (!requestToken) { throw new Error('Bad Request! URL might be expired'); }
+    const { userId } = requestToken || {};
+
+    const userRecord = await User.findOne({ where: { userId }});
+    const user = userRecord && userRecord.toJSON();
+    if (!user) { throw new Error('Invalid URL!')};
+    const hashedPassword = bcrypt.hashSync(password1, 12);
+    await User.update({ password: hashedPassword }, { where: { userId }});
+
+    return h.response({message: 'Password updation successful'}).code(200);
+  }
+  catch (error) {
+    console.log(error);
+    return h.response({error: true, message: error.message});
+  }
+}
+
+const createProfile = async (request, h) => {
+  // Tasks remaining
+    // Need to change code acc. to format of response received
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { responses } = request.payload || {};
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    
+    const { Userquesresponse } = request.getModels('xpaxr');
+    const resRecord = await Userquesresponse.bulkCreate(responses);
+
+    return h.response(resRecord).code(200);
+  }
+  catch (error) {
+    return h.response({error: true, message: error.message}).code(403);
+  }
+}
+
 module.exports = {
   createUser,
   getUser,
-  updateUser
+  updateUser,
+  forgotPassword,
+  resetPassword,
+  createProfile,
 };
 

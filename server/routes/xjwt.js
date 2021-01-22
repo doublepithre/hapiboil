@@ -14,7 +14,7 @@ const xjwt = {
                 const {authorization: token} = request.headers || {};
                 const db1 = request.getDb('xpaxr');
                 const sqlStmt = `select * from hris.accesstoken ato
-                        inner join hris.userinfo ui on ato.user_id=ui.user_id where ato.token= :token`;
+                        inner join hris.userinfo ui on ato.user_id=ui.user_id where ato.token= :token and is_valid=true`;
                 const sequelize = db1.sequelize;
                 const ares = await sequelize.query(sqlStmt, {
                         type: QueryTypes.SELECT,
