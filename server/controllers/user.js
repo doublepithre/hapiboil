@@ -176,8 +176,7 @@ const forgotPassword = async (request, h) => {
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
-    let resetLink = getDomainURL();
-    resetLink += `/em/api/v1/account/resetPassword/${token}`;
+    let resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
     const emailData = {
       email,
