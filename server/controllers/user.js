@@ -4,6 +4,7 @@ const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 const config = require('config');
+const { getDomainURL } = require('../utils/toolbox.js');
 
 const createUser = async (request, h) => {
   try {
@@ -161,17 +162,22 @@ const forgotPassword = async (request, h) => {
     if (!user) { throw new Error('No account found!'); }
     const { userId } = user || {};
 
-    const token = randtoken.generate(16);
+    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+    const expiresInHrs = 1;                             // Specifying expiry time in hrs
+    let expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
     const reqTokenRecord = await Requesttoken.create({ 
       requestKey: token, 
-      userId, 
+      userId,
+      expiresAt,
       resourceType: 'user', 
       actionType: 'reset-password'
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
-    let resetLink = config.get('resetLink');
-    resetLink += `/${token}`;
+    let resetLink = getDomainURL();
+    resetLink += `/em/api/v1/account/forgotPassword/${token}`;
 
     const emailData = {
       email,
@@ -236,10 +242,21 @@ const createProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { responses } = request.payload || {};
+    const { responses: receivedResponses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
+
+    let responses = [];
+    let record = {};
     
+    for (const key of Object.keys(receivedResponses)) {
+      record['question_id'] = key;
+      record['response_val'] = receivedResponses[key];
+      record['user_id'] = userId;
+      responses.push(record);
+    }
+    responses = JSON.stringify(responses);
+    console.log(responses);
     const { Userquesresponse } = request.getModels('xpaxr');
     const resRecord = await Userquesresponse.bulkCreate(responses);
 

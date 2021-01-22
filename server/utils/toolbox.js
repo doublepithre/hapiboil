@@ -5,8 +5,8 @@ const moment = require('moment');
 const { btoa } = require('b2a');
 
 const DEV_URL = 'http://localhost:4545';
-const STAGING_URL = 'https://staging.x0pa.ai';
-const PRODUCTION_URL = 'https://live.x0pa.ai';
+const STAGING_URL = 'https://empstag.x0pa.ai';
+const PRODUCTION_URL = 'https://empauwer.x0pa.ai';
 const LAMBDA_API_KEY =  '1f31903d-7885-4237-a5d7-fb7228e279d2';
 const CRONOFY_API_KEY = '6a1535ff-2dbb-6432-8f61-5dfd714346be';
 const DYNAMICS_API_KEY ='XSQlB6I2-A7A3-9CgF-ZWU1-whttzYulqd0Q';

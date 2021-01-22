@@ -5,6 +5,7 @@ module.exports = (sequelize, DataTypes) => {
         requestId: {
             type: DataTypes.BIGINT,
             field: 'request_id',
+            allowNull: false,
             primaryKey: true,
             autoIncrement: true
         },
@@ -12,6 +13,11 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.STRING,
             field: 'request_key',
             allowNull: false
+        },
+        expiresAt: {
+            type: DataTypes.DATE,
+            field: 'expires_at',
+            allowNull: true
         },
         userId: {
             type: DataTypes.BIGINT,
