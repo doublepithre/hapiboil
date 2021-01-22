@@ -262,8 +262,8 @@ const getJobRecommendations = async (request,h) => {
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-
-    if (!isQuestionnaireDone(userId)){
+    let model = request.getModels('xpaxr');
+    if (!await isQuestionnaireDone(userId,model)){
       return h.response({error:"Questionnaire Not Done"}).code(403)
     }
     let recommendations = await axios.get(`${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
@@ -274,9 +274,9 @@ const getJobRecommendations = async (request,h) => {
   }
 }
 
-const isQuestionnaireDone = async(userId)=>{
+const isQuestionnaireDone = async(userId,model)=>{
+  const { Userquesresponse,Questionnaire,Company } = model
   const COMPANY_NAME = "empauwer - x0pa";
-  const { Userquesresponse,Questionnaire } = request.getModels('xpaxr');
   let questionnaireCount = await Questionnaire.count({
     include:[{
         model:Company,
