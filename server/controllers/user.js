@@ -239,6 +239,9 @@ const resetPassword = async (request, h) => {
 
 const getQuestionnaire = async (request, h) => {
   try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select * from hris.questionnaire q
                     inner join hris.questiontype qt on q.question_type_id = qt.question_type_id`;

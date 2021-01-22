@@ -64,7 +64,9 @@ const xuser = {
         method: 'GET',
         path: '/getQuestionnaire',
         options: {
-          auth: false,
+          auth: {
+            mode: 'try',
+          },
           handler: getQuestionnaire,
         },
       });
