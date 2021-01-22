@@ -177,7 +177,7 @@ const forgotPassword = async (request, h) => {
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/em/api/v1/account/forgotPassword/${token}`;
+    resetLink += `/em/api/v1/account/resetPassword/${token}`;
 
     const emailData = {
       email,
@@ -219,18 +219,21 @@ const resetPassword = async (request, h) => {
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
     if (!requestToken) { throw new Error('Bad Request! URL might be expired'); }
+
+    const { expiresAt } = requestToken || {};
+    if (expiresAt - new Date() < 0) { throw new Error('Bad Request! URL might be expired'); }   // Token expired!
     const { userId } = requestToken || {};
 
     const userRecord = await User.findOne({ where: { userId }});
     const user = userRecord && userRecord.toJSON();
     if (!user) { throw new Error('Invalid URL!')};
-    const hashedPassword = bcrypt.hashSync(password1, 12);
+    const hashedPassword = bcrypt.hashSync(password1, 12);        // Setting salt to 12.
     await User.update({ password: hashedPassword }, { where: { userId }});
 
     return h.response({message: 'Password updation successful'}).code(200);
   }
   catch (error) {
-    console.log(error);
+    // console.log(error);
     return h.response({error: true, message: error.message});
   }
 }
