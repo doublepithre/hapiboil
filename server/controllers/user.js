@@ -5,6 +5,7 @@ const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 const config = require('config');
 const axios = require('axios')
+import jobInfo from '../utils/jobUtils'
 
 const createUser = async (request, h) => {
   try {
@@ -267,6 +268,9 @@ const getJobRecommendations = async (request,h) => {
       return h.response({error:"Questionnaire Not Done"}).code(403)
     }
     let recommendations = await axios.get(`${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
+    recommendations = recommendations["recommendations"]//this will be  sorted array of {job_id,score}
+    let jobIds = recommendations.map(x=>x["job_id"])
+    let jobInfo = jobUtils.getJobInfo(jobIds)
     return h.response(recommendations).code(200);
   }
   catch (error) {
