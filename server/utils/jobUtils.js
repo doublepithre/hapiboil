@@ -26,7 +26,7 @@ const getJobInfos = async(jobIds,model,cache) =>{
             j++;
         }
     }
-
+    return jobInfos;
 }
 
 /**
