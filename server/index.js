@@ -28,7 +28,7 @@ const init = async () => {
     const instances = require('hapi-sequelizejs').instances;
     const dbs = instances.dbs;
     await jobUtils.initJobsCache(dbs.xpaxr.models.Job,jobCache)
-
+    server.app.jobCache = jobCache
     console.log('Server running');
   } catch (error) {
     console.error(error);

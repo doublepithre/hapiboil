@@ -69,7 +69,10 @@ const xuser = {
           auth: {
             mode: 'try',
           },
-          handler: getJobRecommendations,
+          handler: async(request,h)=>{
+
+            getJobRecommendations(request,h,server.app.jobCache)
+          }
         },
       });
     } 
