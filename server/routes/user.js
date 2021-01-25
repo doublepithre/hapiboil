@@ -7,7 +7,10 @@ import {
   forgotPassword, 
   resetPassword, 
   createProfile, 
-  getQuestionnaire } from "../controllers/user";
+  getQuestionnaire,
+  applyToAJob,
+  getAppliedJobs,
+ } from "../controllers/user";
 
 const xuser = {
   name: 'xuser',
@@ -78,6 +81,26 @@ const xuser = {
             mode: 'try',
           },
           handler: createProfile,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/applyToAJob',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: applyToAJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getAppliedJobs',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAppliedJobs,
         },
       });
     } 

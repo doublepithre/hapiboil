@@ -6,13 +6,13 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BIGINT,
             field: 'response_id',
             allowNull: false,
-            primaryKey: true,
             autoIncrement: true
         },
         questionId: {
             type: DataTypes.BIGINT,
             field: 'question_id',
-            allowNull: false
+            allowNull: false,
+            primaryKey: true
         },
         responseVal: {
             type: DataTypes.JSONB,
@@ -23,6 +23,7 @@ module.exports = (sequelize, DataTypes) => {
             type: DataTypes.BIGINT,
             field: 'job_id',
             allowNull: false,
+            primaryKey: true,
             references: {
                 model: 'jobs',
                 key: 'job_id'
