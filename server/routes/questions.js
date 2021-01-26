@@ -7,12 +7,26 @@ const xquestions = {
     try {
       server.route({
         method: 'GET',
-        path: '/',
+        path: '/empauwerme',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: getQuestions,
+          handler: async(request,h)=>{
+            return await getQuestions(request,h,"empauwer - x0pa")
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/empauwerall',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            return await getQuestions(request,h,"empauwer all - x0pa")
+          },
         },
       });
     } 
