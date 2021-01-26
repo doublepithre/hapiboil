@@ -9,7 +9,6 @@ import {
   getProfile,
   createProfile, 
   getQuestionnaire,
-  createAJob,
   getAppliedJobs,
  } from "../controllers/user";
 
@@ -66,12 +65,26 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/getQuestionnaire',
+        path: '/empauwerMe',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: getQuestionnaire,
+          handler: async (request, h) => {
+            return await getQuestionnaire(request, h, 'empauwer - x0pa')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/empauwerAll',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getQuestionnaire(request, h, 'empauwer all - x0pa')
+          },
         },
       });
       server.route({
@@ -92,16 +105,6 @@ const xuser = {
             mode: 'try',
           },
           handler: createProfile,
-        },
-      });
-      server.route({
-        method: 'POST',
-        path: '/createAJob',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: createAJob,
         },
       });
       server.route({

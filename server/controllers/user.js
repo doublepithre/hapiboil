@@ -237,25 +237,14 @@ const resetPassword = async (request, h) => {
   }
 }
 
-const getQuestionnaire = async (request, h) => {
+const getQuestionnaire = async (request, h, companyName) => {
   try{
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
     const db1 = request.getDb('xpaxr');
-    let sqlStmt = `select * from hris.userinfo ui
-                    inner join hris.usertype ut on ui.user_type_id = ut.user_type_id 
-                    where ui.user_id= :userId`;
     const sequelize = db1.sequelize;
-    const ares = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId: userId } });
-    const user = formatQueryRes(ares);
-    const { userTypeName } = user || {};
-    let companyName = '';
-    if (userTypeName === 'candidate') { companyName = "empauwer - x0pa"; }
-    else if (userTypeName === 'employer') { companyName = "empauwer all - x0pa"; }
-    sqlStmt = `select * from hris.company c
+    const sqlStmt = `select * from hris.company c
                 inner join hris.questionnaire q on c.company_id = q.company_id
                 inner join hris.questiontype qt on q.question_type_id = qt.question_type_id
                 where c.company_name= :companyName`;
@@ -342,43 +331,6 @@ const createProfile = async (request, h) => {
   }
 }
 
-const createAJob = async (request, h) => {
-  try {
-    // Need to check whether we allow to modify once applied to a job.
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden'}).code(403);
-    }
-    const { jobDetails, questionResponses } = request.payload || {};
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    jobDetails['creatorId'] = userId;
-
-    console.log('--jd--', jobDetails);
-    const { Job, Jobsquesresponse } = request.getModels('xpaxr');
-    const resRecord = await Job.create(jobDetails);
-    const job = resRecord && resRecord.toJSON();
-    console.log("--jjob--", job);
-    const { jobId } = job || {};
-    const responses = []
-    for (res of questionResponses) {
-      const { questionId, answer } = res;
-      const response = {
-        questionId,
-        responseVal: {'answer': responseVal},
-        jobId
-      }
-      responses.push(response);
-    }
-    const jobquestionsRecord = await Jobsquesresponse.bulkCreate(responses,{updateOnDuplicate:["questionId","responseVal"]});
-
-    return h.response({ job, jobquestionsRecord}).code(200);
-  }
-  catch (error) {
-    // console.log(error);
-    return h.response({error: true, message: error.message}).code(403);
-  }
-}
-
 const getAppliedJobs = async (request, h) => {
   // Check the requirement
     // All applied jobs? withdrawn jobs? status wise?
@@ -412,7 +364,6 @@ module.exports = {
   getProfile,
   createProfile,
   getQuestionnaire,
-  createAJob,
   getAppliedJobs,
 };
 
