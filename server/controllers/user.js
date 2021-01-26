@@ -242,11 +242,24 @@ const getQuestionnaire = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
     const db1 = request.getDb('xpaxr');
-    const sqlStmt = `select * from hris.questionnaire q
-                    inner join hris.questiontype qt on q.question_type_id = qt.question_type_id`;
+    let sqlStmt = `select * from hris.userinfo ui
+                    inner join hris.usertype ut on ui.user_type_id = ut.user_type_id 
+                    where ui.user_id= :userId`;
     const sequelize = db1.sequelize;
-    const responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT });
+    const ares = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId: userId } });
+    const user = formatQueryRes(ares);
+    const { userTypeName } = user || {};
+    let companyName = '';
+    if (userTypeName === 'candidate') { companyName = "empauwer - x0pa"; }
+    else if (userTypeName === 'employer') { companyName = "empauwer all - x0pa"; }
+    sqlStmt = `select * from hris.company c
+                inner join hris.questionnaire q on c.company_id = q.company_id
+                inner join hris.questiontype qt on q.question_type_id = qt.question_type_id
+                where c.company_name= :companyName`;
+    const responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { companyName } });
     const questions = [];
     for (const response of responses) {
       const { question_id, question_name, question_config, question_type_name } = response || {};
@@ -282,19 +295,20 @@ const createProfile = async (request, h) => {
     const user = formatQueryRes(ares);
     const { userTypeName } = user || {};
 
+    let resRecord;
     if (userTypeName === 'candidate') {
       for (const response of responses) {
         const { responseVal } = response || {};
         response['responseVal'] = {'answer': responseVal};
         response['userId'] = userId; 
       }
-      const resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
+      resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
     } else if ( userTypeName === 'employer') {
       // For Employer profile creation
     } else if ( userTypeName === 'mentor') {
-      // For Mentory profile creation
+      // For Mentor profile creation
     } else {
-      throw new Error('Request from invalid response');
+      throw new Error('Invalid request!');
     }
 
     return h.response(resRecord).code(200);
@@ -304,44 +318,25 @@ const createProfile = async (request, h) => {
   }
 }
 
-const applyToAJob = async (request, h) => {
+const createAJob = async (request, h) => {
   try {
     // Need to check whether we allow to modify once applied to a job.
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden'}).code(403);
     }
-    const { responses } = request.payload || {};
+    const { response } = request.payload || {};
+    const { questionResponse } = response || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    if (!responses || responses.length == 0) { throw new Error('No responses received!'); }
-    
-    let _jobId;
-    for (const response of responses) {
-      const { responseVal, jobId } = response || {};
-      response['responseVal'] = {'answer': responseVal};
-      response['jobId'] = jobId;
-      _jobId = jobId;
-    }
 
-    const { Jobsquesresponse, Jobapplications } = request.getModels('xpaxr');
-    // Check if they've already applied for the job.
-    const applicationRecord = await Jobapplications.findOne({ where: { userId, jobId: _jobId}});
-    const application = applicationRecord && applicationRecord.toJSON();
-    if (application) { throw new Error("You've already applied for this job!"); }
+    // const { Jobsquesresponse } = request.getModels('xpaxr');
+    // const resRecord = await Jobsquesresponse.create(responses);
 
-    const resRecord = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate: ['responseVal']});
-    const applicationRes = await Jobapplications.upsert({
-      jobId: _jobId,
-      userId,
-      isApplied: true,
-      isWithdrawn: false,
-      status: null
-    });
-    return h.response({resRecord, applicationRes}).code(200);
+    return h.response({ response, questionResponse }).code(200);
   }
   catch (error) {
     // console.log(error);
-    return h.response({error: true, message: error.message});
+    return h.response({error: true, message: error.message}).code(403);
   }
 }
 
@@ -349,12 +344,19 @@ const getAppliedJobs = async (request, h) => {
   // Check the requirement
     // All applied jobs? withdrawn jobs? status wise?
   try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    
-    const { Jobapplications } = request.getModels('xpaxr');
-    const applicationRecords = await Jobapplications.findAll( {where: { userId, isWithdrawn: false }});
-    return h.response({ appliedJobs: applicationRecords }).code(200);
+
+    const db1 = request.getDb('xpaxr');
+    const sqlStmt = `select * from hris.jobapplications ja
+                    inner join hris.jobs j on ja.job_id = j.job_id 
+                    where ja.user_id= :userId`;
+    const sequelize = db1.sequelize;
+    const jobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId: userId } });
+    return h.response({ appliedJobs: jobs }).code(200);
   }
   catch (error) {
     // console.log(error);
@@ -370,7 +372,7 @@ module.exports = {
   resetPassword,
   createProfile,
   getQuestionnaire,
-  applyToAJob,
+  // applyToAJob,
   getAppliedJobs,
 };
 
