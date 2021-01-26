@@ -80,8 +80,13 @@ const xuser = {
             mode: 'try',
           },
           handler: async(request,h)=>{
-
-            getJobRecommendations(request,h,server.app.jobCache)
+            try{
+              return await getJobRecommendations(request,h,server.app.jobCache)
+            }catch(err){
+              console.error(err.stack)
+              return h.response({"message":"Internal Server Error"}).code(500)
+            }
+            
           }
         },
       });

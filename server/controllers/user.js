@@ -5,7 +5,8 @@ const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 const config = require('config');
 const axios = require('axios')
-import jobInfo from '../utils/jobUtils'
+import { CostExplorer } from 'aws-sdk';
+import jobUtils from '../utils/jobUtils'
 
 const createUser = async (request, h) => {
   try {
@@ -287,26 +288,23 @@ const createJobProfile = async (request, h) => {
 }
 
 //No need to pass in userid as we can get the id form the jwt
-const getJobRecommendations = async (request,h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    let model = request.getModels('xpaxr');
-    if (!await isQuestionnaireDone(userId,model)){
-      return h.response({error:"Questionnaire Not Done"}).code(403)
-    }
-    let recommendations = await axios.get(`${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
-    recommendations = recommendations["recommendations"]//this will be  sorted array of {job_id,score}
-    let jobIds = recommendations.map(x=>x["job_id"])
-    let jobInfo = jobUtils.getJobInfo(jobIds)
-    return h.response(recommendations).code(200);
+const getJobRecommendations = async (request,h,jobCache) => {
+  if (!request.auth.isAuthenticated) {
+    return h.response({ message: 'Forbidden' }).code(403);
   }
-  catch (error) {
-    return h.response({error: true, message: error.message}).code(403);
+  const { credentials } = request.auth || {};
+  const { id: userId } = credentials || {};
+  let model = request.getModels('xpaxr');
+  if (!await isQuestionnaireDone(userId,model)){
+    return h.response({error:"Questionnaire Not Done"}).code(403)
   }
+  let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
+  recommendations = recommendations.data["recommendation"]//this will be  sorted array of {job_id,score}
+  let jobIds = recommendations.map(x=>{
+    return x["jobId"]
+  })
+  let jobInfo = await jobUtils.getJobInfos(jobIds,model.Job,jobCache);
+  return h.response(jobInfo).code(200);
 }
 
 const createJob = async (request, h) => {

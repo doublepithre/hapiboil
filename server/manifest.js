@@ -1,6 +1,7 @@
 import Sequelize from 'sequelize';
 const apiRootPrefix = '/em/api/v1';
 const config = require('config');
+const CatBoxMemory = require("@hapi/catbox-memory")
 
 const sequelizeInstance = new Sequelize('canopus', null, null, {
   replication: config.get('replication'),
@@ -11,6 +12,12 @@ const sequelizeInstance = new Sequelize('canopus', null, null, {
 const manifest = {
   server: {
     port: config.get('port'),
+    cache : [{
+      name: 'memoryCache',
+      provider: {
+        constructor: CatBoxMemory,
+      }
+  }],
   },
   register: {
     plugins: [

@@ -2,10 +2,14 @@
  * Use Cache to get all jobs from database
  */
 const getJobInfos = async(jobIds,model,cache) =>{
-    jobinfos = jobIds.map(jobid=>{
-        return cache.get(jobid);
-    });
-    jobInfos = await Promise.alls(jobInfos)
+    let jobInfos = []
+    for(let jobId of jobIds){
+        let key = {
+            segment:"jobCache",
+            id:jobId.toString()
+        }
+        jobInfos.push(await cache.get(key))
+    }
     let cacheMiss = []
     for(let i=0;i<jobIds.length;i++){
         if (!jobInfos[i]){
@@ -16,13 +20,17 @@ const getJobInfos = async(jobIds,model,cache) =>{
     let missedJobInfos = await model.findAll({where:{jobId:cacheMiss}});
     //populate cache
     for(let jobInfo in missedJobInfos){
-        cache.set(jobInfo.jobId,jobInfo)//no need await here
+        let key = {
+            segment:"jobCache",
+            id:jobInfo.jobId.toString()
+        }
+        cache.set(key,jobInfo)//no need await here
     }
     //fill in job infos to return 
     let j = 0;
     for(let i=0;i<jobIds.length;i++){
         if (!jobInfos[i]){
-            jobInfos[i] = missedJobInfo[j];
+            jobInfos[i] = missedJobInfos[j];
             j++;
         }
     }
@@ -36,7 +44,11 @@ const initJobsCache = async(model,cache)=>{
     let jobInfos = await model.findAll();
     let promiseArr = []
     for(let jobInfo of jobInfos){
-        promiseArr.push(cache.set(jobInfo.jobId,jobInfo));
+        let key = {
+            segment:"jobCache",
+            id:jobInfo.jobId.toString()
+        }
+        promiseArr.push(cache.set(key,jobInfo));
     }
     await Promise.all(promiseArr);
 }
