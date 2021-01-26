@@ -274,6 +274,30 @@ const getQuestionnaire = async (request, h) => {
   }
 }
 
+const getProfile = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { Userquesresponse } = request.getModels('xpaxr');
+    const quesResponses = await Userquesresponse.findAll({ where: { userId }});
+    const responses = [];
+    for (let response of quesResponses) {
+      response = response && response.toJSON();
+      const { questionId, responseVal } = response;
+      const res = { questionId, responseVal };
+      responses.push(res);
+    }
+    return h.response(responses).code(200);
+  }
+  catch (error) {
+    // console.error(error);
+    return h.response({error: true, message: error.message}).code(403);
+  }
+}
+
 const createProfile = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -282,7 +306,6 @@ const createProfile = async (request, h) => {
     const { responses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    if (!responses || responses.length == 0) { throw new Error('Please provide responses'); }
 
     const { Userinfo, Userquesresponse } = request.getModels('xpaxr');
     // Checking user type
@@ -295,14 +318,14 @@ const createProfile = async (request, h) => {
     const user = formatQueryRes(ares);
     const { userTypeName } = user || {};
 
-    let resRecord;
+    
+    let data = []
     if (userTypeName === 'candidate') {
       for (const response of responses) {
-        const { responseVal } = response || {};
-        response['responseVal'] = {'answer': responseVal};
-        response['userId'] = userId; 
+        const { questionId, responseVal } = response || {};
+        const record = { questionId, responseVal, userId }
+        data.push(record);
       }
-      resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
     } else if ( userTypeName === 'employer') {
       // For Employer profile creation
     } else if ( userTypeName === 'mentor') {
@@ -310,7 +333,8 @@ const createProfile = async (request, h) => {
     } else {
       throw new Error('Invalid request!');
     }
-
+    
+    const resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
     return h.response(resRecord).code(200);
   }
   catch (error) {
@@ -324,15 +348,30 @@ const createAJob = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden'}).code(403);
     }
-    const { response } = request.payload || {};
-    const { questionResponse } = response || {};
+    const { jobDetails, questionResponses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
+    jobDetails['creatorId'] = userId;
 
-    // const { Jobsquesresponse } = request.getModels('xpaxr');
-    // const resRecord = await Jobsquesresponse.create(responses);
+    console.log('--jd--', jobDetails);
+    const { Job, Jobsquesresponse } = request.getModels('xpaxr');
+    const resRecord = await Job.create(jobDetails);
+    const job = resRecord && resRecord.toJSON();
+    console.log("--jjob--", job);
+    const { jobId } = job || {};
+    const responses = []
+    for (res of questionResponses) {
+      const { questionId, answer } = res;
+      const response = {
+        questionId,
+        responseVal: {'answer': responseVal},
+        jobId
+      }
+      responses.push(response);
+    }
+    const jobquestionsRecord = await Jobsquesresponse.bulkCreate(responses,{updateOnDuplicate:["questionId","responseVal"]});
 
-    return h.response({ response, questionResponse }).code(200);
+    return h.response({ job, jobquestionsRecord}).code(200);
   }
   catch (error) {
     // console.log(error);
@@ -370,9 +409,10 @@ module.exports = {
   updateUser,
   forgotPassword,
   resetPassword,
+  getProfile,
   createProfile,
   getQuestionnaire,
-  // applyToAJob,
+  createAJob,
   getAppliedJobs,
 };
 
