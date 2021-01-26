@@ -238,6 +238,10 @@ const createProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    let userTypeId = request.auth.artifacts.decoded.userTypeId
+    if (userTypeId!==1){
+      return h.response({message:"Not an candidate"}).code(403)
+    }
     const { responses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -278,6 +282,29 @@ const getJobRecommendations = async (request,h) => {
   }
 }
 
+const createJob = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // check if userid is of employer datatype
+    let userTypeId = request.auth.artifacts.decoded.userTypeId
+    if (userTypeId!==2){
+      return h.response({message:"Not an employer"}).code(403)
+    }
+    const jobsInfo = request.payload || {};
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { Job } = request.getModels('xpaxr');
+    const [record, created] = await Job.upsert(jobsInfo,{ returning: true } );
+
+    return h.response(record).code(200);
+  }
+  catch (error) {
+    return h.response({error: true, message: error.message}).code(403);
+  }
+}
+
 const isQuestionnaireDone = async(userId,model)=>{
   const { Userquesresponse,Questionnaire,Company } = model
   const COMPANY_NAME = "empauwer - x0pa";
@@ -307,6 +334,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   createProfile,
-  getJobRecommendations
+  getJobRecommendations,
+  createJob
 };
 

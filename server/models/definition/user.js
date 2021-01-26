@@ -55,7 +55,7 @@ const initRelations = (model) => {
 
     User.hasMany(Job, {
         as: 'CreatorIdFkeys',
-        foreignKey: 'creator_id',
+        foreignKey: 'user_id',
         onDelete: 'NO ACTION',
         onUpdate: 'NO ACTION'
     });

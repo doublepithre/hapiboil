@@ -2,7 +2,7 @@ const getQuestions = async (request,h,company_name)=>{
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden' }).code(403);
-          }
+        }
         const sequelize = request.getDb('xpaxr').sequelize;
         const {Questionnaire,Questiontype,Company} = request.getModels('xpaxr');
         let questions =  await Questionnaire.findAll({

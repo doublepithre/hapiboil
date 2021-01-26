@@ -29,9 +29,9 @@ module.exports = (sequelize, DataTypes) => {
             field: 'job_website',
             allowNull: true
         },
-        creatorId: {
+        userId: {
             type: DataTypes.BIGINT,
-            field: 'creator_id',
+            field: 'user_id',
             allowNull: true,
             references: {
                 model: 'user',
@@ -80,7 +80,7 @@ const initRelations = (model) => {
 
     Job.belongsTo(User, {
         as: 'Creator',
-        foreignKey: 'creator_id',
+        foreignKey: 'user_id',
         onDelete: 'NO ACTION',
         onUpdate: 'NO ACTION'
     });

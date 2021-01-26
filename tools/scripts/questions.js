@@ -119,10 +119,10 @@ async function getUsers(db){
         console.log(err.stack)
     }
 }
-async function createJob(db,creatorId,jobName,jobDescription,jobWebsite){
+async function createJob(db,userId,jobName,jobDescription,jobWebsite){
     try{
-        await db.query(`INSERT INTO hris.jobs(job_name,job_description,job_website,creator_id,active)
-        VALUES ($1,$2,$3,$4,$5)`,[jobName,jobDescription,jobWebsite,creatorId,true]);
+        await db.query(`INSERT INTO hris.jobs(job_name,job_description,job_website,user_id,active)
+        VALUES ($1,$2,$3,$4,$5)`,[jobName,jobDescription,jobWebsite,userId,true]);
     }catch(err){
         console.log(err.stack);
     }
