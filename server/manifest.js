@@ -40,6 +40,12 @@ const manifest = {
         routes: {
           prefix: `${apiRootPrefix}/account`,
         },
+      },
+      {
+        plugin: require('./routes/job'),
+        routes: {
+          prefix: `${apiRootPrefix}/job`,
+        },
       }, 
       {
         plugin: require('./routes/login'),

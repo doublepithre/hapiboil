@@ -7,6 +7,8 @@ const config = require('config');
 const axios = require('axios')
 import { CostExplorer } from 'aws-sdk';
 import jobUtils from '../utils/jobUtils'
+import request from 'request';
+import { formatQueryRes } from '../utils/index';
 
 const createUser = async (request, h) => {
   try {
@@ -164,17 +166,21 @@ const forgotPassword = async (request, h) => {
     if (!user) { throw new Error('No account found!'); }
     const { userId } = user || {};
 
-    const token = randtoken.generate(16);
+    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+    const expiresInHrs = 1;                             // Specifying expiry time in hrs
+    let expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
     const reqTokenRecord = await Requesttoken.create({ 
       requestKey: token, 
-      userId, 
+      userId,
+      expiresAt,
       resourceType: 'user', 
       actionType: 'reset-password'
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
-    let resetLink = config.get('resetLink');
-    resetLink += `/${token}`;
+    let resetLink = `http://localhost:3000/reset-password?token=${token}`;
 
     const emailData = {
       email,
@@ -202,8 +208,6 @@ const forgotPassword = async (request, h) => {
 }
 
 const resetPassword = async (request, h) => {
-  // Tasks remaining
-    // Before resetting, need to check expiry of requestKey once that column added in table.
   try {
     const { requestKey } = request.params || {};
     const { password1, password2 } = request.payload || {};
@@ -215,26 +219,79 @@ const resetPassword = async (request, h) => {
     
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
-    if (!requestToken) { throw new Error('Bad Request! URL might be expired'); }
+    if (!requestToken) { throw new Error('Bad Request!'); }
+
+    const { expiresAt } = requestToken || {};
+    var now = new Date();
+    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
+    if (expiresAt - utcNow < 0) { throw new Error('Bad Request! URL expired'); }   // Token expired!
     const { userId } = requestToken || {};
 
     const userRecord = await User.findOne({ where: { userId }});
     const user = userRecord && userRecord.toJSON();
     if (!user) { throw new Error('Invalid URL!')};
-    const hashedPassword = bcrypt.hashSync(password1, 12);
+    const hashedPassword = bcrypt.hashSync(password1, 12);        // Setting salt to 12.
     await User.update({ password: hashedPassword }, { where: { userId }});
 
     return h.response({message: 'Password updation successful'}).code(200);
   }
   catch (error) {
-    console.log(error);
+    // console.log(error);
     return h.response({error: true, message: error.message});
   }
 }
 
+const getQuestionnaire = async (request, h, companyName) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;
+    const sqlStmt = `select * from hris.company c
+                inner join hris.questionnaire q on c.company_id = q.company_id
+                inner join hris.questiontype qt on q.question_type_id = qt.question_type_id
+                where c.company_name= :companyName`;
+    const responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { companyName } });
+    const questions = [];
+    for (const response of responses) {
+      const { question_id, question_name, question_config, question_type_name } = response || {};
+      const question = {question_id, question_name, question_config, 'QuestionType': { question_type_name } };
+      questions.push(question);
+    }
+    return h.response(questions).code(200);
+  }
+  catch (error) {
+    // console.log(error);
+    return h.response({error: true, message: error.message});
+  }
+}
+
+const getProfile = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { Userquesresponse } = request.getModels('xpaxr');
+    const quesResponses = await Userquesresponse.findAll({ where: { userId }});
+    const responses = [];
+    for (let response of quesResponses) {
+      response = response && response.toJSON();
+      const { questionId, responseVal } = response;
+      const res = { questionId, responseVal };
+      responses.push(res);
+    }
+    return h.response(responses).code(200);
+  }
+  catch (error) {
+    // console.error(error);
+    return h.response({error: true, message: error.message}).code(403);
+  }
+}
+
 const createProfile = async (request, h) => {
-  // Tasks remaining
-    // Need to change code acc. to format of response received
   try{
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
@@ -253,6 +310,35 @@ const createProfile = async (request, h) => {
     const { Userquesresponse } = request.getModels('xpaxr');
     const resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
 
+    const { Userinfo, Userquesresponse } = request.getModels('xpaxr');
+    // Checking user type
+    const db1 = request.getDb('xpaxr');
+    const sqlStmt = `select * from hris.userinfo ui
+                    inner join hris.usertype ut on ui.user_type_id = ut.user_type_id 
+                    where ui.user_id= :userId`;
+    const sequelize = db1.sequelize;
+    const ares = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId: userId } });
+    const user = formatQueryRes(ares);
+    const { userTypeName } = user || {};
+
+    
+    let data = []
+    let resRecord;
+    if (userTypeName === 'candidate') {
+      for (const response of responses) {
+        const { questionId, responseVal } = response || {};
+        const record = { questionId, responseVal, userId }
+        data.push(record);
+      }
+      resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
+    } else if ( userTypeName === 'employer') {
+      // For Employer profile creation
+    } else if ( userTypeName === 'mentor') {
+      // For Mentor profile creation
+    } else {
+      throw new Error('Invalid request!');
+    }
+    
     return h.response(resRecord).code(200);
   }
   catch (error) {
@@ -358,6 +444,7 @@ module.exports = {
   updateUser,
   forgotPassword,
   resetPassword,
+  getProfile,
   createProfile,
   getJobRecommendations,
   createJob,

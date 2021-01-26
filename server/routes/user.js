@@ -1,6 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { formatQueryRes } from '../utils/index';
-import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile,getJobRecommendations,createJob,createJobProfile } from "../controllers/user";
+import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile,getJobRecommendations,createJob,createJobProfile,getProfile } from "../controllers/user";
 
 const xuser = {
   name: 'xuser',
@@ -50,6 +50,40 @@ const xuser = {
         options: {
           auth: false,
           handler: resetPassword,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/empauwerMe',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getQuestionnaire(request, h, 'empauwer - x0pa')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/empauwerAll',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getQuestionnaire(request, h, 'empauwer all - x0pa')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getProfile',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getProfile,
         },
       });
       server.route({

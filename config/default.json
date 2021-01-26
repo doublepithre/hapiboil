@@ -12,7 +12,6 @@
     "read": [{ "host": "localhost", "username": "postgres", "password": "!Qwerty@123" }],
     "write": { "host": "localhost", "username": "postgres", "password": "!Qwerty@123" }
   },
-  "resetLink": "https://localhost:4585/em/api/v1/account/resetPassword",
   "redis": {
     "host": "xpastagingnode.redis.cache.windows.net",
     "port" : 6379,
