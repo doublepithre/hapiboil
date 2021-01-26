@@ -259,6 +259,33 @@ const createProfile = async (request, h) => {
   }
 }
 
+const createJobProfile = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    let userTypeId = request.auth.artifacts.decoded.userTypeId
+    if (userTypeId!==2){
+      return h.response({message:"Not an employer"}).code(403)
+    }
+    const { responses,jobId } = request.payload || {};
+    for(let response of responses){
+      response.jobId = jobId;
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    //Ensure to overwrite userid with userid from jwt
+
+    let {Jobsquesresponse} = request.getModels('xpaxr');
+    const resRecord = await Jobsquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
+
+    return h.response(resRecord).code(200);
+  }
+  catch (error) {
+    return h.response({error: true, message: error.message}).code(403);
+  }
+}
+
 //No need to pass in userid as we can get the id form the jwt
 const getJobRecommendations = async (request,h) => {
   try{
@@ -335,6 +362,7 @@ module.exports = {
   resetPassword,
   createProfile,
   getJobRecommendations,
-  createJob
+  createJob,
+  createJobProfile
 };
 

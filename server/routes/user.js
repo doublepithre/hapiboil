@@ -1,6 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { formatQueryRes } from '../utils/index';
-import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile,getJobRecommendations,createJob } from "../controllers/user";
+import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile,getJobRecommendations,createJob,createJobProfile } from "../controllers/user";
 
 const xuser = {
   name: 'xuser',
@@ -60,6 +60,16 @@ const xuser = {
             mode: 'try',
           },
           handler: createProfile,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/createJobProfile',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createJobProfile,
         },
       });
       server.route({
