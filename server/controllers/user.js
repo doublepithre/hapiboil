@@ -309,12 +309,14 @@ const createProfile = async (request, h) => {
 
     
     let data = []
+    let resRecord;
     if (userTypeName === 'candidate') {
       for (const response of responses) {
         const { questionId, responseVal } = response || {};
         const record = { questionId, responseVal, userId }
         data.push(record);
       }
+      resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
     } else if ( userTypeName === 'employer') {
       // For Employer profile creation
     } else if ( userTypeName === 'mentor') {
@@ -323,34 +325,9 @@ const createProfile = async (request, h) => {
       throw new Error('Invalid request!');
     }
     
-    const resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
     return h.response(resRecord).code(200);
   }
   catch (error) {
-    return h.response({error: true, message: error.message}).code(403);
-  }
-}
-
-const getAppliedJobs = async (request, h) => {
-  // Check the requirement
-    // All applied jobs? withdrawn jobs? status wise?
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-
-    const db1 = request.getDb('xpaxr');
-    const sqlStmt = `select * from hris.jobapplications ja
-                    inner join hris.jobs j on ja.job_id = j.job_id 
-                    where ja.user_id= :userId`;
-    const sequelize = db1.sequelize;
-    const jobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId: userId } });
-    return h.response({ appliedJobs: jobs }).code(200);
-  }
-  catch (error) {
-    // console.log(error);
     return h.response({error: true, message: error.message}).code(403);
   }
 }
@@ -364,6 +341,5 @@ module.exports = {
   getProfile,
   createProfile,
   getQuestionnaire,
-  getAppliedJobs,
 };
 

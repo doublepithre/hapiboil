@@ -41,7 +41,14 @@ const applyToJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        return h.response('applyToJob');
+        const { jobId, isApplied, isWithdrawn, status } = request.payload || {};
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const record = { jobId, userId, isApplied, isWithdrawn, status }
+        const { Jobapplications } = request.getModels('xpaxr');
+        const recordRes = await Jobapplications.upsert(record);
+        return h.response(recordRes).code(200);
     }
     catch(error) {
         // console.error(error);
@@ -49,6 +56,32 @@ const applyToJob = async (request, h) => {
     }
 }
 
+const getAppliedJobs = async (request, h) => {
+    // Check the requirement
+        // All applied jobs? withdrawn jobs? status wise?
+    try{
+        if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select * from hris.jobapplications ja
+                        inner join hris.jobs j on ja.job_id = j.job_id
+                        where ja.user_id= :userId`;
+        const sequelize = db1.sequelize;
+        const jobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
+        return h.response(jobs).code(200);
+    }
+    catch (error) {
+        // console.log(error);
+        return h.response({error: true, message: error.message}).code(403);
+    }
+}
+
 module.exports = {
     createJob,
+    applyToJob,
+    getAppliedJobs,
 }

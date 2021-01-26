@@ -107,16 +107,6 @@ const xuser = {
           handler: createProfile,
         },
       });
-      server.route({
-        method: 'GET',
-        path: '/getAppliedJobs',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAppliedJobs,
-        },
-      });
     } 
     catch(err) {
       console.log(err);

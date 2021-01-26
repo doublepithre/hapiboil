@@ -2,7 +2,8 @@ import { QueryTypes } from 'sequelize';
 import { formatQueryRes } from '../utils/index';
 import { 
     createJob,
-    getQuestions,
+    applyToJob,
+    getAppliedJobs,
 } from "../controllers/job";
 
 const xjob = {
@@ -19,6 +20,26 @@ const xjob = {
             mode: 'try',
           },
           handler: createJob,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/applyToJob',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: applyToJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getAppliedJobs',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAppliedJobs,
         },
       });
     } 
