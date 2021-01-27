@@ -11,7 +11,8 @@ const xjwt = {
         server.auth.strategy('jwt', 'jwt', {
             key: config.get('jwtSecret'),
             validate: async (decoded, request, h) => {
-                const {authorization: token} = request.headers || {};
+                const {authorization} = request.headers || {};
+                const token = authorization.split(' ')[1];
                 const db1 = request.getDb('xpaxr');
                 const sqlStmt = `select * from hris.accesstoken ato
                         inner join hris.userinfo ui on ato.user_id=ui.user_id where ato.token= :token and is_valid=true`;
