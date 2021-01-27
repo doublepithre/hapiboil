@@ -1,5 +1,7 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 import jobUtils from '../utils/jobUtils'
+const axios = require('axios')
+const config = require('config');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
@@ -24,8 +26,8 @@ const createJob = async (request, h) => {
         
         const responses = []
         for (let response of questionResponses) {
-            const { questionId, answer } = response;
-            const record = { questionId, responseVal: {'answer': answer}, jobId }
+            const { question_id, answer } = response;
+            const record = { questionId:question_id, responseVal: {'answer': answer}, jobId }
             responses.push(record);
         }
         const records = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate:["questionId","responseVal"]});

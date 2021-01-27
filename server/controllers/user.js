@@ -4,7 +4,7 @@ const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 const config = require('config');
-const axios = require('axios')
+
 import { CostExplorer } from 'aws-sdk';
 import request from 'request';
 import { formatQueryRes } from '../utils/index';
@@ -68,6 +68,7 @@ const createUser = async (request, h) => {
       firstName: email.split('@')[0],
       companyUuid: null
     });
+    delete udata.dataValues.password;//remove hasedpassword when returning
     return h.response(udata).code(200);
   } catch (error) {
     // console.error(error);
@@ -298,13 +299,7 @@ const createProfile = async (request, h) => {
     const { responses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    //Ensure to overwrite userid with userid from jwt
-    for(let respond of responses){
-      respond.userId = userId
-    }
-    const { Userinfo, Userquesresponse } = request.getModels('xpaxr');
-    const resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
-
+    const { Userquesresponse } = request.getModels('xpaxr');
     // Checking user type
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select * from hris.userinfo ui
@@ -316,16 +311,17 @@ const createProfile = async (request, h) => {
     const { userTypeName } = user || {};
 
     let data = []
+    let resRecord;
     if (userTypeName === 'candidate') {
       for (const response of responses) {
-        const { questionId, responseVal } = response || {};
-        const record = { questionId, responseVal, userId }
+        const { question_id, answer } = response || {};
+        const record = { questionId:question_id, responseVal:{answer}, userId }
         data.push(record);
       }
       resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
     } else if ( userTypeName === 'employer') {
       // For Employer profile creation
-    } else if ( userTypeName === 'mentor') {
+    } else if ( userTypeName  === 'mentor') {
       // For Mentor profile creation
     } else {
       throw new Error('Invalid request!');

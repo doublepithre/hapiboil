@@ -18,8 +18,9 @@ const getJobInfos = async(jobIds,model,cache) =>{
     }
     //populate cache and fill in missing values
     let missedJobInfos = await model.findAll({where:{jobId:cacheMiss}});
+    console.log(missedJobInfos);
     //populate cache
-    for(let jobInfo in missedJobInfos){
+    for(let jobInfo of missedJobInfos){
         let key = {
             segment:"jobCache",
             id:jobInfo.jobId.toString()

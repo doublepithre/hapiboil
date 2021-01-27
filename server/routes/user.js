@@ -96,26 +96,6 @@ const xuser = {
           handler: createProfile,
         },
       });
-      server.route({
-        method: 'POST',
-        path: '/createJobProfile',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: createJobProfile,
-        },
-      });
-      server.route({
-        method: 'POST',
-        path: '/createJob',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler:createJob
-        },
-      });
     } 
     catch(err) {
       console.log(err);
