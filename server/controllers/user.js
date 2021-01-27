@@ -307,10 +307,10 @@ const createProfile = async (request, h) => {
     for(let respond of responses){
       respond.userId = userId
     }
-    const { Userquesresponse } = request.getModels('xpaxr');
+    const { Userinfo, Userquesresponse } = request.getModels('xpaxr');
     const resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
 
-    const { Userinfo, Userquesresponse } = request.getModels('xpaxr');
+    
     // Checking user type
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select * from hris.userinfo ui
@@ -323,7 +323,6 @@ const createProfile = async (request, h) => {
 
     
     let data = []
-    let resRecord;
     if (userTypeName === 'candidate') {
       for (const response of responses) {
         const { questionId, responseVal } = response || {};
