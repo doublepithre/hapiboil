@@ -2,6 +2,10 @@ import { QueryTypes } from 'sequelize';
 import { formatQueryRes } from '../utils/index';
 import { 
     createJob,
+    getJobs,
+    updateJob,
+    createJobQuesResponses,
+    getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
     getJobRecommendations
@@ -21,6 +25,60 @@ const xjob = {
             mode: 'try',
           },
           handler: createJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getJobs/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getJobs(request, h, 'one');
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getJobs',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getJobs(request, h, 'all');
+          },
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/updateJob/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateJob,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/createJobQuesResponses',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createJobQuesResponses,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getJobQuesResponses/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobQuesResponses,
         },
       });
       server.route({

@@ -11,30 +11,97 @@ import { formatQueryRes } from '../utils/index';
 
 const createJob = async (request, h) => {
     try {
-        // Need to check whether we allow to modify once applied to a job.
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        const { jobDetails, questionResponses } = request.payload || {};
+        const { jobDetails } = request.payload || {};
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { Job, Jobsquesresponse } = request.getModels('xpaxr');
-        const resRecord = await Job.create({ ...jobDetails, active: true, creatorId: userId });
-        const job = resRecord && resRecord.toJSON();
-        const { jobId } = job || {};
+        const { Job } = request.getModels('xpaxr');
+        const resRecord = await Job.create({ ...jobDetails, active: true, userId });
+        return h.response(resRecord).code(200);
+    }
+    catch (error) {
+        // console.log(error);
+        return h.response({error: true, message: error.message}).code(403);
+    }
+}
+
+const getJobs = async (request, h, noOfJobs) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { jobUuid } = request.params || {};
+        const { Job } = request.getModels('xpaxr');
+        let options = {};
+        if (noOfJobs === 'one') options = { where: { jobUuid } };
         
+        const response = await Job.findAll(options);
+        return h.response(response).code(200);
+    }
+    catch (error) {
+        // console.error(error);
+        return h.response({error: true, message: error.message}).code(403);
+    }
+}
+
+const updateJob = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { jobUuid } = request.params || {};
+        const { jobName, jobDescription, jobWebsite } = request.payload || {};
+        
+        const { Job } = request.getModels('xpaxr');
+        await Job.update({jobName, jobDescription, jobWebsite}, { where: { jobUuid }});
+        const record = await Job.findOne({where: {jobUuid}});
+        return h.response(record).code(200);
+    }
+    catch (error) {
+        // console.error(error);
+        return h.response({error: true, message: error.message}).code(403);
+    }
+}
+
+const createJobQuesResponses = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { jobId, questionResponses } = request.payload || {};
+
         const responses = []
         for (let response of questionResponses) {
             const { question_id, answer } = response;
             const record = { questionId:question_id, responseVal: {'answer': answer}, jobId }
             responses.push(record);
         }
-        const records = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate:["questionId","responseVal"]});
-        return h.response({job, records}).code(200);
+        const { Jobsquesresponse } = request.getModels('xpaxr');
+        const records = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate:["responseVal"]});
+        return h.response(records).code(200);
     }
     catch (error) {
-        // console.log(error);
+        // console.error(error);
+        return h.response({error: true, message: error.message}).code(403);
+    }
+}
+
+const getJobQuesResponses = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { jobId } = request.params || {};
+        console.log(request.payload);
+        const { Jobsquesresponse } = request.getModels('xpaxr');
+        const records = await Jobsquesresponse.findAll({ where: {jobId} });
+        return h.response(records).code(200);
+    }
+    catch (error) {
+        // console.error(error);
         return h.response({error: true, message: error.message}).code(403);
     }
 }
@@ -126,6 +193,10 @@ const isQuestionnaireDone = async(userId,model)=>{
 
 module.exports = {
     createJob,
+    getJobs,
+    updateJob,
+    createJobQuesResponses,
+    getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
     getJobRecommendations
