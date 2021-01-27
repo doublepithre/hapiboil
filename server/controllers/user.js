@@ -6,7 +6,6 @@ const randtoken = require('rand-token');
 const config = require('config');
 const axios = require('axios')
 import { CostExplorer } from 'aws-sdk';
-import jobUtils from '../utils/jobUtils'
 import request from 'request';
 import { formatQueryRes } from '../utils/index';
 
@@ -296,10 +295,6 @@ const createProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    let userTypeId = request.auth.artifacts.decoded.userTypeId
-    if (userTypeId!==1){
-      return h.response({message:"Not an candidate"}).code(403)
-    }
     const { responses } = request.payload || {};
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -310,7 +305,6 @@ const createProfile = async (request, h) => {
     const { Userinfo, Userquesresponse } = request.getModels('xpaxr');
     const resRecord = await Userquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
 
-    
     // Checking user type
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select * from hris.userinfo ui
@@ -321,7 +315,6 @@ const createProfile = async (request, h) => {
     const user = formatQueryRes(ares);
     const { userTypeName } = user || {};
 
-    
     let data = []
     if (userTypeName === 'candidate') {
       for (const response of responses) {
@@ -345,98 +338,6 @@ const createProfile = async (request, h) => {
   }
 }
 
-const createJobProfile = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    let userTypeId = request.auth.artifacts.decoded.userTypeId
-    if (userTypeId!==2){
-      return h.response({message:"Not an employer"}).code(403)
-    }
-    const { responses,jobId } = request.payload || {};
-    for(let response of responses){
-      response.jobId = jobId;
-    }
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    //Ensure to overwrite userid with userid from jwt
-
-    let {Jobsquesresponse} = request.getModels('xpaxr');
-    const resRecord = await Jobsquesresponse.bulkCreate(responses,{updateOnDuplicate:["responseVal"]});
-
-    return h.response(resRecord).code(200);
-  }
-  catch (error) {
-    return h.response({error: true, message: error.message}).code(403);
-  }
-}
-
-//No need to pass in userid as we can get the id form the jwt
-const getJobRecommendations = async (request,h,jobCache) => {
-  if (!request.auth.isAuthenticated) {
-    return h.response({ message: 'Forbidden' }).code(403);
-  }
-  const { credentials } = request.auth || {};
-  const { id: userId } = credentials || {};
-  let model = request.getModels('xpaxr');
-  if (!await isQuestionnaireDone(userId,model)){
-    return h.response({error:"Questionnaire Not Done"}).code(403)
-  }
-  let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
-  recommendations = recommendations.data["recommendation"]//this will be  sorted array of {job_id,score}
-  let jobIds = recommendations.map(x=>{
-    return x["jobId"]
-  })
-  let jobInfo = await jobUtils.getJobInfos(jobIds,model.Job,jobCache);
-  return h.response(jobInfo).code(200);
-}
-
-const createJob = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    // check if userid is of employer datatype
-    let userTypeId = request.auth.artifacts.decoded.userTypeId
-    if (userTypeId!==2){
-      return h.response({message:"Not an employer"}).code(403)
-    }
-    const jobsInfo = request.payload || {};
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    const { Job } = request.getModels('xpaxr');
-    const [record, created] = await Job.upsert(jobsInfo,{ returning: true } );
-
-    return h.response(record).code(200);
-  }
-  catch (error) {
-    return h.response({error: true, message: error.message}).code(403);
-  }
-}
-
-const isQuestionnaireDone = async(userId,model)=>{
-  const { Userquesresponse,Questionnaire,Company } = model
-  const COMPANY_NAME = "empauwer - x0pa";
-  let questionnaireCount = await Questionnaire.count({
-    include:[{
-        model:Company,
-        as:"Company",
-        where:{
-            companyName:COMPANY_NAME
-        },
-        required:true
-    }],
-    required:true
-  })
-
-  let responsesCount = await Userquesresponse.count({
-    where:{
-      userId
-    }});
-    return questionnaireCount === responsesCount;
-}
-
 module.exports = {
   createUser,
   getUser,
@@ -445,8 +346,6 @@ module.exports = {
   resetPassword,
   getProfile,
   createProfile,
-  getJobRecommendations,
-  createJob,
-  createJobProfile
+  getQuestionnaire,
 };
 

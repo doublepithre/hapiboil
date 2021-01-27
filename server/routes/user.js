@@ -1,6 +1,6 @@
 import { QueryTypes } from 'sequelize';
 import { formatQueryRes } from '../utils/index';
-import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile,getJobRecommendations,createJob,createJobProfile,getProfile } from "../controllers/user";
+import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile,createJob,createJobProfile,getProfile,getQuestionnaire } from "../controllers/user";
 
 const xuser = {
   name: 'xuser',
@@ -104,24 +104,6 @@ const xuser = {
             mode: 'try',
           },
           handler: createJobProfile,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/jobRecommendations',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: async(request,h)=>{
-            try{
-              return await getJobRecommendations(request,h,server.app.jobCache)
-            }catch(err){
-              console.error(err.stack)
-              return h.response({"message":"Internal Server Error"}).code(500)
-            }
-            
-          }
         },
       });
       server.route({

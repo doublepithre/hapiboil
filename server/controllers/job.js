@@ -1,4 +1,5 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
+import jobUtils from '../utils/jobUtils'
 const bcrypt = require('bcrypt');
 const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
@@ -80,8 +81,50 @@ const getAppliedJobs = async (request, h) => {
     }
 }
 
+const getJobRecommendations = async (request,h,jobCache) => {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    let model = request.getModels('xpaxr');
+    if (!await isQuestionnaireDone(userId,model)){
+      return h.response({error:"Questionnaire Not Done"}).code(403)
+    }
+    let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
+    recommendations = recommendations.data["recommendation"]//this will be  sorted array of {job_id,score}
+    let jobIds = recommendations.map(x=>{
+      return x["jobId"]
+    })
+    let jobInfo = await jobUtils.getJobInfos(jobIds,model.Job,jobCache);
+    return h.response(jobInfo).code(200);
+}
+
+const isQuestionnaireDone = async(userId,model)=>{
+    const { Userquesresponse,Questionnaire,Company } = model
+    const COMPANY_NAME = "empauwer - x0pa";
+    let questionnaireCount = await Questionnaire.count({
+      include:[{
+          model:Company,
+          as:"Company",
+          where:{
+              companyName:COMPANY_NAME
+          },
+          required:true
+      }],
+      required:true
+    })
+  
+    let responsesCount = await Userquesresponse.count({
+      where:{
+        userId
+      }});
+      return questionnaireCount === responsesCount;
+  }
+
 module.exports = {
     createJob,
     applyToJob,
     getAppliedJobs,
+    getJobRecommendations
 }

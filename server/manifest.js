@@ -53,12 +53,6 @@ const manifest = {
           prefix: `${apiRootPrefix}/login`,
         },
       },
-      {
-        plugin:require('./routes/questions'),
-        routes: {
-          prefix: `${apiRootPrefix}/questions`,
-        },
-      }
     ],
     options: {},
   },

@@ -4,6 +4,7 @@ import {
     createJob,
     applyToJob,
     getAppliedJobs,
+    getJobRecommendations
 } from "../controllers/job";
 
 const xjob = {
@@ -40,6 +41,24 @@ const xjob = {
             mode: 'try',
           },
           handler: getAppliedJobs,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/jobRecommendations',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            try{
+              return await getJobRecommendations(request,h,server.app.jobCache)
+            }catch(err){
+              console.error(err.stack)
+              return h.response({"message":"Internal Server Error"}).code(500)
+            }
+            
+          }
         },
       });
     } 
