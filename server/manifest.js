@@ -7,6 +7,7 @@ const sequelizeInstance = new Sequelize('canopus', null, null, {
   replication: config.get('replication'),
   dialect: 'postgres',
   searchPath: 'hris',
+  logging:false
 });
 
 const manifest = {
