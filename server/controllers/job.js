@@ -48,6 +48,9 @@ const getJobs = async (request, h, noOfJobs) => {
 }
 const getRecruiterJobs = async(request,h)=>{
     try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
         let userId = request.auth.credentials.id;
         const { Job,User } = request.getModels('xpaxr');
         let jobs = await Job.findAll({
