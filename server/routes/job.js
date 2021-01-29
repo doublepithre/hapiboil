@@ -8,7 +8,8 @@ import {
     getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
-    getJobRecommendations
+    getJobRecommendations,
+    getRecruiterJobs
 } from "../controllers/job";
 
 const xjob = {
@@ -48,6 +49,18 @@ const xjob = {
           },
           handler: async (request, h) => {
             return await getJobs(request, h, 'all');
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/getRecruiterJobs',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getRecruiterJobs(request, h, 'all');
           },
         },
       });

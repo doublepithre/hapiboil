@@ -46,7 +46,29 @@ const getJobs = async (request, h, noOfJobs) => {
         return h.response({error: true, message: error.message}).code(403);
     }
 }
-
+const getRecruiterJobs = async(request,h)=>{
+    try{
+        let userId = request.auth.credentials.id;
+        const { Job,User } = request.getModels('xpaxr');
+        let jobs = await Job.findAll({
+            include:[{
+                model:User,
+                as:"Creator",
+                required:true,
+                where:{
+                    userId
+                }
+                ,
+                attributes:[]
+            }],
+            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId"]
+        })
+        return h.response(jobs).code(200);
+    }catch(err){
+        console.error(err.stack);
+        return h.response({error:true,message:error.message}).code(500);
+    }
+}
 const updateJob = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -194,6 +216,7 @@ const isQuestionnaireDone = async(userId,model)=>{
 module.exports = {
     createJob,
     getJobs,
+    getRecruiterJobs,
     updateJob,
     createJobQuesResponses,
     getJobQuesResponses,

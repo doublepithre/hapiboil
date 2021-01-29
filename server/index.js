@@ -28,8 +28,13 @@ const init = async () => {
     const jobCache = server.cache({ segment: 'jobCache', expiresIn: 1000 * 5 }); //expires in 5 second for now
     const instances = require('hapi-sequelizejs').instances;
     const dbs = instances.dbs;
-    await jobUtils.initJobsCache(dbs.xpaxr.models.Job,jobCache)
-    server.app.jobCache = jobCache
+    await jobUtils.initJobsCache(dbs.xpaxr.models.Job,jobCache);
+    // should we enable logging only in dev?
+    // 
+    server.events.on('response', function (request) {
+      console.log(request.info.remoteAddress + ': ' + request.method.toUpperCase() + ' ' + request.path + ' statusCode:' + request.response.statusCode);
+    });
+    server.app.jobCache = jobCache;
     console.log('Server running');
   } catch (error) {
     console.error(error);
