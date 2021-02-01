@@ -18,7 +18,7 @@ const xjob = {
     try {
       server.route({
         method: 'POST',
-        path: '/createJob',
+        path: '/',
         options: {
           auth: {
             mode: 'try',
@@ -28,7 +28,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/getJobs/{jobUuid}',
+        path: '/{jobUuid}',
         options: {
           auth: {
             mode: 'try',
@@ -40,7 +40,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/getJobs',
+        path: '/',
         options: {
           auth: {
             mode: 'try',
@@ -52,7 +52,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/getRecruiterJobs',
+        path: '/recruiter-jobs',
         options: {
           auth: {
             mode: 'try',
@@ -64,7 +64,7 @@ const xjob = {
       });
       server.route({
         method: 'PATCH',
-        path: '/updateJob/{jobUuid}',
+        path: '/{jobUuid}',
         options: {
           auth: {
             mode: 'try',
@@ -74,7 +74,7 @@ const xjob = {
       });
       server.route({
         method: 'POST',
-        path: '/createJobQuesResponses',
+        path: '/profile',
         options: {
           auth: {
             mode: 'try',
@@ -84,7 +84,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/getJobQuesResponses/{jobId}',
+        path: '/profile/{jobId}',
         options: {
           auth: {
             mode: 'try',
@@ -94,7 +94,7 @@ const xjob = {
       });
       server.route({
         method: 'POST',
-        path: '/applyToJob',
+        path: '/apply-to-job',
         options: {
           auth: {
             mode: 'try',
@@ -104,7 +104,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/getAppliedJobs',
+        path: '/applied-jobs',
         options: {
           auth: {
             mode: 'try',
@@ -114,7 +114,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/jobRecommendations',
+        path: '/recommendations',
         options: {
           auth: {
             mode: 'try',

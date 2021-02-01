@@ -44,7 +44,7 @@ const xuser = {
       });
       server.route({
         method: 'POST',
-        path: '/forgotPassword',
+        path: '/forgot-password',
         options: {
           auth: false,
           handler: forgotPassword,
@@ -52,7 +52,7 @@ const xuser = {
       });
       server.route({
         method: 'PATCH',
-        path: '/resetPassword/{requestKey}',
+        path: '/reset-password/{requestKey}',
         options: {
           auth: false,
           handler: resetPassword,
@@ -60,7 +60,7 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/empauwerMe',
+        path: '/empauwer-me',
         options: {
           auth: {
             mode: 'try',
@@ -72,7 +72,7 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/empauwerAll',
+        path: '/empauwer-all',
         options: {
           auth: {
             mode: 'try',
@@ -84,7 +84,7 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/getProfile',
+        path: '/profile',
         options: {
           auth: {
             mode: 'try',
@@ -94,7 +94,7 @@ const xuser = {
       });
       server.route({
         method: 'POST',
-        path: '/createProfile',
+        path: '/profile',
         options: {
           auth: {
             mode: 'try',
