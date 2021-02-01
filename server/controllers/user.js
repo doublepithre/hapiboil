@@ -3,11 +3,8 @@ const bcrypt = require('bcrypt');
 const validator = require('validator');
 const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
-const config = require('config');
-
-import { CostExplorer } from 'aws-sdk';
-import request from 'request';
 import { formatQueryRes } from '../utils/index';
+import { getDomainURL } from '../utils/toolbox';
 
 const createUser = async (request, h) => {
   try {
@@ -18,29 +15,30 @@ const createUser = async (request, h) => {
     const { email, password, accountType, } = request.payload || {};
 
     if ( !(email && password && accountType)) {
-      throw new Error('Please provide necessary details');
+      return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
     }
 
+    // Validating Email & Password
     if (!validator.isEmail(email)) {
-      throw new Error('Please provide a valid Email');
+      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
     }
     if (password.length < 8) {
-      throw new Error('Password must contain atleast 8 characters');
+      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
     } else if (password.length > 100) {
-      throw new Error('Password should be atmost 100 characters');
+      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
+    // Checking account type
     const validAccountTypes = ['candidate', 'employer', 'mentor'];
     if (!validAccountTypes.includes(accountType)) {
-      throw new Error('Invalid account type');
-    }
-
-    const userRecord = await User.findOne({ where: { email }});
-    const record = userRecord && userRecord.toJSON();
-    if (record) {
-      throw new Error('Account with this email already exists!');
+      return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
     
-    const hashedPassword = bcrypt.hashSync(password, 12);
+    // Checking if User already Exists
+    const userRecord = await User.findOne({ where: { email }});
+    const record = userRecord && userRecord.toJSON();
+    if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
+    
+    const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
     const userTypeRecord = await Usertype.findOne({
       where: {
         user_type_name: accountType
@@ -69,11 +67,11 @@ const createUser = async (request, h) => {
       companyUuid: null
     });
     delete udata.dataValues.password;//remove hasedpassword when returning
-    return h.response(udata).code(200);
+    return h.response(udata).code(201);
   } catch (error) {
-    // console.error(error);
+    console.error(error.stack);
     return h.response({
-      error: true, message: error.message
+      error: true, message: 'Bad Request!'
     }).code(400);
   }
 };
@@ -102,9 +100,8 @@ const getUser = async (request, h) => {
     return h.response(luser).code(200);
   }
   catch(error) {
-    return h.response({
-      error: true, message: error.message
-    }).code(400);
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
@@ -122,7 +119,7 @@ const updateUser = async (request, h) => {
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
     if (!isAllReqsValid) {
-      throw new Error('Invalid update requests');
+      return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     }
 
     const { Userinfo } = request.getModels('xpaxr');
@@ -138,7 +135,7 @@ const updateUser = async (request, h) => {
     const { userId: rForUserId } = requestedForUser && requestedForUser.toJSON();
 
     if (luserId !== rForUserId && !isAdmin) {    // when request is (not from self) and (if other -> not admin)
-      throw new Error('Not the right person to update!');
+      return h.response({ error: true, message: 'Bad Request!'}).code(400);
     }
     
     await Userinfo.update( request.payload, { where: { userUuid: userUuid }} );
@@ -151,19 +148,24 @@ const updateUser = async (request, h) => {
     return h.response(uinfo).code(200);
   }
   catch(error) {
-    return h.response({ error: true, message: error.message }).code(400);
+    console.log(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
   }
 }
 
 const forgotPassword = async (request, h) => {
   try{
     const { email } = request.payload || {};
-    if (!validator.isEmail(email)) { throw new Error('Invalid Email!'); }
+    if (!validator.isEmail(email)) { 
+      return h.response({ error: true, message: 'Invalid Email!'}).code(400);
+    }
 
     const { User, Emailtemplates, Userinfo, Companyinfo, Emaillogs, Requesttoken } = request.getModels('xpaxr');
     const userRecord = await User.findOne({ where: { email }});
     const user = userRecord && userRecord.toJSON();
-    if (!user) { throw new Error('No account found!'); }
+    if (!user) { 
+      return h.response({ error: true, message: 'No account found!'}).code(400);
+    }
     const { userId } = user || {};
 
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
@@ -180,7 +182,8 @@ const forgotPassword = async (request, h) => {
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
-    let resetLink = `http://localhost:3000/reset-password?token=${token}`;
+    let resetLink = getDomainURL();
+    resetLink += `/reset-password?token=${token}`;
 
     const emailData = {
       email,
@@ -203,7 +206,8 @@ const forgotPassword = async (request, h) => {
     return h.response(reqToken).code(200);
   }
   catch(error) {
-    return h.response({ error: true, message: error.message }).code(400);
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
 
@@ -212,32 +216,42 @@ const resetPassword = async (request, h) => {
     const { requestKey } = request.params || {};
     const { password1, password2 } = request.payload || {};
     
-    if (requestKey.length !== 16) { throw new Error('Invalid URL!'); }  // Token length is 16.
-    if (password1 !== password2) { throw new Error('Passwords are not matching!'); }
+    if (requestKey.length !== 16) {     // Token length is 16.
+      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
+    }  
+    if (password1 !== password2) { 
+      return h.response({ error: true, message: 'Passwords are not matching!'}).code(400);
+    }
     
     const { User, Requesttoken } = request.getModels('xpaxr');
     
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
-    if (!requestToken) { throw new Error('Bad Request!'); }
+    if (!requestToken) { 
+      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+    }
 
     const { expiresAt } = requestToken || {};
     var now = new Date();
-    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);
-    if (expiresAt - utcNow < 0) { throw new Error('Bad Request! URL expired'); }   // Token expired!
+    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);       // Checking for token expiration of 1hr
+    if (expiresAt - utcNow < 0) {         // Token expired!
+      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+    }
     const { userId } = requestToken || {};
 
     const userRecord = await User.findOne({ where: { userId }});
     const user = userRecord && userRecord.toJSON();
-    if (!user) { throw new Error('Invalid URL!')};
+    if (!user) { 
+      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
+    };
     const hashedPassword = bcrypt.hashSync(password1, 12);        // Setting salt to 12.
     await User.update({ password: hashedPassword }, { where: { userId }});
 
     return h.response({message: 'Password updation successful'}).code(200);
   }
   catch (error) {
-    // console.log(error);
-    return h.response({error: true, message: error.message});
+    console.error(error.stack);
+    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
   }
 }
 
@@ -262,8 +276,8 @@ const getQuestionnaire = async (request, h, companyName) => {
     return h.response(questions).code(200);
   }
   catch (error) {
-    // console.log(error);
-    return h.response({error: true, message: error.message});
+    console.error(error.stack);
+    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
   }
 }
 
@@ -286,8 +300,8 @@ const getProfile = async (request, h) => {
     return h.response(responses).code(200);
   }
   catch (error) {
-    // console.error(error);
-    return h.response({error: true, message: error.message}).code(403);
+    console.error(error.stack);
+    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
   }
 }
 
@@ -324,13 +338,14 @@ const createProfile = async (request, h) => {
     } else if ( userTypeName  === 'mentor') {
       // For Mentor profile creation
     } else {
-      throw new Error('Invalid request!');
+      return h.response({ error: true, message: 'Invalid Request!'}).code(400);
     }
     
-    return h.response(resRecord).code(200);
+    return h.response(resRecord).code(201);
   }
   catch (error) {
-    return h.response({error: true, message: error.message}).code(403);
+    console.error(error.stack);
+    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
   }
 }
 

@@ -1,5 +1,3 @@
-import { QueryTypes } from 'sequelize';
-import { formatQueryRes } from '../utils/index';
 import { 
     createJob,
     getJobs,

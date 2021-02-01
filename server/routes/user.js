@@ -1,6 +1,12 @@
-import { QueryTypes } from 'sequelize';
-import { formatQueryRes } from '../utils/index';
-import { createUser, getUser, updateUser, forgotPassword, resetPassword, createProfile,createJob,createJobProfile,getProfile,getQuestionnaire } from "../controllers/user";
+import { 
+  createUser, 
+  getUser, 
+  updateUser, 
+  forgotPassword, 
+  resetPassword, 
+  createProfile,
+  getProfile, 
+  getQuestionnaire } from "../controllers/user";
 
 const xuser = {
   name: 'xuser',

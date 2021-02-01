@@ -9,38 +9,34 @@ const loginUser = async (request, h) => {
     if (request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    // console.log('request.payload', request.payload);
     const { User, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
     const { email, password } = request.payload || {};
 
     if ( !(email && password) ) {
-      throw new Error('Please provide necessary details');
+      return h.response({ error: true, message: 'Please provide necessary credentials'}).code(400);
     }
 
     if (!validator.isEmail(email)) {
-      throw new Error('Please provide a valid Email');
+      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
     }
-    if (password.length < 8) {
-      throw new Error('Password must contain atleast 8 characters');
-    } else if (password.length > 100) {
-      throw new Error('Password should be atmost 100 characters');
+    if (password.length < 8 || password.length > 100) {
+      return h.response({ error: true, message: 'Invalid Password'}).code(400);
     }
 
-    const udata = await User.findAll({
+    const udata = await User.findOne({
         where: {
           email
         },
         attributes: ['email', 'password', 'user_id']
     });
-    if (udata.length == 0) {
-        throw new Error('Please check your credentials');
-    } else if (udata.length > 1) {
-        throw new Error('Multiple accounts detected!');
+    const user = udata && udata.toJSON();
+    if (!user) {
+      return h.response({ error: true, message: 'Please check your credentials'}).code(400);
     }
-    const user = udata[0] && udata[0].toJSON();
-    const isPasswordMatching = bcrypt.compareSync(password, user.password);
+    const {password: passwordStored, user_id} = udata && udata.toJSON();
+    const isPasswordMatching = bcrypt.compareSync(password, passwordStored);
     if (!isPasswordMatching) {
-        throw new Error('Please check your credentials');
+      return h.response({ error: true, message: 'Please check your credentials'}).code(400);
     }
 
     const uidata = await Userinfo.findOne({
@@ -77,17 +73,15 @@ const loginUser = async (request, h) => {
 
     const tokendata = await Accesstoken.create({
         token,
-        userId: Number(user.user_id),
+        userId: user_id,
         isValid: true
     });
 
-    return h.response({user: userInfoRes, token});
+    return h.response({user: userInfoRes, token}).code(200);
   } 
   catch (error) {
-    // console.error(error);
-    return h.response({
-      error: true, message: error.message
-    }).code(400);
+    console.error(error.stack);
+    return h.response({error: true, message: 'Bad Request'}).code(500);
   }
 };
 

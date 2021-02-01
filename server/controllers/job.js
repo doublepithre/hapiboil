@@ -2,12 +2,6 @@ const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 import jobUtils from '../utils/jobUtils'
 const axios = require('axios')
 const config = require('config');
-const bcrypt = require('bcrypt');
-const validator = require('validator');
-const { sendEmailAsync } = require('../utils/email');
-const randtoken = require('rand-token');
-import request from 'request';
-import { formatQueryRes } from '../utils/index';
 
 const createJob = async (request, h) => {
     try {
@@ -20,11 +14,11 @@ const createJob = async (request, h) => {
 
         const { Job } = request.getModels('xpaxr');
         const resRecord = await Job.create({ ...jobDetails, active: true, userId });
-        return h.response(resRecord).code(200);
+        return h.response(resRecord).code(201);
     }
     catch (error) {
-        // console.log(error);
-        return h.response({error: true, message: error.message}).code(403);
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
     }
 }
 
@@ -42,8 +36,8 @@ const getJobs = async (request, h, noOfJobs) => {
         return h.response(response).code(200);
     }
     catch (error) {
-        // console.error(error);
-        return h.response({error: true, message: error.message}).code(403);
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
 const getRecruiterJobs = async(request,h)=>{
@@ -69,7 +63,7 @@ const getRecruiterJobs = async(request,h)=>{
         return h.response(jobs).code(200);
     }catch(err){
         console.error(err.stack);
-        return h.response({error:true,message:error.message}).code(500);
+        return h.response({error:true,message:'Internal Server Error!'}).code(500);
     }
 }
 const updateJob = async (request, h) => {
@@ -83,11 +77,11 @@ const updateJob = async (request, h) => {
         const { Job } = request.getModels('xpaxr');
         await Job.update({jobName, jobDescription, jobWebsite}, { where: { jobUuid }});
         const record = await Job.findOne({where: {jobUuid}});
-        return h.response(record).code(200);
+        return h.response(record).code(201);
     }
     catch (error) {
-        // console.error(error);
-        return h.response({error: true, message: error.message}).code(403);
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
     }
 }
 
@@ -106,11 +100,11 @@ const createJobQuesResponses = async (request, h) => {
         }
         const { Jobsquesresponse } = request.getModels('xpaxr');
         const records = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate:["responseVal"]});
-        return h.response(records).code(200);
+        return h.response(records).code(201);
     }
     catch (error) {
-        // console.error(error);
-        return h.response({error: true, message: error.message}).code(403);
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
     }
 }
 
@@ -126,8 +120,8 @@ const getJobQuesResponses = async (request, h) => {
         return h.response(records).code(200);
     }
     catch (error) {
-        // console.error(error);
-        return h.response({error: true, message: error.message}).code(403);
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
 
@@ -146,14 +140,12 @@ const applyToJob = async (request, h) => {
         return h.response(recordRes).code(200);
     }
     catch(error) {
-        // console.error(error);
-        return h.response({error: true, message: error.message}).code(403);
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
     }
 }
 
 const getAppliedJobs = async (request, h) => {
-    // Check the requirement
-        // All applied jobs? withdrawn jobs? status wise?
     try{
         if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
@@ -170,8 +162,8 @@ const getAppliedJobs = async (request, h) => {
         return h.response(jobs).code(200);
     }
     catch (error) {
-        // console.log(error);
-        return h.response({error: true, message: error.message}).code(403);
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
 
