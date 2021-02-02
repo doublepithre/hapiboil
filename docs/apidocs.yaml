@@ -17,12 +17,58 @@ tags:
     description: Information about the user
 
 paths:
+  /:
+    post:
+      summary: Create User
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: me@mymail.com
+                password:
+                  type: string
+                  example: password
+                accountType:
+                  type: string
+                  enum: [candidate,employer,mentor]
+      responses:
+        '200':
+          description: User successfully created
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to create user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+                
   /login:
     post:
       summary: Login user
       # security:
       #   - bearerAuth: []
-      operationId: listPets
       tags:
         - User
       requestBody:
@@ -31,12 +77,13 @@ paths:
             schema:
               type: object
               properties:
-                username:
+                email:
                   type: string
                   example: me@mymail.com
                 password:
                   type: string
                   example: password
+  
       responses:
         '200':
           description: Successful login
