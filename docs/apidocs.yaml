@@ -15,6 +15,18 @@ servers:
 tags: 
   - name: User
     description: Information about the user
+  - name: User Model
+    x-displayName: The User Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/User" />
+  - name: Question Model
+    x-displayName: The Question Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/Question" />
+  - name: Answer Model
+    x-displayName: The Answer Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/answers" />
 
 paths:
   /account:
@@ -116,6 +128,14 @@ paths:
   /account/{userUuid}/: 
     patch:
       summary: Update user info
+      parameters:
+        - name: userUuid
+          in: path
+          description: UUID of User
+          required: true
+          schema:
+            type: integer
+            format: int64
       security:
       - bearerAuth: []
       tags:
@@ -195,6 +215,13 @@ paths:
       summary: Reset password
       tags:
         - User
+      parameters:
+        - name: passwordResetToken
+          in: path
+          description: Password reset token from ?
+          required: true
+          schema:
+            type: string
       requestBody:
         content:
           application/json: 
@@ -211,16 +238,64 @@ paths:
           content:
             application/json: 
               schema: 
+                type: object
                 properties:
                   message:
                     type: string
                     example: Password updation successful
-    /account/empauwerMe:
+
+  /account/empauwer-me:
     get:
+      tags:
+      - User
+      security:
+      - bearerAuth: []
       description:  Get Empauwer Me Questionnaire
       responses:
         '200':
           description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref:  "#/components/schemas/Question"
+
+  /account/empauwer-all:
+    get:
+      tags:
+      - User
+      security:
+      - bearerAuth: []
+      description:  Get Empauwer All Questionnaire
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref:  "#/components/schemas/Question"
+  /account/profile:
+    post:
+      tags:
+      - User
+      security:
+      - bearerAuth: []
+      description:  Create profile/Answer Questions
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/answers"
 components:
   securitySchemes:
     bearerAuth:            # arbitrary name for the security scheme
@@ -289,3 +364,19 @@ components:
                 type: number
               optionName:
                 type: string
+    answers:
+      type: object
+      properties:
+        question_id: 
+          type: number
+        answer:
+          oneOf:
+            - type: number
+              description: For scale/integer/single choice questions
+            - type: string
+              description: For free text questions
+            - type: array
+              description: For multiple choice questions
+              items: 
+                type: number
+            
