@@ -1,0 +1,90 @@
+openapi: "3.0.0"
+info:
+  version: 1.0.0
+  title: Empauwer Backend API documenations
+  description: |
+    # Introduction
+    This API is documented in **OpenAPI format**. \
+    See https://redocly.github.io/redoc/ for more information.
+  
+servers:
+  - url: http://localhost:4585/em/api/v1
+    description: Local development
+  - url: https://empstag.x0pa.ai/em/api/v1/
+    description: Staging environment
+tags: 
+  - name: User
+    description: Information about the user
+
+paths:
+  /login:
+    post:
+      summary: Login user
+      # security:
+      #   - bearerAuth: []
+      operationId: listPets
+      tags:
+        - User
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                username:
+                  type: string
+                  example: me@mymail.com
+                password:
+                  type: string
+                  example: password
+      responses:
+        '200':
+          description: Successful login
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties: 
+                    User: 
+                      $ref: "#/components/schemas/User"
+                    token:
+                      type: string
+                      description: JWT to be used for authorization 
+components:
+  securitySchemes:
+    bearerAuth:            # arbitrary name for the security scheme
+      type: http
+      scheme: bearer
+      bearerFormat: JWT    # optional, arbitrary value for documentation purposes
+  schemas:
+    User:
+      type: object
+      properties:
+        userId: 
+          type: number
+        useruuid:
+          type: number
+        email:
+          type: string
+        roleId:
+          type: number
+        active:
+          type: boolean
+        companyId:
+          type: number
+        companyUuid:
+          type: number
+        firstName:
+          type: string
+        lastName:
+          type: string
+        picture:
+          type: string
+        isAdmin:
+          type: boolean
+        tzid:
+          type: number
+        primaryMobile:
+          type: string
+        
+  
