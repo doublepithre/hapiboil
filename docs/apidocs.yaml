@@ -17,7 +17,7 @@ tags:
     description: Information about the user
 
 paths:
-  /:
+  /account:
     post:
       summary: Create User
       tags:
@@ -38,7 +38,7 @@ paths:
                   type: string
                   enum: [candidate,employer,mentor]
       responses:
-        '200':
+        '201':
           description: User successfully created
           content:
             application/json:
@@ -97,6 +97,130 @@ paths:
                     token:
                       type: string
                       description: JWT to be used for authorization 
+
+  /account/me:
+    get: 
+      summary: Get user info
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get user information
+          content:
+            application/json: 
+              schema:
+                type: object
+                $ref: "#/components/schemas/User"
+  /account/{userUuid}/: 
+    patch:
+      summary: Update user info
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+                  nullable: true
+                firstName:
+                  type: string
+                  nullable: true
+                lastName:
+                  type: string
+                  nullable: true
+                isAdmin:
+                  type: boolean
+                  nullable: true
+                tzid:
+                  type: number
+                  nullable: true
+                primaryMobile:
+                  type: string
+                  nullable: true
+                roleId:
+                  type: number
+                  nullable: true
+      responses:
+        '200':
+          description: Successfully updated user info
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/User"
+  /account/forget-password: 
+    post: 
+      summary: Forget user password
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                email: 
+                  type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: 
+             schema: 
+              properties:
+                requestId:
+                  type: number
+                requestKey:
+                  type: string
+                userId:
+                  type: number 
+                expiresAt:
+                  type: string
+                resourceType:
+                  type: string
+                actionType:
+                  type: string
+                createdAt:
+                  type: string
+                updatedAt:
+                  type: string
+  /account/reset-password/{passwordResetToken}:
+    patch: 
+      summary: Reset password
+      tags:
+        - User
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                password1: 
+                  type: string
+                password2:
+                  type: string
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                properties:
+                  message:
+                    type: string
+                    example: Password updation successful
+    /account/empauwerMe:
+    get:
+      description:  Get Empauwer Me Questionnaire
+      responses:
+        '200':
+          description: OK
 components:
   securitySchemes:
     bearerAuth:            # arbitrary name for the security scheme
@@ -133,5 +257,35 @@ components:
           type: number
         primaryMobile:
           type: string
-        
-  
+    Question:
+      type: object
+      properties:
+        question_id:
+          type: string
+        question_name:
+          type: string
+        question_config:
+          $ref: "#/components/schemas/question_config"
+        QuestionType:
+          type: object
+          description: messy for now
+          properties:
+            question_type_name:
+              type: string
+    question_config:
+      type: object
+      properties:
+        desc:
+          type: string
+          description: Detailed Question descriptions
+          nullable: true
+        options:
+          type: array
+          items: 
+            type: object
+            description: Options for Multiple choice/single choice questions
+            properties:
+              optionId:
+                type: number
+              optionName:
+                type: string
