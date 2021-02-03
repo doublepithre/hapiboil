@@ -1,5 +1,7 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 import jobUtils from '../utils/jobUtils'
+import {camelizeKeys} from '../utils/camelizeKeys'
+import formatQueryRes from '../utils/index'
 const axios = require('axios')
 const config = require('config');
 
@@ -8,7 +10,7 @@ const createJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        const { jobDetails } = request.payload || {};
+        const jobDetails = request.payload || {};
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
@@ -71,6 +73,8 @@ const updateJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
+        // Need to check that the user is authorized to update the job
+        // i.e. only job creator should have the right to update job
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobWebsite } = request.payload || {};
         
@@ -90,7 +94,8 @@ const createJobQuesResponses = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        const { jobId, questionResponses } = request.payload || {};
+        const { jobId } = request.params || {};
+        const questionResponses= request.payload || {};
 
         const responses = []
         for (let response of questionResponses) {
@@ -114,10 +119,15 @@ const getJobQuesResponses = async (request, h) => {
             return h.response({ message: 'Forbidden'}).code(403);
         }
         const { jobId } = request.params || {};
-        console.log(request.payload);
         const { Jobsquesresponse } = request.getModels('xpaxr');
         const records = await Jobsquesresponse.findAll({ where: {jobId} });
-        return h.response(records).code(200);
+        const responses = [];
+        for (let response of records) {
+          const { questionId, responseVal } = response;
+          const res = { questionId, answer:responseVal.answer };
+          responses.push(res);
+        }
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -130,6 +140,7 @@ const applyToJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
+        // Candidate should not be allowed to modify status
         const { jobId, isApplied, isWithdrawn, status } = request.payload || {};
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
@@ -137,7 +148,7 @@ const applyToJob = async (request, h) => {
         const record = { jobId, userId, isApplied, isWithdrawn, status }
         const { Jobapplications } = request.getModels('xpaxr');
         const recordRes = await Jobapplications.upsert(record);
-        return h.response(recordRes).code(200);
+        return h.response(recordRes[0]).code(200);
     }
     catch(error) {
         console.error(error.stack);
@@ -159,7 +170,7 @@ const getAppliedJobs = async (request, h) => {
                         where ja.user_id= :userId`;
         const sequelize = db1.sequelize;
         const jobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
-        return h.response(jobs).code(200);
+        return h.response(camelizeKeys(jobs)).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -175,7 +186,7 @@ const getJobRecommendations = async (request,h,jobCache) => {
     const { id: userId } = credentials || {};
     let model = request.getModels('xpaxr');
     if (!await isQuestionnaireDone(userId,model)){
-      return h.response({error:"Questionnaire Not Done"}).code(403)
+      return h.response({error:"Questionnaire Not Done"}).code(409)
     }
     let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
     recommendations = recommendations.data["recommendation"]//this will be  sorted array of {job_id,score}

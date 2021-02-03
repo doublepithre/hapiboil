@@ -15,18 +15,43 @@ servers:
 tags: 
   - name: User
     description: Information about the user
+
+  - name: Job
+    description: Information about jobs
+
   - name: User Model
     x-displayName: The User Model
     description: |
       <SchemaDefinition schemaRef="#/components/schemas/User" />
+
   - name: Question Model
     x-displayName: The Question Model
     description: |
       <SchemaDefinition schemaRef="#/components/schemas/Question" />
+
   - name: Answer Model
     x-displayName: The Answer Model
     description: |
       <SchemaDefinition schemaRef="#/components/schemas/answers" />
+  - name: Job Model
+    x-displayName: The Job Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/job" />
+
+  - name: Detailed Job Model
+    x-displayName: The Detailed Job Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/jobDetailed" />
+  
+  - name: Job Application Model
+    x-displayName: The Job Application Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/jobApplication" />
+    
+  - name: Detailed Job Application Model
+    x-displayName: The Detailed Job Application Model
+    description: |
+      <SchemaDefinition schemaRef="#/components/schemas/jobApplicationDetailed" />
 
 paths:
   /account:
@@ -79,8 +104,6 @@ paths:
   /login:
     post:
       summary: Login user
-      # security:
-      #   - bearerAuth: []
       tags:
         - User
       requestBody:
@@ -134,8 +157,7 @@ paths:
           description: UUID of User
           required: true
           schema:
-            type: integer
-            format: int64
+            type: string
       security:
       - bearerAuth: []
       tags:
@@ -174,9 +196,9 @@ paths:
             application/json: 
               schema:
                 $ref: "#/components/schemas/User"
-  /account/forget-password: 
+  /account/forgot-password: 
     post: 
-      summary: Forget user password
+      summary: Forgot user password
       tags:
         - User
       requestBody: 
@@ -246,11 +268,11 @@ paths:
 
   /account/empauwer-me:
     get:
+      summary:  Get Empauwer Me Questionnaire
       tags:
       - User
       security:
       - bearerAuth: []
-      description:  Get Empauwer Me Questionnaire
       responses:
         '200':
           description: OK
@@ -263,11 +285,11 @@ paths:
 
   /account/empauwer-all:
     get:
+      summary:  Get Empauwer All Questionnaire  
       tags:
       - User
       security:
       - bearerAuth: []
-      description:  Get Empauwer All Questionnaire
       responses:
         '200':
           description: OK
@@ -279,11 +301,11 @@ paths:
                   $ref:  "#/components/schemas/Question"
   /account/profile:
     post:
+      summary:  Create profile/Answer Questions
       tags:
       - User
       security:
       - bearerAuth: []
-      description:  Create profile/Answer Questions
       requestBody:
         content:
           application/json: 
@@ -304,11 +326,11 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers"
     get:
+      summary: Get profile/Answered Questions
       tags:
       - User
       security:
       - bearerAuth: []
-      description:  Get profile/Answered Questions
       responses:
         '200':
           description: OK
@@ -321,6 +343,221 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/answers" 
+
+  /job:
+    post: 
+      summary: Create Job
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              $ref: "#/components/schemas/job"
+      responses:
+        '201':
+          description: Job created
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/job" 
+    get: 
+      summary: Get jobs
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/jobDetailed" 
+
+  /job/{jobUuid}:
+    get: 
+      summary: Get job by uuid
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobUuid
+          in: path
+          description: UUID of job
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/jobDetailed" 
+    patch: 
+      summary: Update job by uuid
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobUuid
+          in: path
+          description: UUID of job
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              $ref: "#/components/schemas/job"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobDetailed" 
+
+  /job/recruiter:
+    get: 
+      summary: Get recruiter jobs
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/jobDetailed" 
+  
+  /job/profile/{jobId}:
+    get: 
+      summary: Get empauwer all responses
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/answers" 
+    post: 
+      summary: Answer empauwer all responses
+      description: This is an upsert command hence it will update/insert responses.
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/answers"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/answers" 
+
+  /job/apply:
+    post: 
+      summary: Apply to jobs
+      description: This is an upsert command hence it will update/insert jobs.
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              $ref: "#/components/schemas/jobApplication"
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobApplication"
+
+    get: 
+      summary: Get applied jobs
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobApplicationDetailed"
+    
+  /job/recommendations:
+    get: 
+      summary: Get recommended jobs for user
+      description: | 
+        Note this route requires data science server to be running.
+
+        Returns list of recommended jobs in sorted order. i.e. First element is the most recommended.
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '409':
+          description: Questionnaire is not completed yet
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: Questionnaire Not Done
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/jobDetailed"
+
 components:
   securitySchemes:
     bearerAuth:            # arbitrary name for the security scheme
@@ -356,6 +593,8 @@ components:
         tzid:
           type: number
         primaryMobile:
+          type: string
+        userTypeName:
           type: string
     Question:
       type: object
@@ -403,3 +642,57 @@ components:
               items: 
                 type: number
             
+    job:
+      type: object
+      properties:
+        jobName:
+          type: string
+        jobDescription:
+          type: string
+        jobWebsite:
+          type: string
+
+    jobDetailed:
+      type: object
+      description: This extends the job model and provides more information.
+      allOf:
+        - $ref: "#/components/schemas/job"
+      properties:
+        jobId:
+          type: number
+        jobUuid:
+          type: string
+        userId:
+          type: string
+          description: ID of user who created the job
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    
+    jobApplication:
+      type: object
+      properties:
+        jobId:
+          type: number
+        isApplied:
+          type: boolean
+        isWithdrawn:
+          type: boolean
+        status:
+          type: string
+    
+    jobApplicationDetailed:
+      type: object
+      description: This extends detailed jobs to include applications
+      allOf:
+        - $ref: "#/components/schemas/jobDetailed"
+        - $ref: "#/components/schemas/jobApplication"
+      properties:
+        applicationId:
+          type: number  
+      
+
+

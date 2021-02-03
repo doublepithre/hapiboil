@@ -20,7 +20,7 @@ If not already installed
 ```
 npm install snippet-enricher-cli
 ```
-
+Ensure you are in the docs directory.
 ```
 ../node_modules/.bin/snippet-enricher-cli --targets="node_request" --input=apidocs.yaml > apidocs.json # this generates code snippets for bundling later
 npx redoc-cli bundle apidocs.json
