@@ -270,7 +270,7 @@ const getQuestionnaire = async (request, h, companyName) => {
     const questions = [];
     for (const response of responses) {
       const { question_id, question_name, question_config, question_type_name } = response || {};
-      const question = {question_id, question_name, question_config, 'QuestionType': { question_type_name } };
+      const question = {questionId:question_id,questionName:question_name,questionConfig:question_config, questionTypeName:question_type_name};
       questions.push(question);
     }
     return h.response(questions).code(200);
@@ -294,7 +294,7 @@ const getProfile = async (request, h) => {
     for (let response of quesResponses) {
       response = response && response.toJSON();
       const { questionId, responseVal } = response;
-      const res = { questionId, responseVal };
+      const res = { questionId, answer:responseVal.answer };
       responses.push(res);
     }
     return h.response(responses).code(200);
@@ -314,22 +314,15 @@ const createProfile = async (request, h) => {
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Userquesresponse } = request.getModels('xpaxr');
-    // Checking user type
+    // Checking user type from jwt
     const db1 = request.getDb('xpaxr');
-    const sqlStmt = `select * from hris.userinfo ui
-                    inner join hris.usertype ut on ui.user_type_id = ut.user_type_id 
-                    where ui.user_id= :userId`;
-    const sequelize = db1.sequelize;
-    const ares = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId: userId } });
-    const user = formatQueryRes(ares);
-    const { userTypeName } = user || {};
-
     let data = []
     let resRecord;
-    if (userTypeName === 'candidate') {
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (userTypeName === "candidate") {
       for (const response of responses) {
-        const { question_id, answer } = response || {};
-        const record = { questionId:question_id, responseVal:{answer}, userId }
+        const { questionId, answer } = response || {};
+        const record = { questionId, responseVal:{answer}, userId }
         data.push(record);
       }
       resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
@@ -340,7 +333,6 @@ const createProfile = async (request, h) => {
     } else {
       return h.response({ error: true, message: 'Invalid Request!'}).code(400);
     }
-    
     return h.response(resRecord).code(201);
   }
   catch (error) {

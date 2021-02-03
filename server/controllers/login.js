@@ -62,21 +62,17 @@ const loginUser = async (request, h) => {
         tzid,
         primaryMobile
     } = userInfoRes || {};
-    const token = await jwt.sign({userUuid, userTypeId, email: userEmail, roleId, active, companyId, companyUuid, firstName, lastName, isAdmin, tzid, primaryMobile}, config.get('jwtSecret'), {expiresIn: '24h'});
-
-    const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
-    const userRoleRecord = await Userrole.findOne({ where: { roleId }});
-    const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
-    const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+    let [userTypeRecord,userRoleRecord] = await Promise.all([Usertype.findOne({ where: { userTypeId }}),Userrole.findOne({ where: { roleId }})])
+    const { userTypeName } = userTypeRecord
+    const { roleName } = userRoleRecord
+    const token = await jwt.sign({userUuid, userTypeId, email: userEmail, roleId, active, companyId, companyUuid, firstName, lastName, isAdmin, tzid, primaryMobile,userTypeName,userRoleRecord}, config.get('jwtSecret'), {expiresIn: '24h'});
+    await Accesstoken.create({
+      token,
+      userId: user_id,
+      isValid: true
+    });
     userInfoRes.userTypeName = userTypeName;
     userInfoRes.roleName = roleName;
-
-    const tokendata = await Accesstoken.create({
-        token,
-        userId: user_id,
-        isValid: true
-    });
-
     return h.response({user: userInfoRes, token}).code(200);
   } 
   catch (error) {

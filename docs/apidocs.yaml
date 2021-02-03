@@ -4,7 +4,7 @@ info:
   title: Empauwer Backend API documenations
   description: |
     # Introduction
-    This API is documented in **OpenAPI format**. \
+    This API is documented in **OpenAPI 3.0 format**. \
     See https://redocly.github.io/redoc/ for more information.
   
 servers:
@@ -284,6 +284,13 @@ paths:
       security:
       - bearerAuth: []
       description:  Create profile/Answer Questions
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: array
+              items:
+                $ref: "#/components/schemas/answers"
       responses:
         '200':
           description: OK
@@ -296,6 +303,24 @@ paths:
                     type: array
                     items:
                       $ref: "#/components/schemas/answers"
+    get:
+      tags:
+      - User
+      security:
+      - bearerAuth: []
+      description:  Get profile/Answered Questions
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  responses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/answers" 
 components:
   securitySchemes:
     bearerAuth:            # arbitrary name for the security scheme
@@ -335,19 +360,17 @@ components:
     Question:
       type: object
       properties:
-        question_id:
+        questionId:
           type: string
-        question_name:
+        questioName:
           type: string
-        question_config:
-          $ref: "#/components/schemas/question_config"
-        QuestionType:
-          type: object
-          description: messy for now
-          properties:
-            question_type_name:
-              type: string
-    question_config:
+        questionConfig:
+          $ref: "#/components/schemas/questionConfig"
+        questionTypeName:
+          type: string
+          enum: ["scale5","scale10","subjective","single_choice","multiple_choice","yes_no","integer"]
+
+    questionConfig:
       type: object
       properties:
         desc:
@@ -367,7 +390,7 @@ components:
     answers:
       type: object
       properties:
-        question_id: 
+        questionId: 
           type: number
         answer:
           oneOf:
