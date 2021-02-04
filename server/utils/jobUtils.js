@@ -8,9 +8,11 @@ const getJobInfos = async(jobIds,model,cache) =>{
             segment:"jobCache",
             id:jobId.toString()
         }
-        jobInfos.push(await cache.get(key))
+        jobInfos.push(cache.get(key))
     }
-    let cacheMiss = []
+    jobInfos = await Promise.all(jobInfos);
+    let jobMap = new Map();
+    let cacheMiss = [];
     for(let i=0;i<jobIds.length;i++){
         if (!jobInfos[i]){
             cacheMiss.push(jobIds[i])
@@ -18,21 +20,19 @@ const getJobInfos = async(jobIds,model,cache) =>{
     }
     //populate cache and fill in missing values
     let missedJobInfos = await model.findAll({where:{jobId:cacheMiss}});
-    console.log(missedJobInfos);
     //populate cache
     for(let jobInfo of missedJobInfos){
         let key = {
             segment:"jobCache",
             id:jobInfo.jobId.toString()
         }
-        cache.set(key,jobInfo)//no need await here
+        cache.set(key,jobInfo);//no need await here
+        jobMap[jobInfo.jobId] = jobInfo;// map job id to jobinfo 
     }
-    //fill in job infos to return 
-    let j = 0;
+    //fill in job infos in to return 
     for(let i=0;i<jobIds.length;i++){
         if (!jobInfos[i]){
-            jobInfos[i] = missedJobInfos[j];
-            j++;
+            jobInfos[i] = jobMap[jobIds[i]]
         }
     }
     return jobInfos;
