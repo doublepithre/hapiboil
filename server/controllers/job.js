@@ -35,12 +35,22 @@ const getJobs = async (request, h, noOfJobs) => {
             return h.response({ message: 'Forbidden'}).code(403);
         }
         const { jobUuid } = request.params || {};
-        const { Job } = request.getModels('xpaxr');
-        let options = {};
-        if (noOfJobs === 'one') options = { where: { jobUuid } };
         
-        const response = await Job.findAll(options);
-        return h.response(response).code(200);
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        let responses;
+        if (noOfJobs === 'one') {
+            const sqlStmt = `select * from hris.jobs j
+                        inner join hris.userinfo ui on j.user_id = ui.user_id                    
+                        where j.job_uuid= :jobUuid`;
+            responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } });
+        } else {            
+            const sqlStmt = `select * from hris.jobs j
+                        inner join hris.userinfo ui on j.user_id = ui.user_id`;
+            responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT });
+        }
+                
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
