@@ -9,8 +9,8 @@
   },
   "jwtSecret": "A?D(G+KbPeShVmYq3t6w9z$B&E)H@McQ",
   "replication": {
-    "read": [{ "host": "localhost", "username": "postgres", "password": "!Qwerty@123" }],
-    "write": { "host": "localhost", "username": "postgres", "password": "!Qwerty@123" }
+    "read": [{ "host": "localhost", "username": "postgres", "password": "$ilven1eaf" }],
+    "write": { "host": "localhost", "username": "postgres", "password": "$ilven1eaf" }
   },
   "redis": {
     "host": "xpastagingnode.redis.cache.windows.net",

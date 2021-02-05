@@ -11,6 +11,11 @@ const createJob = async (request, h) => {
             return h.response({ message: 'Forbidden'}).code(403);
         }
         const jobDetails = request.payload || {};
+        const { jobName, jobDescription, jobWebsite } = jobDetails;
+        if(!(jobName && jobDescription && jobWebsite)){
+            return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+        }
+
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
