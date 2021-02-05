@@ -43,12 +43,14 @@ const getJobs = async (request, h, noOfJobs) => {
             const sqlStmt = `select * from hris.jobs j
                         inner join hris.userinfo ui on j.user_id = ui.user_id                    
                         inner join hris.userrole ur on ui.role_id = ur.role_id                    
+                        inner join hris.usertype ut on ui.user_type_id = ut.user_type_id                    
                         where j.job_uuid= :jobUuid`;
             responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } });
         } else {            
             const sqlStmt = `select * from hris.jobs j
                         inner join hris.userinfo ui on j.user_id = ui.user_id
-                        inner join hris.userrole ur on ui.role_id = ur.role_id`;
+                        inner join hris.userrole ur on ui.role_id = ur.role_id
+                        inner join hris.usertype ut on ui.user_type_id = ut.user_type_id                    `;
             responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT });
         }
                 
