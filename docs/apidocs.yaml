@@ -379,7 +379,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/jobDetailed" 
+                  $ref: "#/components/schemas/jobDetailedWithUserData" 
 
   /job/{jobUuid}:
     get: 
@@ -403,7 +403,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/jobDetailed" 
+                  $ref: "#/components/schemas/jobDetailedWithUserData" 
     patch: 
       summary: Update job by uuid
       tags:
@@ -502,7 +502,7 @@ paths:
           application/json: 
             schema:
               type: object
-              $ref: "#/components/schemas/jobApplication"
+              $ref: "#/components/schemas/jobApplicationWithOnlyJobId"
       responses:
         '200':
           description: OK
@@ -694,5 +694,29 @@ components:
         applicationId:
           type: number  
       
-
-
+    jobApplicationWithOnlyJobId:
+      type: object
+      properties:
+        jobId:
+          type: number
+        
+    jobDetailedWithUserData:
+      type: object
+      description: This extends the job model and provides more information.
+      allOf:
+        - $ref: "#/components/schemas/job"
+        - $ref: "#/components/schemas/User"
+      properties:
+        jobId:
+          type: number
+        jobUuid:
+          type: string
+        userId:
+          type: string
+          description: ID of user who created the job
+        active:
+          type: boolean
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
