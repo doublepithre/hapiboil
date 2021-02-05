@@ -146,11 +146,15 @@ const applyToJob = async (request, h) => {
             return h.response({ message: 'Forbidden'}).code(403);
         }
         // Candidate should not be allowed to modify status
-        const { jobId, isApplied, isWithdrawn, status } = request.payload || {};
+        const { jobId } = request.payload || {};
+        if(!jobId){
+            return h.response({ error: true, message: 'Not a valid request!'}).code(400);
+        }
+        
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const record = { jobId, userId, isApplied, isWithdrawn, status }
+        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Under Review" }
         const { Jobapplications } = request.getModels('xpaxr');
         const recordRes = await Jobapplications.upsert(record);
         return h.response(recordRes[0]).code(200);
