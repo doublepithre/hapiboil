@@ -53,12 +53,17 @@ const getJobs = async (request, h, noOfJobs) => {
             const job = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } }); //it'll store our specific job in an array
 
             // checking if already applied or not
-            for(let i=0; i<allAppliedJobs.length; i++){
-                if(job[0].job_id === allAppliedJobs[i].job_id){
-                    job.isApplied = true;
-                } else {
-                    job[0].isApplied = false;
+            if(allAppliedJobs.length){
+                for(let i=0; i<allAppliedJobs.length; i++){
+                    if(job.job_id === allAppliedJobs[i].job_id){
+                        job[0].isApplied = true;
+                        break;
+                    } else {
+                        job[0].isApplied = false;
+                    }
                 }
+            } else {
+                job[0].isApplied = false;
             }
 
             responses = job;
@@ -73,12 +78,17 @@ const getJobs = async (request, h, noOfJobs) => {
 
             // checking if already applied or not
             for(let job of allJobs){
-                for(let i=0; i<allAppliedJobs.length; i++){
-                    if(job.job_id === allAppliedJobs[i].job_id){
-                        job.isApplied = true;
-                    } else {
-                        job.isApplied = false;
+                if(allAppliedJobs.length){
+                    for(let i=0; i<allAppliedJobs.length; i++){
+                        if(job.job_id === allAppliedJobs[i].job_id){
+                            job.isApplied = true;
+                            break;
+                        } else {
+                            job.isApplied = false;
+                        }
                     }
+                } else {
+                    job.isApplied = false;
                 }
             }
 
