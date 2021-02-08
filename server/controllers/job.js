@@ -44,17 +44,19 @@ const getJobs = async (request, h, noOfJobs) => {
                         inner join hris.userinfo ui on j.user_id = ui.user_id                    
                         inner join hris.userrole ur on ui.role_id = ur.role_id                    
                         inner join hris.usertype ut on ui.user_type_id = ut.user_type_id                    
+                        inner join hris.jobapplications ja on ja.job_id = j.job_id                    
                         where j.job_uuid= :jobUuid`;
             responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } });
         } else {            
             const sqlStmt = `select * from hris.jobs j
                         inner join hris.userinfo ui on j.user_id = ui.user_id
                         inner join hris.userrole ur on ui.role_id = ur.role_id
-                        inner join hris.usertype ut on ui.user_type_id = ut.user_type_id                    `;
+                        inner join hris.usertype ut on ui.user_type_id = ut.user_type_id
+                        inner join hris.jobapplications ja on ja.job_id = j.job_id`;
             responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT });
         }
                 
-        return h.response(responses).code(200);
+        return h.response(camelizeKeys(responses)).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -118,8 +120,8 @@ const createJobQuesResponses = async (request, h) => {
 
         const responses = []
         for (let response of questionResponses) {
-            const { question_id, answer } = response;
-            const record = { questionId:question_id, responseVal: {'answer': answer}, jobId }
+            const { questionId, answer } = response;
+            const record = { questionId, responseVal: {'answer': answer}, jobId }
             responses.push(record);
         }
         const { Jobsquesresponse } = request.getModels('xpaxr');
