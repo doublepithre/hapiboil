@@ -35,25 +35,54 @@ const getJobs = async (request, h, noOfJobs) => {
             return h.response({ message: 'Forbidden'}).code(403);
         }
         const { jobUuid } = request.params || {};
-        
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        const { Job, Jobapplications } = request.getModels('xpaxr');
+
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
         let responses;
-        if (noOfJobs === 'one') {
-            const sqlStmt = `select * from hris.jobs j
-                        inner join hris.userinfo ui on j.user_id = ui.user_id                    
-                        inner join hris.userrole ur on ui.role_id = ur.role_id                    
-                        inner join hris.usertype ut on ui.user_type_id = ut.user_type_id                    
-                        inner join hris.jobapplications ja on ja.job_id = j.job_id                    
+        if (noOfJobs === 'one') {            
+            const sqlStmt0 = `select * from hris.jobapplications ja
+                            where ja.user_id = :userId`;
+            const allAppliedJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
+
+            const sqlStmt = `select * from hris.jobs j                                          
                         where j.job_uuid= :jobUuid`;
-            responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } });
-        } else {            
-            const sqlStmt = `select * from hris.jobs j
-                        inner join hris.userinfo ui on j.user_id = ui.user_id
-                        inner join hris.userrole ur on ui.role_id = ur.role_id
-                        inner join hris.usertype ut on ui.user_type_id = ut.user_type_id
-                        inner join hris.jobapplications ja on ja.job_id = j.job_id`;
-            responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT });
+            const job = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } }); //it'll store our specific job in an array
+
+            // checking if already applied or not
+            for(let i=0; i<allAppliedJobs.length; i++){
+                if(job[0].user_id === allAppliedJobs[i].user_id){
+                    job.isApplied = true;
+                } else {
+                    job[0].isApplied = false;
+                }
+            }
+
+            responses = job;
+
+        } else {    
+            const sqlStmt0 = `select * from hris.jobs`;
+            const allJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
+            
+            const sqlStmt = `select * from hris.jobapplications ja
+                        where ja.user_id = :userId`;
+            const allAppliedJobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
+
+            // checking if already applied or not
+            for(let job of allJobs){
+                for(let i=0; i<allAppliedJobs.length; i++){
+                    if(job.user_id === allAppliedJobs[i].user_id){
+                        job.isApplied = true;
+                    } else {
+                        job.isApplied = false;
+                    }
+                }
+            }
+
+            responses = allJobs;
         }
                 
         return h.response(camelizeKeys(responses)).code(200);
