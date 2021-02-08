@@ -55,7 +55,7 @@ const getJobs = async (request, h, noOfJobs) => {
             // checking if already applied or not
             if(allAppliedJobs.length){
                 for(let i=0; i<allAppliedJobs.length; i++){
-                    if(job.job_id === allAppliedJobs[i].job_id){
+                    if(job[0].job_id === allAppliedJobs[i].job_id){
                         job[0].isApplied = true;
                         break;
                     } else {
