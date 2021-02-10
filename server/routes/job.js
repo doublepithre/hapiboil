@@ -52,7 +52,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/recruiter',
+        path: '/j/recruiter',
         options: {
           auth: {
             mode: 'try',
@@ -94,7 +94,7 @@ const xjob = {
       });
       server.route({
         method: 'POST',
-        path: '/apply',
+        path: '/j/apply',
         options: {
           auth: {
             mode: 'try',
@@ -104,7 +104,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/applied',
+        path: '/j/applied',
         options: {
           auth: {
             mode: 'try',
@@ -114,7 +114,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/recommendations',
+        path: '/j/recommendations',
         options: {
           auth: {
             mode: 'try',
