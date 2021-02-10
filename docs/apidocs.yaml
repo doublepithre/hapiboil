@@ -432,7 +432,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
-  /job/recruiter:
+  /job/j/recruiter:
     get: 
       summary: Get recruiter jobs
       tags:
@@ -489,7 +489,7 @@ paths:
                 items:
                   $ref: "#/components/schemas/answers" 
 
-  /job/apply:
+  /job/j/apply:
     post: 
       summary: Apply to jobs
       description: This is an upsert command hence it will update/insert jobs.
@@ -527,7 +527,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplicationDetailed"
     
-  /job/recommendations:
+  /job/j/recommendations:
     get: 
       summary: Get recommended jobs for user
       description: | 
