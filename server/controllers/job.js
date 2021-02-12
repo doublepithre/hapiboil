@@ -66,7 +66,7 @@ const getJobs = async (request, h, noOfJobs) => {
                 job[0].isApplied = false;
             }
 
-            responses = job;
+            responses = job[0];
 
         } else {    
             const sqlStmt0 = `select * from hris.jobs`;
