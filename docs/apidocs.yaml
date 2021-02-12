@@ -401,9 +401,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/jobDetailedWithIsApplied" 
+                type: object
+                $ref: "#/components/schemas/jobDetailedWithIsApplied" 
     patch: 
       summary: Update job by uuid
       tags:
