@@ -94,6 +94,13 @@ const getUser = async (request, h) => {
     const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
     const { roleName } = userRoleRecord && userRoleRecord.toJSON();
 
+    // deleting duplicated snake_cased properties
+    delete luser.user_id;
+    delete luser.user_uuid;
+    delete luser.user_type_id;
+    delete luser.company_id;
+    delete luser.company_uuid;
+
     luser.userTypeName = userTypeName;
     luser.roleName = roleName;
 
