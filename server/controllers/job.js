@@ -313,30 +313,12 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const db1 = request.getDb('xpaxr');
       const sequelize = db1.sequelize;
       
-      const sqlStmt = `select * from hris.jobapplications ja                    
+      const sqlStmt = `select * from hris.jobapplications ja    
+                    inner join hris.userinfo ui on ja.user_id = ui.user_id                    
                     where ja.job_id = :jobId`;
-      const allApplications = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobId } });
-      const allApplicants = [];
+      const allApplicants = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobId } });
       
-      if(allApplications.length){
-            for(let i= 0; i<allApplications.length; i++){
-                const res = await Userinfo.findOne({
-                    where:{ userId: allApplications[i].user_id },
-                    attributes: { exclude: ['createdAt', 'updatedAt'] }
-                });
-                const data = res && res.toJSON();
-
-                // deleting duplicated snake_cased properties
-                delete data.user_id;
-                delete data.user_uuid;
-                delete data.user_type_id;
-                delete data.company_id;
-                delete data.company_uuid;           
-    
-                allApplicants.push(data);
-            }
-       }       
-       return h.response(allApplicants).code(200);
+       return h.response(camelizeKeys(allApplicants)).code(200);
 
     }
     catch(error) {
