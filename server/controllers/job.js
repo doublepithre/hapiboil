@@ -242,6 +242,33 @@ const getAppliedJobs = async (request, h) => {
     }
 }
 
+const withdrawFromAppliedJob = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }     
+      const { jobId, userId } = request.payload || {};
+
+      const { Jobapplications } = request.getModels('xpaxr');            
+      const requestedForApplication = await Jobapplications.findOne({ where: { jobId: jobId, userId: userId }}) || {};
+      const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
+
+      await Jobapplications.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
+      const updatedApplication = await Jobapplications.findOne({
+          where:{ applicationId: applicationId },
+          attributes: { exclude: ['createdAt', 'updatedAt']
+        }
+      });
+      const updatedApplicationData = updatedApplication && updatedApplication.toJSON();
+      return h.response(updatedApplicationData).code(200);
+    }
+    catch(error) {
+      console.log(error.stack);
+      return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+    }
+}
+  
+
 const getApplicantProfile = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
@@ -327,6 +354,7 @@ module.exports = {
     getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
+    withdrawFromAppliedJob,
     getApplicantProfile,
     getJobRecommendations
 }

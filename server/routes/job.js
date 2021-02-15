@@ -6,6 +6,7 @@ import {
     getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
+    withdrawFromAppliedJob,
     getApplicantProfile,
     getJobRecommendations,
     getRecruiterJobs
@@ -111,6 +112,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getAppliedJobs,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/j/withdraw',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: withdrawFromAppliedJob,
         },
       });
       server.route({
