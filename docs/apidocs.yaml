@@ -708,4 +708,7 @@ components:
       properties:
         isApplied:
           type: boolean
-        
+        quesRes:
+          type: array
+          items:
+            $ref: "#/components/schemas/answers" 
