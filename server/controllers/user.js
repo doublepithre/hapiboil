@@ -28,7 +28,7 @@ const createUser = async (request, h) => {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
     // Checking account type
-    const validAccountTypes = ['candidate', 'employer', 'mentor'];
+    const validAccountTypes = ['candidate', 'employer', 'mentor', 'superadmin', 'specialist'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
