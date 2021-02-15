@@ -267,7 +267,6 @@ const withdrawFromAppliedJob = async (request, h) => {
       return h.response({ error: true, message: 'Internal Server Error' }).code(500);
     }
 }
-  
 
 const getApplicantProfile = async (request, h) => {
     try{
@@ -297,6 +296,48 @@ const getApplicantProfile = async (request, h) => {
       applicantProfileInfo.roleName = roleName;
   
       return h.response(applicantProfileInfo).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+const getAllApplicantsSelectiveProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { jobId } = request.params || {};
+      const { Userinfo } = request.getModels('xpaxr');
+
+      const db1 = request.getDb('xpaxr');
+      const sequelize = db1.sequelize;
+      
+      const sqlStmt = `select * from hris.jobapplications ja                    
+                    where ja.job_id = :jobId`;
+      const allApplications = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobId } });
+      const allApplicants = [];
+      
+      if(allApplications.length){
+            for(let i= 0; i<allApplications.length; i++){
+                const res = await Userinfo.findOne({
+                    where:{ userId: allApplications[i].user_id },
+                    attributes: { exclude: ['createdAt', 'updatedAt'] }
+                });
+                const data = res && res.toJSON();
+
+                // deleting duplicated snake_cased properties
+                delete data.user_id;
+                delete data.user_uuid;
+                delete data.user_type_id;
+                delete data.company_id;
+                delete data.company_uuid;           
+    
+                allApplicants.push(data);
+            }
+       }       
+       return h.response(allApplicants).code(200);
+
     }
     catch(error) {
       console.error(error.stack);
@@ -356,5 +397,6 @@ module.exports = {
     getAppliedJobs,
     withdrawFromAppliedJob,
     getApplicantProfile,
+    getAllApplicantsSelectiveProfile,
     getJobRecommendations
 }

@@ -8,6 +8,7 @@ import {
     getAppliedJobs,
     withdrawFromAppliedJob,
     getApplicantProfile,
+    getAllApplicantsSelectiveProfile,
     getJobRecommendations,
     getRecruiterJobs
 } from "../controllers/job";
@@ -122,6 +123,16 @@ const xjob = {
             mode: 'try',
           },
           handler: withdrawFromAppliedJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/applications/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllApplicantsSelectiveProfile,
         },
       });
       server.route({
