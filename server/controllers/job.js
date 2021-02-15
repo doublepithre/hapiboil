@@ -242,6 +242,41 @@ const getAppliedJobs = async (request, h) => {
     }
 }
 
+const getApplicantProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+                  
+      const { userId } = request.params || {};
+      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+      const applicantProfileInfo = userRecord && userRecord.toJSON();
+      const { userTypeId, roleId } = applicantProfileInfo || {};
+      
+      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
+      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
+      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
+      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+  
+      // deleting duplicated snake_cased properties
+      delete applicantProfileInfo.user_id;
+      delete applicantProfileInfo.user_uuid;
+      delete applicantProfileInfo.user_type_id;
+      delete applicantProfileInfo.company_id;
+      delete applicantProfileInfo.company_uuid;
+  
+      applicantProfileInfo.userTypeName = userTypeName;
+      applicantProfileInfo.roleName = roleName;
+  
+      return h.response(applicantProfileInfo).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
 const getJobRecommendations = async (request,h,jobCache) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
@@ -292,5 +327,6 @@ module.exports = {
     getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
+    getApplicantProfile,
     getJobRecommendations
 }

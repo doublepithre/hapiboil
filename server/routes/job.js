@@ -6,6 +6,7 @@ import {
     getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
+    getApplicantProfile,
     getJobRecommendations,
     getRecruiterJobs
 } from "../controllers/job";
@@ -110,6 +111,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getAppliedJobs,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/application/{userId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getApplicantProfile,
         },
       });
       server.route({
