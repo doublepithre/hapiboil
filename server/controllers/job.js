@@ -38,7 +38,7 @@ const getJobs = async (request, h, noOfJobs) => {
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
-        const { Job, Jobapplications } = request.getModels('xpaxr');
+        const { Jobsquesresponse } = request.getModels('xpaxr');
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
@@ -51,6 +51,16 @@ const getJobs = async (request, h, noOfJobs) => {
             const sqlStmt = `select * from hris.jobs j                                          
                         where j.job_uuid= :jobUuid`;
             const job = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } }); //it'll store our specific job in an array
+
+            // finding all questionaire responses
+            const records = await Jobsquesresponse.findAll({ where: { jobId: job[0].job_id } });
+            const quesRes = [];
+            for (let response of records) {
+            const { questionId, responseVal } = response;
+            const res = { questionId, answer:responseVal.answer };
+                quesRes.push(res);
+            }
+            job[0].quesRes = quesRes;
 
             // checking if already applied or not
             if(allAppliedJobs.length){
@@ -65,7 +75,6 @@ const getJobs = async (request, h, noOfJobs) => {
             } else {
                 job[0].isApplied = false;
             }
-
             responses = job[0];
 
         } else {    
@@ -75,9 +84,19 @@ const getJobs = async (request, h, noOfJobs) => {
             const sqlStmt = `select * from hris.jobapplications ja
                         where ja.user_id = :userId`;
             const allAppliedJobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
-
-            // checking if already applied or not
+            
             for(let job of allJobs){
+                // finding all questionaire responses
+                const records = await Jobsquesresponse.findAll({ where: { jobId: job.job_id } });
+                const quesRes = [];
+                for (let response of records) {
+                const { questionId, responseVal } = response;
+                const res = { questionId, answer:responseVal.answer };
+                    quesRes.push(res);
+                }
+                job.quesRes = quesRes;
+
+                // checking if already applied or not
                 if(allAppliedJobs.length){
                     for(let i=0; i<allAppliedJobs.length; i++){
                         if(job.job_id === allAppliedJobs[i].job_id){
@@ -93,8 +112,7 @@ const getJobs = async (request, h, noOfJobs) => {
             }
 
             responses = allJobs;
-        }
-                
+        }                
         return h.response(camelizeKeys(responses)).code(200);
     }
     catch (error) {
