@@ -150,7 +150,7 @@ const initRelations = (model) =>{
   const Questionnaire = model.Questionnaire;
   const Company = model.Company;
   const User = model.User;
-  const Usermetum = model.Usermetum;
+  const Usermeta = model.Usermeta;
   const Userquesresponse = model.Userquesresponse;
   const Usertype = model.Usertype;
 
@@ -161,7 +161,7 @@ const initRelations = (model) =>{
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
-  Userinfo.hasMany(Usermetum, { as: "usermeta", foreignKey: "userId"});
+  Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
   Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
 
