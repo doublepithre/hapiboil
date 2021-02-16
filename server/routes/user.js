@@ -5,6 +5,8 @@ import {
   forgotPassword, 
   resetPassword, 
   createProfile,
+  checkIfTutorialPointerShown,
+  updateMetaData,
   getProfile, 
   getQuestionnaire } from "../controllers/user";
 
@@ -30,6 +32,26 @@ const xuser = {
             mode: 'try',
           },
           handler: getUser,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/me/meta',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: checkIfTutorialPointerShown,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/me/meta',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateMetaData,
         },
       });
       server.route({

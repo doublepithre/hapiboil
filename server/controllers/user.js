@@ -348,6 +348,64 @@ const createProfile = async (request, h) => {
   }
 }
 
+const checkIfTutorialPointerShown = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+    
+    const { Usermeta } = request.getModels('xpaxr');    
+    
+    const userMetaRecord = await Usermeta.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userMetaData = userMetaRecord && userMetaRecord.toJSON();
+    const { metaKey } = userMetaData || {};
+    let metaResponse
+
+    // checking if metaKey exists, if not, creating it
+    if(!metaKey){
+      const createdMetaData = await Usermeta.create({ userId: userId, metaKey: "tutorial_pointers_shown", metaValue: "no" });
+      metaResponse = createdMetaData;
+    } else {
+      metaResponse = userMetaData;
+    }
+
+    return h.response(metaResponse).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+const updateMetaData = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+    const { metaKey, metaValue } = request.payload || {};
+
+    const { Usermeta } = request.getModels('xpaxr');    
+    
+
+
+    await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId }} );
+    const updatedMetaData = await Usermeta.findOne({
+        where:{ userId: userId },
+        attributes: { exclude: ['createdAt', 'updatedAt']
+      }
+    });
+
+    return h.response(updatedMetaData).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
 module.exports = {
   createUser,
   getUser,
@@ -355,6 +413,8 @@ module.exports = {
   forgotPassword,
   resetPassword,
   getProfile,
+  checkIfTutorialPointerShown,
+  updateMetaData,
   createProfile,
   getQuestionnaire,
 };
