@@ -38,7 +38,7 @@ const getJobs = async (request, h, noOfJobs) => {
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
-        const { Job, Jobapplications } = request.getModels('xpaxr');
+        const { Job, Jobapplication } = request.getModels('xpaxr');
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
@@ -210,8 +210,8 @@ const applyToJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Under Review" }
-        const { Jobapplications } = request.getModels('xpaxr');
-        const recordRes = await Jobapplications.upsert(record);
+        const { Jobapplication } = request.getModels('xpaxr');
+        const recordRes = await Jobapplication.upsert(record);
         return h.response(recordRes[0]).code(200);
     }
     catch(error) {
