@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Accesstoken = sequelize.define('Accesstoken', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Accesstoken', {
     token: {
       type: DataTypes.TEXT,
       allowNull: false,
@@ -37,14 +37,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Accesstoken.associate = function(model) {
-    initRelations(model);
-  }
-  return Accesstoken;
-}
-const initRelations = (model) =>{
-  const Accesstoken = model.Accesstoken;
-
-
-
-}
+};

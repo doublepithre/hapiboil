@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Questionmapping = sequelize.define('Questionmapping', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Questionmapping', {
     empauwerAllQid: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -49,17 +49,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Questionmapping.associate = function(model) {
-    initRelations(model);
-  }
-  return Questionmapping;
-}
-const initRelations = (model) =>{
-  const Questionmapping = model.Questionmapping;
-  const Questionnaire = model.Questionnaire;
-
-
-  Questionmapping.belongsTo(Questionnaire, { as: "empauwerAllQ", foreignKey: "empauwerAllQid"});
-  Questionmapping.belongsTo(Questionnaire, { as: "empauwerMeQ", foreignKey: "empauwerMeQid"});
-
-}
+};

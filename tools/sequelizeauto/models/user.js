@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const User = sequelize.define('User', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('User', {
     userId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -87,19 +87,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  User.associate = function(model) {
-    initRelations(model);
-  }
-  return User;
-}
-const initRelations = (model) =>{
-  const User = model.User;
-  const Job = model.Job;
-  const Userinfo = model.Userinfo;
-
-
-  User.hasMany(Job, { as: "jobs", foreignKey: "userId"});
-  User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
-  User.hasMany(Userinfo, { as: "userUuUserinfos", foreignKey: "userUuid"});
-
-}
+};

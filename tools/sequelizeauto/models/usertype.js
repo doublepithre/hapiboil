@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Usertype = sequelize.define('Usertype', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Usertype', {
     userTypeId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -27,16 +27,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Usertype.associate = function(model) {
-    initRelations(model);
-  }
-  return Usertype;
-}
-const initRelations = (model) =>{
-  const Usertype = model.Usertype;
-  const Userinfo = model.Userinfo;
-
-
-  Usertype.hasMany(Userinfo, { as: "userinfos", foreignKey: "userTypeId"});
-
-}
+};

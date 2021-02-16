@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Userinfo = sequelize.define('Userinfo', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Userinfo', {
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -140,29 +140,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Userinfo.associate = function(model) {
-    initRelations(model);
-  }
-  return Userinfo;
-}
-const initRelations = (model) =>{
-  const Userinfo = model.Userinfo;
-  const Questionnaire = model.Questionnaire;
-  const Company = model.Company;
-  const User = model.User;
-  const Usermetum = model.Usermetum;
-  const Userquesresponse = model.Userquesresponse;
-  const Usertype = model.Usertype;
-
-
-  Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
-  Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
-  Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
-  Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
-  Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
-  Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
-  Userinfo.hasMany(Usermetum, { as: "usermeta", foreignKey: "userId"});
-  Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
-  Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
-
-}
+};

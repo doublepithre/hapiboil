@@ -127,8 +127,8 @@ const initRelations = (model) =>{
   const Questiontype = model.Questiontype;
 
 
-  Questionnaire.belongsToMany(Questionnaire, { as:"ea2em", through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
-  Questionnaire.belongsToMany(Questionnaire, { as:"em2ea",through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
+  Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
+  Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
   Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});

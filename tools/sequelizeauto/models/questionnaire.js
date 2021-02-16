@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Questionnaire = sequelize.define('Questionnaire', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Questionnaire', {
     questionId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -112,30 +112,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Questionnaire.associate = function(model) {
-    initRelations(model);
-  }
-  return Questionnaire;
-}
-const initRelations = (model) =>{
-  const Questionnaire = model.Questionnaire;
-  const Userinfo = model.Userinfo;
-  const Company = model.Company;
-  const Questioncategory = model.Questioncategory;
-  const Questionmapping = model.Questionmapping;
-  const Userquesresponse = model.Userquesresponse;
-  const Questiontype = model.Questiontype;
-
-
-  Questionnaire.belongsToMany(Questionnaire, { as:"ea2em", through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
-  Questionnaire.belongsToMany(Questionnaire, { as:"em2ea",through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
-  Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
-  Questionnaire.belongsTo(Company, { as: "company", foreignKey: "companyId"});
-  Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
-  Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});
-  Questionnaire.hasMany(Questionmapping, { as: "empauwerMeQQuestionmappings", foreignKey: "empauwerMeQid"});
-  Questionnaire.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "questionId"});
-  Questionnaire.belongsTo(Questiontype, { as: "questionType", foreignKey: "questionTypeId"});
-  Questionnaire.belongsTo(Userinfo, { as: "createdByUserinfo", foreignKey: "createdBy"});
-
-}
+};

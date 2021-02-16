@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Qaattribute = sequelize.define('Qaattribute', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Qaattribute', {
     qaaId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -64,18 +64,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Qaattribute.associate = function(model) {
-    initRelations(model);
-  }
-  return Qaattribute;
-}
-const initRelations = (model) =>{
-  const Qaattribute = model.Qaattribute;
-  const Attributeset = model.Attributeset;
-  const Questionnaireanswer = model.Questionnaireanswer;
-
-
-  Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
-  Qaattribute.belongsTo(Questionnaireanswer, { as: "answer", foreignKey: "answerId"});
-
-}
+};

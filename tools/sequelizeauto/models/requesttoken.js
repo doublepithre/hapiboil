@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Requesttoken = sequelize.define('Requesttoken', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Requesttoken', {
     requestId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -60,14 +60,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Requesttoken.associate = function(model) {
-    initRelations(model);
-  }
-  return Requesttoken;
-}
-const initRelations = (model) =>{
-  const Requesttoken = model.Requesttoken;
-
-
-
-}
+};
