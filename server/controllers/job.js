@@ -277,7 +277,7 @@ const withdrawFromAppliedJob = async (request, h) => {
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
-        return h.response({ error: true, message: 'Bad request! No applied job found.' }).code(400);    
+        return h.response({ error: true, message: 'Bad request! No applied job found!' }).code(400);    
       }
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
