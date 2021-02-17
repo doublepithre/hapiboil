@@ -46,10 +46,6 @@ function initModels(sequelize) {
   var Userrole = _Userrole(sequelize, DataTypes);
   var Usertype = _Usertype(sequelize, DataTypes);
 
-  Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
-  Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
-  Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
-  Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
@@ -86,8 +82,6 @@ function initModels(sequelize) {
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Usermetum, { as: "usermeta", foreignKey: "userId"});
-  Userquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
-  Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
   Usertype.hasMany(Userinfo, { as: "userinfos", foreignKey: "userTypeId"});
 

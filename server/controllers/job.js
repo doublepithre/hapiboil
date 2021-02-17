@@ -130,7 +130,7 @@ const getRecruiterJobs = async(request,h)=>{
         let jobs = await Job.findAll({
             include:[{
                 model:User,
-                as:"Creator",
+                as:"user",
                 required:true,
                 where:{
                     userId

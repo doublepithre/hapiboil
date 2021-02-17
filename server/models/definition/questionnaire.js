@@ -119,17 +119,14 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Questionnaire = model.Questionnaire;
-  const Userinfo = model.Userinfo;
   const Company = model.Company;
   const Questioncategory = model.Questioncategory;
   const Questionmapping = model.Questionmapping;
   const Userquesresponse = model.Userquesresponse;
   const Questiontype = model.Questiontype;
+  const Userinfo = model.Userinfo;
 
 
-  Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid", as:"ea2em" });
-  Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid", as:"em2ea" });
-  Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});
