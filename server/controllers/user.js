@@ -167,7 +167,7 @@ const forgotPassword = async (request, h) => {
       return h.response({ error: true, message: 'Invalid Email!'}).code(400);
     }
 
-    const { User, Emailtemplates, Userinfo, Companyinfo, Emaillogs, Requesttoken } = request.getModels('xpaxr');
+    const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const userRecord = await User.findOne({ where: { email }});
     const user = userRecord && userRecord.toJSON();
     if (!user) { 
@@ -204,10 +204,10 @@ const forgotPassword = async (request, h) => {
 
     const additionalEData = {
       userId,
-      Emailtemplates,
+      Emailtemplate,
       Userinfo,
       Companyinfo,
-      Emaillogs,
+      Emaillog,
     };
     sendEmailAsync(emailData, additionalEData);
     return h.response(reqToken).code(200);

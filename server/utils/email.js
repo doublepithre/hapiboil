@@ -142,7 +142,7 @@ const getEmailTemplateDataAsync = async (
   customEmail,
 ) => {
   try {
-    const { userId, Emailtemplates, Userinfo } = additionalEData;
+    const { userId, Emailtemplate, Userinfo } = additionalEData;
     const { isCustomEmail, customBody } = customEmail;
     let ownerId = 0;
     // const loopbackCtx = LoopBackContext.getCurrentContext();
@@ -272,7 +272,7 @@ const getEmailTemplateDataAsync = async (
           whereQuery.where.ownerId = null;
         }
       }
-      const emailTemplateRes = await Emailtemplates.findOne(whereQuery);
+      const emailTemplateRes = await Emailtemplate.findOne(whereQuery);
       let { displayName, emailBody, emailFooter } = emailTemplateRes || {};
       if (emailBody) {
         if(isCustomEmail && customBody) {
@@ -301,7 +301,7 @@ const getEmailTemplateDataAsync = async (
         if(isCustomEmail && customBody) {
           emailBody = customBody;
         }
-        const emres = await Emailtemplates.findOne(whereQuery);
+        const emres = await Emailtemplate.findOne(whereQuery);
         const { displayName, emailBody, emailFooter } = emres || {};
         const emresJson = (emres && emres.toJSON && emres.toJSON()) || {};
         const chtml = `${emailLogoSection}${emailBodyStart}${emailBody}${emailBodyEnd}${emailFooter}`;
@@ -473,7 +473,7 @@ const recordSentEmail = async (recordEmailData, additionalEData) => {
       profileId,
       displayName,
     } = recordEmailData || {};
-    const applicationEmailModel = additionalEData.Emaillogs;
+    const applicationEmailModel = additionalEData.Emaillog;
     const recordedEmailRes = await applicationEmailModel.upsert({
       appId: appId || 0,
       templateName: templateName || "unknown",
