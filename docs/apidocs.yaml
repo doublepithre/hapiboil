@@ -148,6 +148,54 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/User"
+  
+  /account/me/meta:
+    patch:
+      summary: Update user's meta data info
+      parameters:
+        - name: userUuid
+          in: path
+          description: UUID of User
+          required: true
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                metaKey:
+                  type: string
+                metaValue:
+                  type: string
+
+      responses:
+        '200':
+          description: Successfully updated user's meta data info
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/meta"
+    get: 
+      summary: Get user's meta data
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get user's meta data information
+          content:
+            application/json: 
+              schema:
+                type: object
+                $ref: "#/components/schemas/meta"
+
   /account/{userUuid}/: 
     patch:
       summary: Update user info
@@ -775,3 +823,17 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/answers" 
+    
+    meta:
+      type: object
+      description: This is the schema for user's meta data.      
+      properties:
+        umetaId:
+          type: string
+        userId:
+          type: string
+        metaKey:
+          type: string
+        metaValue:
+          type: string
+        
