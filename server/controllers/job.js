@@ -273,16 +273,16 @@ const withdrawFromAppliedJob = async (request, h) => {
       }     
       const { jobId, userId } = request.payload || {};
 
-      const { Jobapplications } = request.getModels('xpaxr');            
-      const requestedForApplication = await Jobapplications.findOne({ where: { jobId: jobId, userId: userId }}) || {};
+      const { Jobapplication } = request.getModels('xpaxr');            
+      const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
         return h.response({ error: true, message: 'Bad request! No applied job found.' }).code(400);    
       }
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
-      await Jobapplications.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
-      const updatedApplication = await Jobapplications.findOne({
+      await Jobapplication.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
+      const updatedApplication = await Jobapplication.findOne({
           where:{ applicationId: applicationId },
           attributes: { exclude: ['createdAt', 'updatedAt']
         }
