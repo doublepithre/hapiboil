@@ -11,14 +11,7 @@ module.exports = (sequelize, DataTypes) => {
     questionCategoryName: {
       type: DataTypes.STRING,
       allowNull: false,
-      unique: "questioncategory_question_category_name_company_id_key",
       field: 'question_category_name'
-    },
-    companyId: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-      unique: "questioncategory_question_category_name_company_id_key",
-      field: 'company_id'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -43,14 +36,6 @@ module.exports = (sequelize, DataTypes) => {
         unique: true,
         fields: [
           { name: "question_category_id" },
-        ]
-      },
-      {
-        name: "questioncategory_question_category_name_company_id_key",
-        unique: true,
-        fields: [
-          { name: "question_category_name" },
-          { name: "company_id" },
         ]
       },
     ]

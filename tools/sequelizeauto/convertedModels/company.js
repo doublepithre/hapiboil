@@ -85,12 +85,10 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Company = model.Company;
   const Companyinfo = model.Companyinfo;
-  const Questionnaire = model.Questionnaire;
   const Userinfo = model.Userinfo;
 
 
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
-  Company.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
 

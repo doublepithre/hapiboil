@@ -54,6 +54,12 @@ const manifest = {
           prefix: `${apiRootPrefix}/login`,
         },
       },
+      {
+        plugin: require('./routes/admin'),
+        routes: {
+          prefix: `${apiRootPrefix}/admin`,
+        },
+      },
     ],
     options: {},
   },
