@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Userrole = sequelize.define('Userrole', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Userrole', {
     roleId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -45,14 +45,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Userrole.associate = function(model) {
-    initRelations(model);
-  }
-  return Userrole;
-}
-const initRelations = (model) =>{
-  const Userrole = model.Userrole;
-
-
-
-}
+};

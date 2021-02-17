@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Questioncategory = sequelize.define('Questioncategory', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Questioncategory', {
     questionCategoryId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -55,16 +55,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Questioncategory.associate = function(model) {
-    initRelations(model);
-  }
-  return Questioncategory;
-}
-const initRelations = (model) =>{
-  const Questioncategory = model.Questioncategory;
-  const Questionnaire = model.Questionnaire;
-
-
-  Questioncategory.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionCategoryId"});
-
-}
+};

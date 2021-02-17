@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Usermeta = sequelize.define('Usermeta', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Usermetum', {
     umetaId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -66,16 +66,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Usermeta.associate = function(model) {
-    initRelations(model);
-  }
-  return Usermeta;
-}
-const initRelations = (model) =>{
-  const Usermeta = model.Usermeta;
-  const Userinfo = model.Userinfo;
-
-
-  Usermeta.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
-
-}
+};

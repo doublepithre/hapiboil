@@ -234,8 +234,8 @@ const applyToJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Under Review" }
-        const { Jobapplications } = request.getModels('xpaxr');
-        const recordRes = await Jobapplications.upsert(record);
+        const { Jobapplication } = request.getModels('xpaxr');
+        const recordRes = await Jobapplication.upsert(record);
         return h.response(recordRes[0]).code(200);
     }
     catch(error) {

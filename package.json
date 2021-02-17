@@ -95,6 +95,7 @@
   },
   "devDependencies": {
     "nodemon": "^2.0.6",
-    "prettier": "^1.19.1"
+    "prettier": "^1.19.1",
+    "sequelize-auto": "^0.7.11"
   }
 }

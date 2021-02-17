@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const Companyinfo = sequelize.define('Companyinfo', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Companyinfo', {
     companyId: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -57,16 +57,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Companyinfo.associate = function(model) {
-    initRelations(model);
-  }
-  return Companyinfo;
-}
-const initRelations = (model) =>{
-  const Companyinfo = model.Companyinfo;
-  const Company = model.Company;
-
-
-  Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
-
-}
+};
