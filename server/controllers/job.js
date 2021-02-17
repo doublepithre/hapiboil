@@ -151,11 +151,8 @@ const updateJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        // Need to check that the user is authorized to update the job
-        // i.e. only job creator should have the right to update job
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
-
 
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobWebsite } = request.payload || {};
@@ -166,7 +163,6 @@ const updateJob = async (request, h) => {
         if(userId !== jobCreatorId ){
             return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
         }
-
         await Job.update({jobName, jobDescription, jobWebsite}, { where: { jobUuid }});
         const record = await Job.findOne({where: {jobUuid}});
         return h.response(record).code(201);
