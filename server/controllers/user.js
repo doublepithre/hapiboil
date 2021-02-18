@@ -194,12 +194,10 @@ const sendVerificationEmail = async (request, h) => {
     resetLink += `/verify-email?token=${token}`;
 
     const emailData = {
-      email,
       emails: [email],
       ccEmails: [],
-      templateName: 'reset-password', //it should be email-verification
-      resetLink,
-      subject: "Email Verification Request for {{email}}",
+      templateName: 'email-verification', //it should be email-verification
+      resetLink,      
       isX0PATemplate: true,
     };
 
@@ -211,8 +209,8 @@ const sendVerificationEmail = async (request, h) => {
       Emaillog,
     };
     sendEmailAsync(emailData, additionalEData);
-    // return h.response(reqToken).code(200);
-    return h.response(resetLink).code(200);
+    return h.response(reqToken).code(200);
+    // return h.response(resetLink).code(200);
   }
   catch(error) {
     console.error(error.stack);
