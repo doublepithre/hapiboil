@@ -536,6 +536,22 @@ paths:
                 items:
                   $ref: "#/components/schemas/answers" 
 
+  /job/j/applied:
+    get: 
+        summary: Get applied jobs
+        tags:
+          - Job
+        security:
+        - bearerAuth: []
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: "#/components/schemas/jobApplicationDetailed"
+
   /job/j/apply:
     post: 
       summary: Apply to jobs
@@ -558,21 +574,6 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/jobApplication"
-
-    get: 
-      summary: Get applied jobs
-      tags:
-        - Job
-      security:
-      - bearerAuth: []
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                $ref: "#/components/schemas/jobApplicationDetailed"
 
   /job/j/withdraw:
     patch: 
