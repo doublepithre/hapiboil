@@ -160,6 +160,67 @@ const updateUser = async (request, h) => {
   }
 }
 
+const sendVerificationEmail = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+    const userRecord = await User.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const { email } = userRecord && userRecord.toJSON();
+
+    
+    
+    if (!validator.isEmail(email)) { 
+      return h.response({ error: true, message: 'Invalid Email!'}).code(400);
+    }
+    
+
+    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+    const expiresInHrs = 1;                             // Specifying expiry time in hrs
+    let expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
+    const reqTokenRecord = await Requesttoken.create({ 
+      requestKey: token, 
+      userId,
+      expiresAt,
+      resourceType: 'user', 
+      actionType: 'email-verification'
+    });
+    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
+
+    let resetLink = getDomainURL();
+    resetLink += `/verify-email?token=${token}`;
+
+    const emailData = {
+      email,
+      emails: [email],
+      ccEmails: [],
+      templateName: 'email-verification',
+      resetLink,
+      subject: "Email Verification Request for {{email}}",
+      isX0PATemplate: true,
+    };
+
+    const additionalEData = {
+      userId,
+      Emailtemplate,
+      Userinfo,
+      Companyinfo,
+      Emaillog,
+    };
+    sendEmailAsync(emailData, additionalEData);
+    return h.response(reqToken).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
+  }
+}
 const forgotPassword = async (request, h) => {
   try{
     const { email } = request.payload || {};
@@ -410,6 +471,7 @@ module.exports = {
   createUser,
   getUser,
   updateUser,
+  sendVerificationEmail,
   forgotPassword,
   resetPassword,
   getProfile,

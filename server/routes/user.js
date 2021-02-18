@@ -2,6 +2,7 @@ import {
   createUser, 
   getUser, 
   updateUser, 
+  sendVerificationEmail,
   forgotPassword, 
   resetPassword, 
   createProfile,
@@ -62,6 +63,16 @@ const xuser = {
             mode: 'try',
           },
           handler: updateUser,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/verify-email',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: sendVerificationEmail,
         },
       });
       server.route({
