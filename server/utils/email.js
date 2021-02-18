@@ -768,7 +768,7 @@ const sendEmailAsync = async (edata, additionalEData) => {
         console.log("PROXYING EMAIL:", emails);
         console.log("PROXYING CC EMAILS:", ccEmails);
         toAddresses = [
-          "hemanth@x0pa.com",
+          "manash@x0pa.com",
           "ambareesh@x0pa.com"
         ];
       } else {
