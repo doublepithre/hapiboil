@@ -103,7 +103,36 @@ const editQuestions = (request,h)=>{
     if (userTypeName !== 'admin_x0pa'){
         return h.response({message:'Not authorized'}).code(403);
     }else{
-        
+    }
+}
+
+const getQuestionCategories = async(request,h)=>{
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated'}).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa'){
+        return h.response({message:'Not authorized'}).code(403);
+    }else{
+       let {Questioncategory} = request.getModels('xpaxr');
+       let questionCategories = await Questioncategory.findAll({attributes:["questionCategoryName"]});
+       return h.response(questionCategories.map(x=>x.questionCategoryName)).code(200);
+    }
+}
+
+const getQuestionTypes = async(request,h)=>{
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated'}).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa'){
+        return h.response({message:'Not authorized'}).code(403);
+    }else{
+        let {Questiontype} = request.getModels('xpaxr');
+        let questionTypes = await Questiontype.findAll({attributes:["questionTypeName"]});
+        return h.response(questionTypes.map(x=>x.questionTypeName)).code(200);
     }
 }
 
@@ -122,5 +151,7 @@ function incorrectQuestionFormatException(message){
 
 module.exports = {
     createQuestions,
-    editQuestions
+    editQuestions,
+    getQuestionCategories,
+    getQuestionTypes
 }

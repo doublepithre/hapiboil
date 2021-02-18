@@ -1,6 +1,8 @@
 import { 
     createQuestions,
-    editQuestions
+    editQuestions,
+    getQuestionCategories,
+    getQuestionTypes
 } from "../controllers/admin";
 
 const xadmin = {
@@ -29,6 +31,27 @@ const xadmin = {
           handler: editQuestions,
         },
       });
+      server.route({
+        method: 'GET',
+        path: '/questions/categories',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getQuestionCategories,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/questions/types',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getQuestionTypes,
+        },
+      });
+      
     } 
     catch(err) {
       console.error(err);
