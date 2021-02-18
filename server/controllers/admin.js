@@ -122,4 +122,5 @@ function incorrectQuestionFormatException(message){
 
 module.exports = {
     createQuestions,
+    editQuestions
 }
