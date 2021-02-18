@@ -171,13 +171,10 @@ const sendVerificationEmail = async (request, h) => {
     const userId = credentials.id;
     const userRecord = await User.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const { email } = userRecord && userRecord.toJSON();
-
-    
-    
+   
     if (!validator.isEmail(email)) { 
       return h.response({ error: true, message: 'Invalid Email!'}).code(400);
-    }
-    
+    }    
 
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
     const expiresInHrs = 1;                             // Specifying expiry time in hrs
@@ -189,7 +186,7 @@ const sendVerificationEmail = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user', 
-      actionType: 'email-verification'
+      actionType: 'email-verification' 
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
@@ -200,7 +197,7 @@ const sendVerificationEmail = async (request, h) => {
       email,
       emails: [email],
       ccEmails: [],
-      templateName: 'email-verification',
+      templateName: 'reset-password', //it should be email-verification
       resetLink,
       subject: "Email Verification Request for {{email}}",
       isX0PATemplate: true,
@@ -214,13 +211,55 @@ const sendVerificationEmail = async (request, h) => {
       Emaillog,
     };
     sendEmailAsync(emailData, additionalEData);
-    return h.response(reqToken).code(200);
+    // return h.response(reqToken).code(200);
+    return h.response(resetLink).code(200);
   }
   catch(error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
+
+const verifyEmail = async (request, h) => {
+  try {
+    const { requestKey } = request.params || {};
+    const { isEmailVerified } = request.payload || {};
+    
+    if (requestKey.length !== 16) {     // Token length is 16.
+      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
+    }  
+        
+    const { User, Userinfo, Requesttoken } = request.getModels('xpaxr');
+    
+    const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
+    const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
+    if (!requestToken) { 
+      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+    }
+
+    const { expiresAt } = requestToken || {};
+    var now = new Date();
+    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);       // Checking for token expiration of 1hr
+    if (expiresAt - utcNow < 0) {         // Token expired!
+      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+    }
+    const { userId } = requestToken || {};
+
+    const userRecord = await User.findOne({ where: { userId }});
+    const user = userRecord && userRecord.toJSON();
+    if (!user) { 
+      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
+    };
+    
+    await Userinfo.update({ isEmailVerified: isEmailVerified }, { where: { userId }});
+    return h.response({message: 'Email Verification successful'}).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
 const forgotPassword = async (request, h) => {
   try{
     const { email } = request.payload || {};
@@ -472,6 +511,7 @@ module.exports = {
   getUser,
   updateUser,
   sendVerificationEmail,
+  verifyEmail,
   forgotPassword,
   resetPassword,
   getProfile,
