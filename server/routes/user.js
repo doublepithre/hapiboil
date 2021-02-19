@@ -68,7 +68,7 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/verify-email',
+        path: '/verify',
         options: {
           auth: {
             mode: 'try',
@@ -78,7 +78,7 @@ const xuser = {
       });
       server.route({
         method: 'PATCH',
-        path: '/verify-email/{requestKey}',
+        path: '/verify/{requestKey}',
         options: {
           auth: {
             mode: 'try',
