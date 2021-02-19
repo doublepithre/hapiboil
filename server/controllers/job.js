@@ -272,6 +272,9 @@ const withdrawFromAppliedJob = async (request, h) => {
         return h.response({ message: 'Forbidden' }).code(403);
       }     
       const { jobId, userId } = request.payload || {};
+      if(!(jobId && userId)){
+        return h.response({ error: true, message: 'Not a valid request!' }).code(400);    
+      }
 
       const { Jobapplication } = request.getModels('xpaxr');            
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
