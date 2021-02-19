@@ -274,8 +274,9 @@ paths:
                   createdAt:
                     type: string
                   updatedAt:
-                    type: string
-
+                    type: string   
+  
+  /account/verify/{emailVerificationToken}:     
     patch: 
       summary: Verify Email
       tags:
