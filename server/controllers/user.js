@@ -196,7 +196,7 @@ const sendVerificationEmail = async (request, h) => {
     const emailData = {
       emails: [email],
       ccEmails: [],
-      templateName: 'email-verification', //it should be email-verification
+      templateName: 'email-verification',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -225,6 +225,9 @@ const verifyEmail = async (request, h) => {
     
     if (requestKey.length !== 16) {     // Token length is 16.
       return h.response({ error: true, message: 'Invalid URL!'}).code(400);
+    }  
+    if (!isEmailVerified) {     
+      return h.response({ error: true, message: 'Not a valid request!'}).code(400);
     }  
         
     const { User, Userinfo, Requesttoken } = request.getModels('xpaxr');
@@ -291,12 +294,10 @@ const forgotPassword = async (request, h) => {
     resetLink += `/reset-password?token=${token}`;
 
     const emailData = {
-      email,
       emails: [email],
       ccEmails: [],
       templateName: 'reset-password',
       resetLink,
-      subject: "Password Reset Request for {{email}}",
       isX0PATemplate: true,
     };
 
@@ -485,9 +486,11 @@ const updateMetaData = async (request, h) => {
     const userId = credentials.id;
     const { metaKey, metaValue } = request.payload || {};
 
-    const { Usermeta } = request.getModels('xpaxr');    
-    
+    if (!(metaKey && metaValue)) {     
+      return h.response({ error: true, message: 'Not a valid request!'}).code(400);
+    }  
 
+    const { Usermeta } = request.getModels('xpaxr');    
 
     await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId }} );
     const updatedMetaData = await Usermeta.findOne({
