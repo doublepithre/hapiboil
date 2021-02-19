@@ -210,7 +210,6 @@ const sendVerificationEmail = async (request, h) => {
     };
     sendEmailAsync(emailData, additionalEData);
     return h.response(reqToken).code(200);
-    // return h.response(resetLink).code(200);
   }
   catch(error) {
     console.error(error.stack);
