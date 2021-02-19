@@ -313,13 +313,6 @@ const getApplicantProfile = async (request, h) => {
       const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
       const { roleName } = userRoleRecord && userRoleRecord.toJSON();
   
-      // deleting duplicated snake_cased properties
-      delete applicantProfileInfo.user_id;
-      delete applicantProfileInfo.user_uuid;
-      delete applicantProfileInfo.user_type_id;
-      delete applicantProfileInfo.company_id;
-      delete applicantProfileInfo.company_uuid;
-  
       applicantProfileInfo.userTypeName = userTypeName;
       applicantProfileInfo.roleName = roleName;
   

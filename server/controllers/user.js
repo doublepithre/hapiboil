@@ -92,14 +92,7 @@ const getUser = async (request, h) => {
     const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
     const userRoleRecord = await Userrole.findOne({ where: { roleId }});
     const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
-    const { roleName } = userRoleRecord && userRoleRecord.toJSON();
-
-    // deleting duplicated snake_cased properties
-    delete luser.user_id;
-    delete luser.user_uuid;
-    delete luser.user_type_id;
-    delete luser.company_id;
-    delete luser.company_uuid;
+    const { roleName } = userRoleRecord && userRoleRecord.toJSON();    
 
     luser.userTypeName = userTypeName;
     luser.roleName = roleName;
@@ -234,14 +227,14 @@ const verifyEmail = async (request, h) => {
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
     if (!requestToken) { 
-      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
     }
 
     const { expiresAt } = requestToken || {};
     var now = new Date();
     var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);       // Checking for token expiration of 1hr
     if (expiresAt - utcNow < 0) {         // Token expired!
-      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
     }
     const { userId } = requestToken || {};
 
@@ -333,14 +326,14 @@ const resetPassword = async (request, h) => {
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
     if (!requestToken) { 
-      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
     }
 
     const { expiresAt } = requestToken || {};
     var now = new Date();
     var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);       // Checking for token expiration of 1hr
     if (expiresAt - utcNow < 0) {         // Token expired!
-      return h.response({ error: true, message: 'Bad Request! URL might expired!!'}).code(400);
+      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
     }
     const { userId } = requestToken || {};
 
