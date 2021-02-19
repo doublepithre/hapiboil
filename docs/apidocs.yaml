@@ -73,7 +73,7 @@ paths:
                   example: password
                 accountType:
                   type: string
-                  enum: [candidate,employer,mentor]
+                  enum: [candidate,employer,mentor,superadmin,specialist]
       responses:
         '201':
           description: User successfully created
