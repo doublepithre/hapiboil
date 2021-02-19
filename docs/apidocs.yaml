@@ -244,6 +244,70 @@ paths:
             application/json: 
               schema:
                 $ref: "#/components/schemas/User"
+  
+  /account/verify: 
+    get: 
+      summary: Get Verification Email
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get verification email
+          content:
+            application/json:                 
+              schema: 
+                properties:
+                  requestId:
+                    type: number
+                  requestKey:
+                    type: string
+                  userId:
+                    type: number 
+                  expiresAt:
+                    type: string
+                  resourceType:
+                    type: string
+                  actionType:
+                    type: string
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string
+
+    patch: 
+      summary: Verify Email
+      tags:
+        - User
+      parameters:
+        - name: emailVerificationToken
+          in: path
+          description: Email verification token from ?
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                isEmailVerified: 
+                  type: boolean
+                
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email Verification successful
+
   /account/forgot-password: 
     post: 
       summary: Forgot user password
