@@ -117,7 +117,10 @@ const getJobs = async (request, h, noOfJobs) => {
 
             if(isNaN(limitNum) || isNaN(offsetNum)){
                 return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-            }            
+            }       
+            if(limitNum>100){
+                return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+            }
 
             const paginatedResponse = allJobs.slice(offsetNum, limitNum + offsetNum)            
             responses = paginatedResponse;
