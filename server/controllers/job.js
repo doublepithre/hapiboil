@@ -111,7 +111,16 @@ const getJobs = async (request, h, noOfJobs) => {
                 }
             }
 
-            responses = allJobs;
+            const { limit, offset } = request.query;            
+            const limitNum = limit ? Number(limit) : 10;
+            const offsetNum = offset ? Number(offset) : 0;
+
+            if(isNaN(limitNum) || isNaN(offsetNum)){
+                return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+            }            
+
+            const paginatedResponse = allJobs.slice(offsetNum, limitNum + offsetNum)            
+            responses = paginatedResponse;
         }                
         return h.response(camelizeKeys(responses)).code(200);
     }
