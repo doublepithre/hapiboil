@@ -43,7 +43,7 @@ const getJobs = async (request, h, noOfJobs) => {
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
-        const { Jobsquesresponse } = request.getModels('xpaxr');
+        const { Jobsquesresponse, Userinfo } = request.getModels('xpaxr');
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
@@ -80,7 +80,27 @@ const getJobs = async (request, h, noOfJobs) => {
             } else {
                 job[0].isApplied = false;
             }
-            responses = job[0];
+
+            // Checking user type from jwt
+            let userTypeName = request.auth.artifacts.decoded.userTypeName;            
+            if (userTypeName === "employer"){
+                // get the company of the recruiter
+                const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+                const userProfileInfo = userRecord && userRecord.toJSON();
+                const { companyId: recruiterCompanyId } = userProfileInfo || {};
+                
+                
+                const rawResponses = job.filter(item=> item.company_id === recruiterCompanyId);
+                responses = camelizeKeys(rawResponses)[0];
+
+                if(!responses){
+                    return h.response({error: true, message: 'Forbidden!'}).code(403);
+                }
+            } else {
+                responses = camelizeKeys(job)[0]
+            }
+
+
 
         } else {    
             const sqlStmt0 = `select * from hris.jobs`;
@@ -127,10 +147,28 @@ const getJobs = async (request, h, noOfJobs) => {
                 return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
             }
 
-            const paginatedResponse = allJobs.slice(offsetNum, limitNum + offsetNum)            
-            responses = paginatedResponse;
+            let allJobsResponse;
+            // Checking user type from jwt
+            let userTypeName = request.auth.artifacts.decoded.userTypeName;            
+            if (userTypeName === "employer"){
+                // get the company of the recruiter
+                const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+                const userProfileInfo = userRecord && userRecord.toJSON();
+                const { companyId: recruiterCompanyId } = userProfileInfo || {};
+
+                allJobsResponse = allJobs.filter(item=> item.company_id === recruiterCompanyId);
+            } else {
+                allJobsResponse = allJobs
+            }
+
+
+
+            const paginatedResponse = allJobsResponse.slice(offsetNum, limitNum + offsetNum)            
+            responses = camelizeKeys(paginatedResponse);
+
+            
         }                
-        return h.response(camelizeKeys(responses)).code(200);
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
