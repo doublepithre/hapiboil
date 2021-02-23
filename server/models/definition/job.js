@@ -30,6 +30,18 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       field: 'job_website'
     },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'company',
+          schema: 'hris'
+        },
+        key: 'company_id'
+      },
+      field: 'company_id'
+    },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: true,

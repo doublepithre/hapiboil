@@ -17,11 +17,16 @@ const createJob = async (request, h) => {
         }
 
         const { credentials } = request.auth || {};
-        const { id: userId } = credentials || {};
+        const { id: userId } = credentials || {};        
+        
+        const { Job, Userinfo } = request.getModels('xpaxr');
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId } = userProfileInfo || {};        
 
-        const { Job } = request.getModels('xpaxr');
-        const resRecord = await Job.create({ ...jobDetails, active: true, userId });
-        return h.response(resRecord).code(201);
+        const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });
+        return h.response(resRecord).code(201);        
     }
     catch (error) {
         console.error(error.stack);
