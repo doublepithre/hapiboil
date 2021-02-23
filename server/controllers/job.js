@@ -143,7 +143,13 @@ const getRecruiterJobs = async(request,h)=>{
             return h.response({ message: 'Forbidden'}).code(403);
         }
         let userId = request.auth.credentials.id;
-        const { Job,User } = request.getModels('xpaxr');
+        const { Job, User, Userinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
         let jobs = await Job.findAll({
             include:[{
                 model:User,
@@ -155,9 +161,11 @@ const getRecruiterJobs = async(request,h)=>{
                 ,
                 attributes:[]
             }],
-            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId"]
-        })
-        return h.response(jobs).code(200);
+            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId"]
+        });
+
+        const refinedJobs = jobs.filter(item=> item.companyId === recruiterCompanyId);
+        return h.response(refinedJobs).code(200);
     }catch(err){
         console.error(err.stack);
         return h.response({error:true,message:'Internal Server Error!'}).code(500);
