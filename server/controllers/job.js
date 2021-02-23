@@ -87,9 +87,9 @@ const getJobs = async (request, h, noOfJobs) => {
                 // get the company of the recruiter
                 const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
                 const userProfileInfo = userRecord && userRecord.toJSON();
-                const { companyId: recruiterCompanyId } = userProfileInfo || {};
+                const { companyId: recruiterCompanyId } = userProfileInfo || {};                
                 
-                
+                // filtering the jobs that belong to the recruiter's company
                 const rawResponses = job.filter(item=> item.company_id === recruiterCompanyId);
                 responses = camelizeKeys(rawResponses)[0];
 
@@ -99,9 +99,6 @@ const getJobs = async (request, h, noOfJobs) => {
             } else {
                 responses = camelizeKeys(job)[0]
             }
-
-
-
         } else {    
             const sqlStmt0 = `select * from hris.jobs`;
             const allJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
@@ -155,18 +152,13 @@ const getJobs = async (request, h, noOfJobs) => {
                 const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
                 const userProfileInfo = userRecord && userRecord.toJSON();
                 const { companyId: recruiterCompanyId } = userProfileInfo || {};
-
+                // filtering jobs that belong to the recruiter's company
                 allJobsResponse = allJobs.filter(item=> item.company_id === recruiterCompanyId);
             } else {
                 allJobsResponse = allJobs
             }
-
-
-
             const paginatedResponse = allJobsResponse.slice(offsetNum, limitNum + offsetNum)            
-            responses = camelizeKeys(paginatedResponse);
-
-            
+            responses = camelizeKeys(paginatedResponse);            
         }                
         return h.response(responses).code(200);
     }
