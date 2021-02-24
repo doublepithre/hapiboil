@@ -282,7 +282,7 @@ const getQuestionnaire = async (request, h, targetName) => {
         attributes:[]
       }
     ],
-    attributes:["questionId","questionUuid","questionName","questionConfig","questionType.question_type_name"]})
+    attributes:["questionId","questionUuid","questionName","questionConfig","isCaseStudy","questionType.question_type_name"]})
     return h.response(camelizeKeys(questions)).code(200);
   }
   catch (error) {

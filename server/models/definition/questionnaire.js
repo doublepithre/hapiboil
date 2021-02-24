@@ -90,6 +90,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: true,
       field: 'is_active'
+    },
+    isCaseStudy: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_case_study'
     }
   }, {
     sequelize,

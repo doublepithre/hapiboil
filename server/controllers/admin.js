@@ -1,3 +1,5 @@
+const request = require("request");
+
 const createQuestions = async (request, h) => {
     if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Not authenticated'}).code(401);
@@ -9,8 +11,9 @@ const createQuestions = async (request, h) => {
     }else{
         const {Questionnaire,Questioncategory,Questiontype,Questiontarget,Questionnaireanswer} = request.getModels('xpaxr');
         const sequelize = request.getDb('xpaxr').sequelize;
-        let transaction = await sequelize.transaction();
+        let transaction = await sequelize.transaction();//need to use transaction here because there are two inserts if insertion fails both inserts should fail
         let questions = request.payload;
+        console.log(questions);
         try{
             let [questionCategories,questionTypes,questionTargets] = await Promise.all([Questioncategory.findAll({attributes:['questionCategoryId','questionCategoryName']}),
                 Questiontype.findAll({attributes:["questionTypeId","questionTypeName"]}),
@@ -21,30 +24,31 @@ const createQuestions = async (request, h) => {
             let questionTypeMap = questionTypes.reduce((map,obj)=>(map[obj.questionTypeName]=obj.questionTypeId,map),{});
             let questionTargetMap = questionTargets.reduce((map,obj)=>(map[obj.targetName]=obj.targetId,map),{});
 
-            let quesArr = []
+            let quesArr = [] // Use array here as might add bulk add option in the future
             if(Array.isArray(questions) && questions.length>0){
                 for(let ques of questions){
-                    if (ques.questionName && ques.questionCategory && ques.questionType && ques.target){
+                    if (ques.questionName && ques.questionTypeName && ques.target){
                         let questionName = ques.questionName;
                         let createdBy = userId;
                         let questionCategoryId = questionCategoryMap[ques.questionCategory];
-                        let questionTypeId = questionTypeMap[ques.questionType];
+                        let questionTypeId = questionTypeMap[ques.questionTypeName];
                         let questionTargetId = questionTargetMap[ques.target];
                         let isActive = ques.isActive!==undefined ? ques.isActive : true; //default active is true
                         let questionConfig = ques.questionConfig || {};
+                        let isCaseStudy = ques.isCaseStudy;
                         if (questionTypeId==null){
-                            throw new incorrectQuestionFormatException(`Question type ${ques.questionType} is not in database please add question type first`);
-                        }else if(questionCategoryId==null){
-                            throw new incorrectQuestionFormatException(`Question category ${ques.questionCategory} is not in database please add question category first`);
+                            throw new incorrectQuestionFormatException(`Question type ${ques.questionTypeName} is not in database please add question type first`);
                         }
-                        if (ques.questionType=='scale5'){
+                        // allow null questionCategory for now
+                        // else if(questionCategoryId==null){
+                        //     throw new incorrectQuestionFormatException(`Question category ${ques.questionCategory} is not in database please add question category first`);
+                        // }
+                        if (ques.questionTypeName=='scale5'){
                             if (questionConfig.desc==null){
                                 throw new incorrectQuestionFormatException('desc expected when questiontype is scale');
-                            }else if (!questionConfig.desc.includes("\n")){
-                                throw new incorrectQuestionFormatException("desc for scale question requires new line character")
                             }
                         }
-                        if (ques.questionType === 'single_choice'||ques.questionType === 'multiple_choice'){
+                        if (ques.questionTypeName === 'single_choice'||ques.questionTypeName === 'multiple_choice'){
                             if (questionConfig.options && Array.isArray(questionConfig.options) && questionConfig.options.length>0){
                                 for (let opt of questionConfig.options){
                                     if (opt.optionName==null || opt.optionId==null){
@@ -55,7 +59,7 @@ const createQuestions = async (request, h) => {
                                 throw new incorrectQuestionFormatException("single choice and multiple choice questions require and options array of non zero length in questionconfig");
                             }
                         }
-                        quesArr.push({questionTypeId,questionName,questionCategoryId,createdBy,questionTargetId,questionConfig,isActive});
+                        quesArr.push({questionTypeId,questionName,questionCategoryId,createdBy,questionTargetId,questionConfig,isActive,isCaseStudy});
                     }else{
                         throw new incorrectQuestionFormatException("Some fields are missing");
                     }
@@ -66,27 +70,29 @@ const createQuestions = async (request, h) => {
                 
                 for(let ques of questionArray){
                     let questionId = ques.questionId;
-                    let questionType = typeQuestionMap[ques.questionTypeId];
+                    let questionType = typeQuestionMap[ques.questionTypeNameId];
                     if (questionType==='single_choice' || questionType==='multiple_choice'){
                         for (let option of ques.questionConfig.options){
                             qaArray.push({questionId,answerVal:option.optionName,optionId:option.optionId})
                         }
                     }else if (questionType==="scale5"){
-                        qaArray.push({questionId,answerVal:ques.questionConfig.desc,optionId:0})
+                        for(let i=1;i<=5;i++){
+                            qaArray.push({questionId,answerVal:ques.questionConfig.desc,optionId:i})
+                        }
                     }else{
                         qaArray.push({questionId,answerVal:"None",optionId:0})
                     }
                 }
                 await Questionnaireanswer.bulkCreate(qaArray);
                 await transaction.commit();
-                return h.response(questionArray).code(200);
+                return h.response(questionArray).code(201);
             }else{
                 throw new incorrectQuestionFormatException("Array of non zero length expected");
             }
         }catch(err){
             await transaction.rollback();
             if (err.name === 'Incorrect Question Format'){
-                return h.response(err.message).code(422);
+                return h.response({message:err.message}).code(422);
             }
             console.error(err.stack);
             return h.response({error:true,message:"Internal Server Error"}),code(503)
@@ -136,6 +142,70 @@ const getQuestionTypes = async(request,h)=>{
     }
 }
 
+const getAttributes = async(request,h)=>{
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated'}).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa'){
+        return h.response({message:'Not authorized'}).code(403);
+    }else{
+        let {Attributeset} = request.getModels('xpaxr');
+        let attributes = await Attributeset.findAll();
+        return h.response(attributes).code(200);
+    }
+}
+
+const createAttribute = async(request,h)=>{
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated'}).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa'){
+        return h.response({message:'Not authorized'}).code(403);
+    }else{
+        let {Attributeset} = request.getModels('xpaxr');
+        let res = await Attributeset.create(request.payload);
+        return h.response(res).code(201);
+    }
+}
+
+const deleteAttribute = async(request,h)=>{
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated'}).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa'){
+        return h.response({message:'Not authorized'}).code(403);
+    }else{
+        let {Attributeset} = request.getModels('xpaxr');
+        let res = await Attributeset.destroy({where:{
+            attributeId:request.payload.attributeId
+        }});
+        return h.response(res).code(200);
+    }
+}
+
+const editAttribute = async(request,h)=>{
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated'}).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa'){
+        return h.response({message:'Not authorized'}).code(403);
+    }else{
+        let {Attributeset} = request.getModels('xpaxr');
+        let res = await Attributeset.update({attributeName:request.payload.attributeName},{where:{
+            attributeId:request.payload.attributeId
+        }});
+        return h.response(res).code(200);
+    }
+}
+
 function swap(json){
     var ret = {};
     for(var key in json){
@@ -153,5 +223,9 @@ module.exports = {
     createQuestions,
     editQuestions,
     getQuestionCategories,
-    getQuestionTypes
+    getQuestionTypes,
+    getAttributes,
+    createAttribute,
+    deleteAttribute,
+    editAttribute
 }
