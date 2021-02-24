@@ -67,8 +67,8 @@ const xuser = {
         },
       });
       server.route({
-        method: 'GET',
-        path: '/verify',
+        method: 'POST',
+        path: '/send-verify',
         options: {
           auth: {
             mode: 'try',

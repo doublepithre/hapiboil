@@ -245,8 +245,8 @@ paths:
               schema:
                 $ref: "#/components/schemas/User"
   
-  /account/verify: 
-    get: 
+  /account/send-verify: 
+    post: 
       summary: Get Verification Email
       security:
       - bearerAuth: []
