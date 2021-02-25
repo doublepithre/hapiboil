@@ -421,22 +421,37 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
       if(luserTypeName !== 'employer'){
-          return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+      }
+
+      // pagination
+      const { limit, offset } = request.query;            
+      const limitNum = limit ? Number(limit) : 10;
+      const offsetNum = offset ? Number(offset) : 0;
+       if(isNaN(limitNum) || isNaN(offsetNum)){
+        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      }       
+      if(limitNum>100){
+        return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       }
 
       const { jobId } = request.params || {};
-      const { Userinfo } = request.getModels('xpaxr');
+      const { Jobapplication, Userinfo } = request.getModels('xpaxr');
 
-      const db1 = request.getDb('xpaxr');
-      const sequelize = db1.sequelize;
+      const allApplicantions = await Jobapplication.findAll({ 
+          where: { jobId }, 
+          include: [{
+            model: Userinfo,
+            as: "applicant",
+            required: true,
+          }],
+          offset: offsetNum,
+          limit: limitNum        
+      });
+      const totalJobApplications = await Jobapplication.count({ where: { jobId }});
+      const paginatedResponse = { count: totalJobApplications, applications: allApplicantions };
       
-      const sqlStmt = `select * from hris.jobapplications ja    
-                    inner join hris.userinfo ui on ja.user_id = ui.user_id                    
-                    where ja.job_id = :jobId`;
-      const allApplicants = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobId } });
-      
-       return h.response(camelizeKeys(allApplicants)).code(200);
-
+      return h.response(paginatedResponse).code(200);
     }
     catch(error) {
       console.error(error.stack);
