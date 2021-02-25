@@ -703,6 +703,23 @@ paths:
                 type: object
                 $ref: "#/components/schemas/User" 
 
+  
+  /job/j/recommended-talents:
+    get: 
+      summary: Get all recommended talents
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object                
+                $ref: "#/components/schemas/paginatedUsers" 
+
   /job/j/recommendations:
     get: 
       summary: Get recommended jobs for user
@@ -900,6 +917,17 @@ components:
           items:
             $ref: "#/components/schemas/answers" 
     
+    paginatedUsers:
+      type: object
+      description: This is the schema for paginated users' response.      
+      properties:
+        count:
+          type: number        
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User" 
+
     meta:
       type: object
       description: This is the schema for user's meta data.      
