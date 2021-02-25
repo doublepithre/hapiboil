@@ -180,6 +180,17 @@ const getRecruiterJobs = async(request,h)=>{
             return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
         }
 
+        // pagination
+        const { limit, offset } = request.query;            
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
+        if(isNaN(limitNum) || isNaN(offsetNum)){
+            return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+        }       
+        if(limitNum>100){
+            return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+        }
+        
         const { Job, User, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -197,11 +208,13 @@ const getRecruiterJobs = async(request,h)=>{
                 as:"user",                
                 required: true,
             }],            
-            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId"]
+            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId"],
+            offset: offsetNum,
+            limit: limitNum,
         });
-
-        const refinedJobs = jobs.filter(item=> item.companyId === recruiterCompanyId);
-        return h.response(refinedJobs).code(200);
+        const totalRecruiterJobs = await Job.count({ where: {  companyId: recruiterCompanyId, userId }});
+        const paginatedResponse = { count: totalRecruiterJobs, jobs: jobs };
+        return h.response(paginatedResponse).code(200);
     }catch(err){
         console.error(err.stack);
         return h.response({error:true,message:'Internal Server Error!'}).code(500);
