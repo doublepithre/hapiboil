@@ -337,13 +337,31 @@ const getAppliedJobs = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const db1 = request.getDb('xpaxr');
-        const sqlStmt = `select * from hris.jobapplications ja
-                        inner join hris.jobs j on ja.job_id = j.job_id
-                        where ja.user_id= :userId`;
-        const sequelize = db1.sequelize;
-        const jobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
-        return h.response(camelizeKeys(jobs)).code(200);
+        // pagination
+        const { limit, offset } = request.query;            
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
+        if(isNaN(limitNum) || isNaN(offsetNum)){
+            return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+        }       
+        if(limitNum>100){
+            return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+        }
+        
+        const { Jobapplication, Job } = request.getModels('xpaxr');
+        const jobs = await Jobapplication.findAll({ 
+            where: { userId },
+            include: [{
+                model: Job,
+                as: "job",
+                required: true,
+            }],
+            offset: offsetNum,
+            limit: limitNum,
+        });
+        const totalAppliedJobs = await Jobapplication.count({ where: { userId }});
+        const paginatedResponse = { count: totalAppliedJobs, appliedJobs: jobs }
+        return h.response(paginatedResponse).code(200);
     }
     catch (error) {
         console.error(error.stack);
