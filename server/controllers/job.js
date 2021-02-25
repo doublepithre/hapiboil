@@ -10,6 +10,12 @@ const createJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        }
+
         const jobDetails = request.payload || {};
         const { jobName, jobDescription, jobWebsite } = jobDetails;
         if(!(jobName && jobDescription && jobWebsite)){
@@ -49,8 +55,8 @@ const getJobs = async (request, h, noOfJobs) => {
         if (noOfJobs === 'one') {
             let job;
             // Checking user type from jwt
-            let userTypeName = request.auth.artifacts.decoded.userTypeName;            
-            if (userTypeName === "employer"){
+            let luserTypeName = request.auth.artifacts.decoded.userTypeName;            
+            if (luserTypeName === "employer"){
                 // get the company of the recruiter
                 const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
                 const userProfileInfo = userRecord && userRecord.toJSON();
@@ -111,8 +117,8 @@ const getJobs = async (request, h, noOfJobs) => {
             let totalJobsInTheDatabase;
             let allJobs;            
             // Checking user type from jwt
-            let userTypeName = request.auth.artifacts.decoded.userTypeName;            
-            if (userTypeName === "employer"){
+            let luserTypeName = request.auth.artifacts.decoded.userTypeName;            
+            if (luserTypeName === "employer"){
                 // get the company of the recruiter
                 const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
                 const userProfileInfo = userRecord && userRecord.toJSON();
@@ -166,8 +172,14 @@ const getRecruiterJobs = async(request,h)=>{
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
-        }
+        }        
         let userId = request.auth.credentials.id;
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        }
+
         const { Job, User, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -200,6 +212,12 @@ const updateJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        }
+
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
@@ -367,6 +385,12 @@ const getApplicantProfile = async (request, h) => {
       if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
       }
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer'){
+        return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+      }
+
       const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
                   
       const { userId } = request.params || {};
@@ -394,6 +418,12 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
       }
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer'){
+          return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+      }
+
       const { jobId } = request.params || {};
       const { Userinfo } = request.getModels('xpaxr');
 
@@ -418,6 +448,11 @@ const getRecommendedTalents = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
+      }
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer'){
+          return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
       }
       const { Userinfo } = request.getModels('xpaxr');
       const talents = await Userinfo.findAll({ offset: 0, limit: 20 });      
