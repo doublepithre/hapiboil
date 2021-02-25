@@ -43,45 +43,11 @@ const getJobs = async (request, h, noOfJobs) => {
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
-        const { Jobsquesresponse, Userinfo } = request.getModels('xpaxr');
-
-        const db1 = request.getDb('xpaxr');
-        const sequelize = db1.sequelize;
+        const { Jobsquesresponse, Userinfo, Jobapplication, Job } = request.getModels('xpaxr');
+                
         let responses;
-        if (noOfJobs === 'one') {            
-            const sqlStmt0 = `select * from hris.jobapplications ja
-                            where ja.user_id = :userId`;
-            const rawAllAppliedJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
-            const allAppliedJobs = camelizeKeys(rawAllAppliedJobs);
-
-            const sqlStmt = `select * from hris.jobs j                                          
-                        where j.job_uuid= :jobUuid`;
-            const rawJobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } }); //it'll store our specific job in an array
-            const jobs = camelizeKeys(rawJobs)
-            // finding all questionaire responses
-            const records = await Jobsquesresponse.findAll({ where: { jobId: jobs[0].jobId } });
-            const quesRes = [];
-            for (let response of records) {
-            const { questionId, responseVal } = response;
-            const res = { questionId, answer:responseVal.answer };
-                quesRes.push(res);
-            }
-            jobs[0].quesRes = quesRes;
-
-            // checking if already applied or not
-            if(allAppliedJobs.length){
-                for(let i=0; i<allAppliedJobs.length; i++){
-                    if(jobs[0].jobId === allAppliedJobs[i].jobId){
-                        jobs[0].isApplied = true;
-                        break;
-                    } else {
-                        jobs[0].isApplied = false;
-                    }
-                }
-            } else {
-                jobs[0].isApplied = false;
-            }
-
+        if (noOfJobs === 'one') {
+            let job;
             // Checking user type from jwt
             let userTypeName = request.auth.artifacts.decoded.userTypeName;            
             if (userTypeName === "employer"){
@@ -91,51 +57,46 @@ const getJobs = async (request, h, noOfJobs) => {
                 const { companyId: recruiterCompanyId } = userProfileInfo || {};                
                 
                 // filtering the jobs that belong to the recruiter's company
-                const rawResponses = jobs.filter(item=> item.companyId === recruiterCompanyId);
-                responses = rawResponses[0];
-
-                if(!responses){
-                    return h.response({error: true, message: 'Forbidden!'}).code(403);
+                job = await Job.findOne({ where: { jobUuid, companyId: recruiterCompanyId }});                
+                const jobInDB = await Job.findOne({ where: { jobUuid }});                
+                if(jobInDB && !job){
+                    return h.response({error: true, message: 'You are not authorized to see this!'}).code(403);
+                } else if(!job && !jobInDB) {
+                    return h.response({error: true, message: 'No job found!'}).code(400);
                 }
             } else {
-                responses = jobs[0]
-            }
-        } else {    
-            const sqlStmt0 = `select * from hris.jobs`;
-            const rawAllJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
-            const allJobs = camelizeKeys(rawAllJobs);
-
-            const sqlStmt = `select * from hris.jobapplications ja
-                        where ja.user_id = :userId`;
-            const rawAllAppliedJobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
-            const allAppliedJobs = camelizeKeys(rawAllAppliedJobs);
-
-            for(let job of allJobs){
-                // finding all questionaire responses
-                const records = await Jobsquesresponse.findAll({ where: { jobId: job.jobId } });
-                const quesRes = [];
-                for (let response of records) {
-                const { questionId, responseVal } = response;
-                const res = { questionId, answer:responseVal.answer };
-                    quesRes.push(res);
+                job = await Job.findOne({ where: { jobUuid }});
+                if(!job){
+                    return h.response({error: true, message: 'Bad request! No job found!'}).code(400);
                 }
-                job.quesRes = quesRes;
+            }
+            const allAppliedJobs = await Jobapplication.findAll({ where: { userId }});
 
-                // checking if already applied or not
-                if(allAppliedJobs.length){
-                    for(let i=0; i<allAppliedJobs.length; i++){
-                        if(job.jobId === allAppliedJobs[i].jobId){
-                            job.isApplied = true;
-                            break;
-                        } else {
-                            job.isApplied = false;
-                        }
+            // finding all questionaire responses
+            const records = await Jobsquesresponse.findAll({ where: { jobId: job.jobId } });
+            const quesRes = [];
+            for (let response of records) {
+            const { questionId, responseVal } = response;
+            const res = { questionId, answer:responseVal.answer };
+                quesRes.push(res);
+            }
+            job.quesRes = quesRes;
+
+            // checking if already applied or not
+            if(allAppliedJobs.length){
+                for(let i=0; i<allAppliedJobs.length; i++){
+                    if(job.jobId === allAppliedJobs[i].jobId){
+                        job.isApplied = true;
+                        break;
+                    } else {
+                        job.isApplied = false;
                     }
-                } else {
-                    job.isApplied = false;
                 }
+            } else {
+                job.isApplied = false;
             }
-
+            responses = job;            
+        } else {
             const { limit, offset } = request.query;            
             const limitNum = limit ? Number(limit) : 10;
             const offsetNum = offset ? Number(offset) : 0;
@@ -147,7 +108,8 @@ const getJobs = async (request, h, noOfJobs) => {
                 return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
             }
 
-            let allJobsResponse;
+            let totalJobsInTheDatabase;
+            let allJobs;            
             // Checking user type from jwt
             let userTypeName = request.auth.artifacts.decoded.userTypeName;            
             if (userTypeName === "employer"){
@@ -155,13 +117,43 @@ const getJobs = async (request, h, noOfJobs) => {
                 const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
                 const userProfileInfo = userRecord && userRecord.toJSON();
                 const { companyId: recruiterCompanyId } = userProfileInfo || {};
+                
                 // filtering jobs that belong to the recruiter's company
-                allJobsResponse = allJobs.filter(item=> item.companyId === recruiterCompanyId);
+                allJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, companyId: recruiterCompanyId });                
+                totalJobsInTheDatabase = await allJobs.length;
             } else {
-                allJobsResponse = allJobs
+                totalJobsInTheDatabase = await Job.count();
+                allJobs = await Job.findAll({ limit: limitNum, offset: offsetNum });                
+                const allAppliedJobs = await Jobapplication.findAll({ where: { userId }});
+           
+                for(let job of allJobs){
+                    // finding all questionaire responses
+                    const records = await Jobsquesresponse.findAll({ where: { jobId: job.jobId } });
+                    const quesRes = [];
+                    for (let response of records) {
+                    const { questionId, responseVal } = response;
+                    const res = { questionId, answer:responseVal.answer };
+                        quesRes.push(res);
+                    }
+                    job.quesRes = quesRes;
+    
+                    // checking if already applied or not
+                    if(allAppliedJobs.length){
+                        for(let i=0; i<allAppliedJobs.length; i++){
+                            if(job.jobId === allAppliedJobs[i].jobId){
+                                job.isApplied = true;
+                                break;
+                            } else {
+                                job.isApplied = false;
+                            }
+                        }
+                    } else {
+                        job.isApplied = false;
+                    }
+                }                           
             }
-            const paginatedResponse = allJobsResponse.slice(offsetNum, limitNum + offsetNum)            
-            responses = paginatedResponse;            
+
+            responses = { count: totalJobsInTheDatabase, jobs: allJobs };
         }                
         return h.response(responses).code(200);
     }
