@@ -13,12 +13,6 @@ const sequelizeInstance = new Sequelize('canopus', null, null, {
 const manifest = {
   server: {
     port: config.get('port'),
-    cache : [{
-      name: 'memoryCache',
-      provider: {
-        constructor: CatBoxMemory,
-      }
-  }],
   },
   register: {
     plugins: [

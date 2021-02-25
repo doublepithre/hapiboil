@@ -121,7 +121,7 @@ const xjob = {
           },
           handler: async(request,h)=>{
             try{
-              return await getJobRecommendations(request,h,server.app.jobCache)
+              return await getJobRecommendations(request,h)
             }catch(err){
               console.error(err.stack)
               return h.response({"message":"Internal Server Error"}).code(500)
