@@ -7,7 +7,7 @@ import {
   forgotPassword, 
   resetPassword, 
   createProfile,
-  checkIfTutorialPointerShown,
+  getUserMetaData,
   updateMetaData,
   getProfile, 
   getQuestionnaire } from "../controllers/user";
@@ -43,7 +43,7 @@ const xuser = {
           auth: {
             mode: 'try',
           },
-          handler: checkIfTutorialPointerShown,
+          handler: getUserMetaData,
         },
       });
       server.route({

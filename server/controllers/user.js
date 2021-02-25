@@ -445,30 +445,24 @@ const createProfile = async (request, h) => {
   }
 }
 
-const checkIfTutorialPointerShown = async (request, h) => {
+const getUserMetaData = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
-    
-    const { Usermeta } = request.getModels('xpaxr');    
-    
-    const userMetaRecord = await Usermeta.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userMetaData = userMetaRecord && userMetaRecord.toJSON();
-    const { metaKey } = userMetaData || {};
-    let metaResponse
 
-    // checking if metaKey exists, if not, creating it
+    const { metaKey } = request.query;
     if(!metaKey){
-      const createdMetaData = await Usermeta.create({ userId: userId, metaKey: "tutorial_pointers_shown", metaValue: "no" });
-      metaResponse = createdMetaData;
-    } else {
-      metaResponse = userMetaData;
+      return h.response({ error: true, message: 'Bad Request! No metaKey given!' }).code(400);
     }
-
-    return h.response(metaResponse).code(200);
+        
+    const { Usermeta } = request.getModels('xpaxr');    
+    const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userMetaData = userMetaRecord && userMetaRecord.toJSON();
+    
+    return h.response(userMetaData).code(200);
   }
   catch(error) {
     console.error(error.stack);
@@ -488,11 +482,20 @@ const updateMetaData = async (request, h) => {
       return h.response({ error: true, message: 'Not a valid request!'}).code(400);
     }  
 
-    const { Usermeta } = request.getModels('xpaxr');    
+    const { Usermeta } = request.getModels('xpaxr');        
 
-    await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId }} );
+    const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userMetaData = userMetaRecord && userMetaRecord.toJSON();
+    const { umetaId } = userMetaData || {};
+
+    if(!umetaId){      
+      await Usermeta.create({ userId, metaKey, metaValue });
+    } else {
+      await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId, umetaId }} );
+    }
+
     const updatedMetaData = await Usermeta.findOne({
-        where:{ userId: userId },
+        where:{ userId: userId, metaKey },
         attributes: { exclude: ['createdAt', 'updatedAt']
       }
     });
@@ -514,7 +517,7 @@ module.exports = {
   forgotPassword,
   resetPassword,
   getProfile,
-  checkIfTutorialPointerShown,
+  getUserMetaData,
   updateMetaData,
   createProfile,
   getQuestionnaire,
