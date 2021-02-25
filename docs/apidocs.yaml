@@ -559,7 +559,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/jobDetailed" 
+                  $ref: "#/components/schemas/jobDetailedWithCreator" 
   
   /job/profile/{jobId}:
     get: 
@@ -847,6 +847,16 @@ components:
           type: string
         updatedAt:
           type: string
+    
+    jobDetailedWithCreator:
+      type: object
+      description: This extends the job model and provides more information.
+      allOf:
+        - $ref: "#/components/schemas/job"
+        - $ref: "#/components/schemas/jobDetailed"
+      properties:
+        user:          
+          $ref: "#/components/schemas/User"
     
     jobApplication:
       type: object
