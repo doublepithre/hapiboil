@@ -338,11 +338,20 @@ const withdrawFromAppliedJob = async (request, h) => {
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);    
       }
 
+      const { credentials } = request.auth || {};
+      const { id: luserId } = credentials || {};
+      if(luserId !== userId){
+        return h.response({ error: true, message: 'Not a valid request!' }).code(400);      
+      }
+
       const { Jobapplication } = request.getModels('xpaxr');            
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
         return h.response({ error: true, message: 'Bad request! No applied job found!' }).code(400);    
+      }
+      if(requestedForApplication.isWithdrawn){
+        return h.response({ error: true, message: 'Bad request! Already withdrawn!' }).code(400);    
       }
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();

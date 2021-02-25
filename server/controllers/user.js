@@ -247,7 +247,7 @@ const verifyEmail = async (request, h) => {
     
     const luserInfo = await Userinfo.findOne( { where: { userId }});
     if (luserInfo.isEmailVerified) { 
-      return h.response({ error: true, message: 'Email is already verified!'}).code(400);
+      return h.response({ error: true, message: 'Bad request! Email is already verified!'}).code(400);
     };
 
     await Userinfo.update({ isEmailVerified: isEmailVerified }, { where: { userId }});
