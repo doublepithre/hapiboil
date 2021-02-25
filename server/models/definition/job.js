@@ -101,11 +101,11 @@ const initRelations = (model) =>{
   const Job = model.Job;
   const Jobapplication = model.Jobapplication;
   const Jobsquesresponse = model.Jobsquesresponse;
-  const User = model.User;
+  const Userinfo = model.Userinfo;
 
 
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
   Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
-  Job.belongsTo(User, { as: "user", foreignKey: "userId"});
+  Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

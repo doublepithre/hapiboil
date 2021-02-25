@@ -184,16 +184,15 @@ const getRecruiterJobs = async(request,h)=>{
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
         let jobs = await Job.findAll({
+            where: {
+                companyId: recruiterCompanyId,
+                userId
+            },
             include:[{
-                model:User,
-                as:"user",
-                required:true,
-                where:{
-                    userId
-                }
-                ,
-                attributes:[]
-            }],
+                model:Userinfo,
+                as:"user",                
+                required: true,
+            }],            
             attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId"]
         });
 
