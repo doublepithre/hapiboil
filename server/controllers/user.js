@@ -202,7 +202,8 @@ const sendVerificationEmail = async (request, h) => {
       Emaillog,
     };
     sendEmailAsync(emailData, additionalEData);
-    return h.response(reqToken).code(200);
+    // return h.response(reqToken).code(200);
+    return h.response(resetLink).code(200);
   }
   catch(error) {
     console.error(error.stack);
@@ -244,6 +245,11 @@ const verifyEmail = async (request, h) => {
       return h.response({ error: true, message: 'Invalid URL!'}).code(400);
     };
     
+    const luserInfo = await Userinfo.findOne( { where: { userId }});
+    if (luserInfo.isEmailVerified) { 
+      return h.response({ error: true, message: 'Email is already verified!'}).code(400);
+    };
+
     await Userinfo.update({ isEmailVerified: isEmailVerified }, { where: { userId }});
     return h.response({message: 'Email Verification successful'}).code(200);
   }
