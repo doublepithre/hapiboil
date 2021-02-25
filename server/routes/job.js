@@ -9,6 +9,7 @@ import {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    getRecommendedTalents,
     getJobRecommendations,
     getRecruiterJobs
 } from "../controllers/job";
@@ -143,6 +144,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getApplicantProfile,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/recommended-talents',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getRecommendedTalents,
         },
       });
       server.route({

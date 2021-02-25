@@ -422,6 +422,23 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
     }
 }
 
+const getRecommendedTalents = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { Userinfo } = request.getModels('xpaxr');
+      const talents = await Userinfo.findAll({ offset: 0, limit: 20 });      
+      const paginatedResponse = { count: talents.length, users: talents }
+
+       return h.response(paginatedResponse).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
 const getJobRecommendations = async (request,h,jobCache) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
@@ -475,5 +492,6 @@ module.exports = {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    getRecommendedTalents,
     getJobRecommendations
 }
