@@ -461,7 +461,8 @@ const getUserMetaData = async (request, h) => {
     const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const userMetaData = userMetaRecord && userMetaRecord.toJSON();
     
-    return h.response(userMetaData).code(200);
+    const responses = userMetaData || {};
+    return h.response(responses).code(200);
   }
   catch(error) {
     console.error(error.stack);
