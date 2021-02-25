@@ -184,7 +184,7 @@ const sendVerificationEmail = async (request, h) => {
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/verify-email?token=${token}`;
+    resetLink += `/u/verify-email?token=${token}`;
 
     const emailData = {
       emails: [email],
@@ -202,8 +202,7 @@ const sendVerificationEmail = async (request, h) => {
       Emaillog,
     };
     sendEmailAsync(emailData, additionalEData);
-    // return h.response(reqToken).code(200);
-    return h.response(resetLink).code(200);
+    return h.response(reqToken).code(200);
   }
   catch(error) {
     console.error(error.stack);
