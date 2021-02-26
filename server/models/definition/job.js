@@ -107,5 +107,7 @@ const initRelations = (model) =>{
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
   Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
   Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  const User = model.User;
+  Job.belongsTo(User, { as: "user", foreignKey: "userId"});
 
 }
