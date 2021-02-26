@@ -128,6 +128,7 @@ const initRelations = (model) =>{
   const Questionnaire = model.Questionnaire;
   const Userinfo = model.Userinfo;
   const Questioncategory = model.Questioncategory;
+  const Jobsquesresponse = model.Jobsquesresponse;
   const Questionmapping = model.Questionmapping;
   const Questionnaireanswer = model.Questionnaireanswer;
   const Userquesresponse = model.Userquesresponse;
@@ -139,6 +140,7 @@ const initRelations = (model) =>{
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid", as:"em2ea" });
   Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
+  Questionnaire.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "questionId"});
   Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});
   Questionnaire.hasMany(Questionmapping, { as: "empauwerMeQQuestionmappings", foreignKey: "empauwerMeQid"});
   Questionnaire.hasMany(Questionnaireanswer, { as: "questionnaireanswers", foreignKey: "questionId"});

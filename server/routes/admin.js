@@ -6,7 +6,9 @@ import {
     getAttributes,
     createAttribute,
     deleteAttribute,
-    editAttribute
+    editAttribute,
+    deleteQuestions,
+    getQuestionById
 } from "../controllers/admin";
 
 const xadmin = {
@@ -33,6 +35,28 @@ const xadmin = {
             mode: 'try',
           },
           handler: editQuestions,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/questions',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteQuestions,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/question/id/{questionId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            return getQuestionById(request,h,request.params.questionId);
+          },
         },
       });
       server.route({

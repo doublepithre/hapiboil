@@ -62,10 +62,10 @@ function initModels(sequelize) {
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
   Jobapplication.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
-  Jobsquesresponse.belongsTo(Job, { as: "job", foreignKey: "jobId"});
-  Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questioncategory.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionCategoryId"});
+  Jobsquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
+  Questionnaire.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "questionId"});
   Questionmapping.belongsTo(Questionnaire, { as: "empauwerAllQ", foreignKey: "empauwerAllQid"});
   Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});
   Questionmapping.belongsTo(Questionnaire, { as: "empauwerMeQ", foreignKey: "empauwerMeQid"});
