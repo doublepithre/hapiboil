@@ -29,7 +29,7 @@ const createJob = async (request, h) => {
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId } = userProfileInfo || {};        
+        const { companyId } = userProfileInfo || {};
 
         const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });
         return h.response(resRecord).code(201);        
@@ -116,6 +116,7 @@ const getJobs = async (request, h, noOfJobs) => {
 
             let totalJobsInTheDatabase;
             let allJobs;            
+            let rawAllJobs;            
             // Checking user type from jwt
             let luserTypeName = request.auth.artifacts.decoded.userTypeName;            
             if (luserTypeName === "employer"){
@@ -125,42 +126,51 @@ const getJobs = async (request, h, noOfJobs) => {
                 const { companyId: recruiterCompanyId } = userProfileInfo || {};
                 
                 // filtering jobs that belong to the recruiter's company
-                allJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, companyId: recruiterCompanyId });                
-                totalJobsInTheDatabase = await allJobs.length;
+                allJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, where: { companyId: recruiterCompanyId, active: true } });                
+                totalJobsInTheDatabase = await Job.count({ where: { companyId: recruiterCompanyId, active: true } });
             } else {
-                totalJobsInTheDatabase = await Job.count();
-                allJobs = await Job.findAll({ limit: limitNum, offset: offsetNum });                
-                const allAppliedJobs = await Jobapplication.findAll({ where: { userId }});
-           
-                for(let job of allJobs){
-                    // finding all questionaire responses
-                    const records = await Jobsquesresponse.findAll({ where: { jobId: job.jobId } });
-                    const quesRes = [];
-                    for (let response of records) {
-                    const { questionId, responseVal } = response;
-                    const res = { questionId, answer:responseVal.answer };
-                        quesRes.push(res);
-                    }
-                    job.quesRes = quesRes;
-    
-                    // checking if already applied or not
-                    if(allAppliedJobs.length){
-                        for(let i=0; i<allAppliedJobs.length; i++){
-                            if(job.jobId === allAppliedJobs[i].jobId){
-                                job.isApplied = true;
-                                break;
-                            } else {
-                                job.isApplied = false;
-                            }
+                totalJobsInTheDatabase = await Job.count({ where: { active: true }});
+                rawAllJobs = await Job.findAll({
+                    raw: true,
+                    nest: true,
+                    where: {
+                        active: true,
+                    },
+                    include: [
+                        {
+                            model: Jobsquesresponse,
+                            as: "jobsquesresponses",
+                            attributes: { exclude: ["responseId", "jobId", "createdAt", "updatedAt"] },
                         }
-                    } else {
-                        job.isApplied = false;
+                    ],
+                    limit: limitNum,
+                    offset: offsetNum,
+                });          
+                console.log(rawAllJobs)
+                const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+                console.log(rawAllAppliedJobs)
+
+                const appliedJobIds = [];
+                rawAllAppliedJobs.forEach(aj => {
+                    const { jobId } = aj || {};
+                    if(jobId) {
+                        appliedJobIds.push(Number(jobId));
                     }
-                }                           
+                });
+
+                rawAllJobs.forEach(j => {
+                  const { jobId } = j || {};
+                    if(appliedJobIds.includes(Number(jobId))) {
+                        j.isApplied = true;
+                    } else {
+                        j.isApplied = false;
+                    }
+                });
+  
             }
 
-            responses = { count: totalJobsInTheDatabase, jobs: allJobs };
-        }                
+            responses = { count: totalJobsInTheDatabase, jobs: rawAllJobs };
+        }                    
         return h.response(responses).code(200);
     }
     catch (error) {
@@ -320,6 +330,12 @@ const applyToJob = async (request, h) => {
 
         const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Under Review" }
         const { Jobapplication } = request.getModels('xpaxr');
+        
+        const alreadyAppliedRecord = await Jobapplication.findOne({ where: { jobId, userId, isApplied: true }});
+        const {applicationId: alreadyAppliedApplicationId} = alreadyAppliedRecord || {};
+        if(alreadyAppliedApplicationId){
+            return h.response({error: true, message: 'Already applied!'}).code(400);
+        }
         const recordRes = await Jobapplication.upsert(record);
         return h.response(recordRes[0]).code(200);
     }
@@ -347,7 +363,7 @@ const getAppliedJobs = async (request, h) => {
         if(limitNum>100){
             return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
         }
-        
+
         const { Jobapplication, Job } = request.getModels('xpaxr');
         const jobs = await Jobapplication.findAll({ 
             where: { userId },
@@ -537,7 +553,7 @@ const isQuestionnaireDone = async(userId,model)=>{
     let questionnaireCount = await Questionnaire.count({
       include:[{
           model:Company,
-          as:"Company",
+          as:"company",
           where:{
               companyName:COMPANY_NAME
           },
