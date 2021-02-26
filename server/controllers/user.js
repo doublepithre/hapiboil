@@ -85,18 +85,32 @@ const getUser = async (request, h) => {
     
     const { credentials } = request.auth || {};
     const userId = credentials.id;
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const luser = userRecord && userRecord.toJSON();
-    const { userTypeId, roleId } = luser || {};
-    
-    const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
-    const userRoleRecord = await Userrole.findOne({ where: { roleId }});
-    const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
-    const { roleName } = userRoleRecord && userRoleRecord.toJSON();    
 
+    const userRecord = await Userinfo.findOne({ 
+      where: { userId },      
+      include: [
+        {
+          model: Usertype,
+          as: "userType",
+          required: true,
+        },
+        {
+          model: Userrole,
+          as: "userRole",
+          required: true,
+        },
+      ],
+      attributes: { exclude: ['createdAt', 'updatedAt'] },
+    });
+    const luser = userRecord && userRecord.toJSON();
+    const { userTypeName } = luser.userType;
+    const { roleName } = luser.userRole;
     luser.userTypeName = userTypeName;
     luser.roleName = roleName;
 
+    delete luser.userType;
+    delete luser.userRole;
+    
     return h.response(luser).code(200);
   }
   catch(error) {
