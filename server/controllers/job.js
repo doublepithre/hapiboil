@@ -52,6 +52,7 @@ const getJobs = async (request, h, noOfJobs) => {
         const { Jobsquesresponse, Userinfo, Jobapplication, Job } = request.getModels('xpaxr');
                 
         let responses;
+        const fres = [];
         if (noOfJobs === 'one') {
             let job;
             // Checking user type from jwt
@@ -127,12 +128,17 @@ const getJobs = async (request, h, noOfJobs) => {
                     where: {
                         active: true,
                     },
+                    include: [{
+                        model: Jobsquesresponse,
+                        as: "jobsquesresponses",
+                    }],
                     limit: limitNum,
                     offset: offsetNum,
                 });          
                 const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
 
-                const appliedJobIds = [];
+
+                 const appliedJobIds = [];
                 rawAllAppliedJobs.forEach(aj => {
                     const { jobId } = aj || {};
                     if(jobId) {
@@ -149,9 +155,41 @@ const getJobs = async (request, h, noOfJobs) => {
                     }
                 });
   
+
+                
+                const jobsMap = {};
+                const jobQuesMap = {};
+
+                if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
+                    rawAllJobs.forEach(r => {
+                    const { jobId, jobsquesresponses, ...rest } = r || {};
+                    jobsMap[jobId] = {
+                    jobId,
+                    ...rest
+                    };
+                    const { responseId } = jobsquesresponses;
+                    if(responseId){
+                        if(jobQuesMap[jobId]) {
+                            jobQuesMap[jobId].push(jobsquesresponses);
+                            } else {
+                            jobQuesMap[jobId] = [jobsquesresponses];
+                        }
+                    }
+                });
+                Object.keys(jobsMap).forEach(jm => {
+                    const jqrObj = jobsMap[jm] || {};
+                    jqrObj.quesres = jobQuesMap[jm];
+                    fres.push(jqrObj);
+                });
+                }
+
+
+
+
+               
             }
 
-            responses = { count: totalJobsInTheDatabase, jobs: rawAllJobs };
+            responses = { count: totalJobsInTheDatabase, jobs: fres };
         }                    
         return h.response(responses).code(200);
     }
