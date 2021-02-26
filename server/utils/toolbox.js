@@ -4,7 +4,7 @@ const _ = require('lodash');
 const moment = require('moment');
 const { btoa } = require('b2a');
 
-const DEV_URL = 'http://localhost:4545';
+const DEV_URL = 'http://localhost:3000';
 const STAGING_URL = 'https://empstag.x0pa.ai';
 const PRODUCTION_URL = 'https://empauwer.x0pa.ai';
 const LAMBDA_API_KEY =  '1f31903d-7885-4237-a5d7-fb7228e279d2';

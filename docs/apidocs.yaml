@@ -73,7 +73,7 @@ paths:
                   example: password
                 accountType:
                   type: string
-                  enum: [candidate,employer,mentor]
+                  enum: [candidate,employer,mentor,superadmin,specialist]
       responses:
         '201':
           description: User successfully created
@@ -148,6 +148,57 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/User"
+  
+  /account/me/meta?metaKey={metaKey}:
+    get: 
+      summary: Get user's meta data
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get user's meta data information
+          content:
+            application/json: 
+              schema:
+                type: object
+                $ref: "#/components/schemas/meta"
+
+ 
+  /account/me/meta:
+    patch:
+      summary: Update user's meta data info
+      parameters:
+        - name: userUuid
+          in: path
+          description: UUID of User
+          required: true
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                metaKey:
+                  type: string
+                metaValue:
+                  type: string
+
+      responses:
+        '200':
+          description: Successfully updated user's meta data info
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/meta"
+    
   /account/{userUuid}/: 
     patch:
       summary: Update user info
@@ -196,6 +247,71 @@ paths:
             application/json: 
               schema:
                 $ref: "#/components/schemas/User"
+  
+  /account/send-verify: 
+    post: 
+      summary: Get Verification Email
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get verification email
+          content:
+            application/json:                 
+              schema: 
+                properties:
+                  requestId:
+                    type: number
+                  requestKey:
+                    type: string
+                  userId:
+                    type: number 
+                  expiresAt:
+                    type: string
+                  resourceType:
+                    type: string
+                  actionType:
+                    type: string
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string   
+  
+  /account/verify/{emailVerificationToken}:     
+    patch: 
+      summary: Verify Email
+      tags:
+        - User
+      parameters:
+        - name: emailVerificationToken
+          in: path
+          description: Email verification token from ?
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                isEmailVerified: 
+                  type: boolean
+                
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email Verification successful
+
   /account/forgot-password: 
     post: 
       summary: Forgot user password
@@ -446,7 +562,7 @@ paths:
               schema:
                 type: array
                 items:
-                  $ref: "#/components/schemas/jobDetailed" 
+                  $ref: "#/components/schemas/jobDetailedWithCreator" 
   
   /job/profile/{jobId}:
     get: 
@@ -488,6 +604,22 @@ paths:
                 items:
                   $ref: "#/components/schemas/answers" 
 
+  /job/j/applied:
+    get: 
+        summary: Get applied jobs
+        tags:
+          - Job
+        security:
+        - bearerAuth: []
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object
+                  $ref: "#/components/schemas/jobApplicationDetailed"
+
   /job/j/apply:
     post: 
       summary: Apply to jobs
@@ -511,8 +643,56 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication"
 
+  /job/j/withdraw:
+    patch: 
+      summary: Withdraw from an Applied Job
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                  jobId:
+                    type: string
+                    example: "1"
+                  userId:
+                    type: string
+                    example: "182"
+                    
+      responses:
+        '201':
+          description: Application Withdrawn
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobApplication"
+                    
+
+  /job/j/applications/{jobId}:
     get: 
-      summary: Get applied jobs
+      summary: Get all Applicants
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/User" 
+
+  /job/j/application/{userId}:
+    get: 
+      summary: Get Applicant's profile
       tags:
         - Job
       security:
@@ -524,8 +704,25 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/jobApplicationDetailed"
-    
+                $ref: "#/components/schemas/User" 
+
+  
+  /job/j/recommended-talents:
+    get: 
+      summary: Get all recommended talents
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object                
+                $ref: "#/components/schemas/paginatedUsers" 
+
   /job/j/recommendations:
     get: 
       summary: Get recommended jobs for user
@@ -671,6 +868,16 @@ components:
         updatedAt:
           type: string
     
+    jobDetailedWithCreator:
+      type: object
+      description: This extends the job model and provides more information.
+      allOf:
+        - $ref: "#/components/schemas/job"
+        - $ref: "#/components/schemas/jobDetailed"
+      properties:
+        user:          
+          $ref: "#/components/schemas/User"
+    
     jobApplication:
       type: object
       properties:
@@ -708,4 +915,32 @@ components:
       properties:
         isApplied:
           type: boolean
+        quesRes:
+          type: array
+          items:
+            $ref: "#/components/schemas/answers" 
+    
+    paginatedUsers:
+      type: object
+      description: This is the schema for paginated users' response.      
+      properties:
+        count:
+          type: number        
+        users:
+          type: array
+          items:
+            $ref: "#/components/schemas/User" 
+
+    meta:
+      type: object
+      description: This is the schema for user's meta data.      
+      properties:
+        umetaId:
+          type: string
+        userId:
+          type: string
+        metaKey:
+          type: string
+        metaValue:
+          type: string
         

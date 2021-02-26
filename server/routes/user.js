@@ -2,9 +2,13 @@ import {
   createUser, 
   getUser, 
   updateUser, 
+  sendVerificationEmail,
+  verifyEmail,
   forgotPassword, 
   resetPassword, 
   createProfile,
+  getUserMetaData,
+  updateMetaData,
   getProfile, 
   getQuestionnaire } from "../controllers/user";
 
@@ -33,6 +37,26 @@ const xuser = {
         },
       });
       server.route({
+        method: 'GET',
+        path: '/me/meta',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getUserMetaData,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/me/meta',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateMetaData,
+        },
+      });
+      server.route({
         method: 'PATCH',
         path: '/{userUuid}',
         options: {
@@ -40,6 +64,26 @@ const xuser = {
             mode: 'try',
           },
           handler: updateUser,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/send-verify',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: sendVerificationEmail,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/verify/{requestKey}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: verifyEmail,
         },
       });
       server.route({

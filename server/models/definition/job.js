@@ -30,6 +30,18 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       field: 'job_website'
     },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'company',
+          schema: 'hris'
+        },
+        key: 'company_id'
+      },
+      field: 'company_id'
+    },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: true,
@@ -88,10 +100,14 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Job = model.Job;
   const Jobapplication = model.Jobapplication;
-  const User = model.User;
+  const Jobsquesresponse = model.Jobsquesresponse;
+  const Userinfo = model.Userinfo;
 
 
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
+  Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
+  Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  const User = model.User;
   Job.belongsTo(User, { as: "user", foreignKey: "userId"});
 
 }

@@ -16,11 +16,16 @@ const createJob = async (request, h) => {
         }
 
         const { credentials } = request.auth || {};
-        const { id: userId } = credentials || {};
+        const { id: userId } = credentials || {};        
+        
+        const { Job, Userinfo } = request.getModels('xpaxr');
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId } = userProfileInfo || {};        
 
-        const { Job } = request.getModels('xpaxr');
-        const resRecord = await Job.create({ ...jobDetails, active: true, userId });
-        return h.response(resRecord).code(201);
+        const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });
+        return h.response(resRecord).code(201);        
     }
     catch (error) {
         console.error(error.stack);
@@ -37,7 +42,7 @@ const getJobs = async (request, h, noOfJobs) => {
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
-        const { Job, Jobapplication } = request.getModels('xpaxr');
+        const { Jobsquesresponse, Userinfo } = request.getModels('xpaxr');
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
@@ -45,41 +50,80 @@ const getJobs = async (request, h, noOfJobs) => {
         if (noOfJobs === 'one') {            
             const sqlStmt0 = `select * from hris.jobapplications ja
                             where ja.user_id = :userId`;
-            const allAppliedJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
+            const rawAllAppliedJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
+            const allAppliedJobs = camelizeKeys(rawAllAppliedJobs);
 
             const sqlStmt = `select * from hris.jobs j                                          
                         where j.job_uuid= :jobUuid`;
-            const job = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } }); //it'll store our specific job in an array
+            const rawJobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobUuid } }); //it'll store our specific job in an array
+            const jobs = camelizeKeys(rawJobs)
+            // finding all questionaire responses
+            const records = await Jobsquesresponse.findAll({ where: { jobId: jobs[0].jobId } });
+            const quesRes = [];
+            for (let response of records) {
+            const { questionId, responseVal } = response;
+            const res = { questionId, answer:responseVal.answer };
+                quesRes.push(res);
+            }
+            jobs[0].quesRes = quesRes;
 
             // checking if already applied or not
             if(allAppliedJobs.length){
                 for(let i=0; i<allAppliedJobs.length; i++){
-                    if(job[0].job_id === allAppliedJobs[i].job_id){
-                        job[0].isApplied = true;
+                    if(jobs[0].jobId === allAppliedJobs[i].jobId){
+                        jobs[0].isApplied = true;
                         break;
                     } else {
-                        job[0].isApplied = false;
+                        jobs[0].isApplied = false;
                     }
                 }
             } else {
-                job[0].isApplied = false;
+                jobs[0].isApplied = false;
             }
 
-            responses = job[0];
+            // Checking user type from jwt
+            let userTypeName = request.auth.artifacts.decoded.userTypeName;            
+            if (userTypeName === "employer"){
+                // get the company of the recruiter
+                const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+                const userProfileInfo = userRecord && userRecord.toJSON();
+                const { companyId: recruiterCompanyId } = userProfileInfo || {};                
+                
+                // filtering the jobs that belong to the recruiter's company
+                const rawResponses = jobs.filter(item=> item.companyId === recruiterCompanyId);
+                responses = rawResponses[0];
 
+                if(!responses){
+                    return h.response({error: true, message: 'Forbidden!'}).code(403);
+                }
+            } else {
+                responses = jobs[0]
+            }
         } else {    
             const sqlStmt0 = `select * from hris.jobs`;
-            const allJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
-            
+            const rawAllJobs = await sequelize.query(sqlStmt0, { type: QueryTypes.SELECT, replacements: { userId } });
+            const allJobs = camelizeKeys(rawAllJobs);
+
             const sqlStmt = `select * from hris.jobapplications ja
                         where ja.user_id = :userId`;
-            const allAppliedJobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
+            const rawAllAppliedJobs = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { userId } });
+            const allAppliedJobs = camelizeKeys(rawAllAppliedJobs);
 
-            // checking if already applied or not
             for(let job of allJobs){
+                // finding all questionaire responses
+                const records = await Jobsquesresponse.findAll({ where: { jobId: job.jobId } });
+                const quesRes = [];
+                for (let response of records) {
+                const { questionId, responseVal } = response;
+                const res = { questionId, answer:responseVal.answer };
+                    quesRes.push(res);
+                }
+                job.quesRes = quesRes;
+
+                // checking if already applied or not
                 if(allAppliedJobs.length){
                     for(let i=0; i<allAppliedJobs.length; i++){
-                        if(job.job_id === allAppliedJobs[i].job_id){
+                        if(job.jobId === allAppliedJobs[i].jobId){
                             job.isApplied = true;
                             break;
                         } else {
@@ -91,10 +135,34 @@ const getJobs = async (request, h, noOfJobs) => {
                 }
             }
 
-            responses = allJobs;
-        }
-                
-        return h.response(camelizeKeys(responses)).code(200);
+            const { limit, offset } = request.query;            
+            const limitNum = limit ? Number(limit) : 10;
+            const offsetNum = offset ? Number(offset) : 0;
+
+            if(isNaN(limitNum) || isNaN(offsetNum)){
+                return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+            }       
+            if(limitNum>100){
+                return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+            }
+
+            let allJobsResponse;
+            // Checking user type from jwt
+            let userTypeName = request.auth.artifacts.decoded.userTypeName;            
+            if (userTypeName === "employer"){
+                // get the company of the recruiter
+                const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+                const userProfileInfo = userRecord && userRecord.toJSON();
+                const { companyId: recruiterCompanyId } = userProfileInfo || {};
+                // filtering jobs that belong to the recruiter's company
+                allJobsResponse = allJobs.filter(item=> item.companyId === recruiterCompanyId);
+            } else {
+                allJobsResponse = allJobs
+            }
+            const paginatedResponse = allJobsResponse.slice(offsetNum, limitNum + offsetNum)            
+            responses = paginatedResponse;            
+        }                
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -107,21 +175,28 @@ const getRecruiterJobs = async(request,h)=>{
             return h.response({ message: 'Forbidden'}).code(403);
         }
         let userId = request.auth.credentials.id;
-        const { Job,User } = request.getModels('xpaxr');
+        const { Job, User, Userinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
         let jobs = await Job.findAll({
+            where: {
+                companyId: recruiterCompanyId,
+                userId
+            },
             include:[{
-                model:User,
-                as:"Creator",
-                required:true,
-                where:{
-                    userId
-                }
-                ,
-                attributes:[]
-            }],
-            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId"]
-        })
-        return h.response(jobs).code(200);
+                model:Userinfo,
+                as:"user",                
+                required: true,
+            }],            
+            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId"]
+        });
+
+        const refinedJobs = jobs.filter(item=> item.companyId === recruiterCompanyId);
+        return h.response(refinedJobs).code(200);
     }catch(err){
         console.error(err.stack);
         return h.response({error:true,message:'Internal Server Error!'}).code(500);
@@ -132,12 +207,23 @@ const updateJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        // Need to check that the user is authorized to update the job
-        // i.e. only job creator should have the right to update job
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobWebsite } = request.payload || {};
         
-        const { Job } = request.getModels('xpaxr');
+        const { Job, Userinfo } = request.getModels('xpaxr');
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
+        const { userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobUuid}});
+
+        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
+            return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
+        }
         await Job.update({jobName, jobDescription, jobWebsite}, { where: { jobUuid }});
         const record = await Job.findOne({where: {jobUuid}});
         return h.response(record).code(201);
@@ -241,6 +327,117 @@ const getAppliedJobs = async (request, h) => {
     }
 }
 
+const withdrawFromAppliedJob = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }     
+      const { jobId, userId } = request.payload || {};
+      if(!(jobId && userId)){
+        return h.response({ error: true, message: 'Not a valid request!' }).code(400);    
+      }
+
+      const { credentials } = request.auth || {};
+      const { id: luserId } = credentials || {};
+      if(luserId !== userId){
+        return h.response({ error: true, message: 'Not a valid request!' }).code(400);      
+      }
+
+      const { Jobapplication } = request.getModels('xpaxr');            
+      const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
+      
+      if(Object.keys(requestedForApplication).length === 0){
+        return h.response({ error: true, message: 'Bad request! No applied job found!' }).code(400);    
+      }
+      if(requestedForApplication.isWithdrawn){
+        return h.response({ error: true, message: 'Bad request! Already withdrawn!' }).code(400);    
+      }
+      
+      const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
+      await Jobapplication.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
+      const updatedApplication = await Jobapplication.findOne({
+          where:{ applicationId: applicationId },
+          attributes: { exclude: ['createdAt', 'updatedAt']
+        }
+      });
+      const updatedApplicationData = updatedApplication && updatedApplication.toJSON();
+      return h.response(updatedApplicationData).code(200);
+    }
+    catch(error) {
+      console.log(error.stack);
+      return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+    }
+}
+
+const getApplicantProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+                  
+      const { userId } = request.params || {};
+      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+      const applicantProfileInfo = userRecord && userRecord.toJSON();
+      const { userTypeId, roleId } = applicantProfileInfo || {};
+      
+      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
+      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
+      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
+      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+  
+      applicantProfileInfo.userTypeName = userTypeName;
+      applicantProfileInfo.roleName = roleName;
+  
+      return h.response(applicantProfileInfo).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+const getAllApplicantsSelectiveProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { jobId } = request.params || {};
+      const { Userinfo } = request.getModels('xpaxr');
+
+      const db1 = request.getDb('xpaxr');
+      const sequelize = db1.sequelize;
+      
+      const sqlStmt = `select * from hris.jobapplications ja    
+                    inner join hris.userinfo ui on ja.user_id = ui.user_id                    
+                    where ja.job_id = :jobId`;
+      const allApplicants = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { jobId } });
+      
+       return h.response(camelizeKeys(allApplicants)).code(200);
+
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
+const getRecommendedTalents = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { Userinfo } = request.getModels('xpaxr');
+      const talents = await Userinfo.findAll({ offset: 0, limit: 20 });      
+      const paginatedResponse = { count: talents.length, users: talents }
+
+       return h.response(paginatedResponse).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
 const getJobRecommendations = async (request,h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
@@ -287,5 +484,9 @@ module.exports = {
     getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
+    withdrawFromAppliedJob,
+    getApplicantProfile,
+    getAllApplicantsSelectiveProfile,
+    getRecommendedTalents,
     getJobRecommendations
 }

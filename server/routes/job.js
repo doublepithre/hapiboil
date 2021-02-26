@@ -6,6 +6,10 @@ import {
     getJobQuesResponses,
     applyToJob,
     getAppliedJobs,
+    withdrawFromAppliedJob,
+    getApplicantProfile,
+    getAllApplicantsSelectiveProfile,
+    getRecommendedTalents,
     getJobRecommendations,
     getRecruiterJobs
 } from "../controllers/job";
@@ -110,6 +114,46 @@ const xjob = {
             mode: 'try',
           },
           handler: getAppliedJobs,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/j/withdraw',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: withdrawFromAppliedJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/applications/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllApplicantsSelectiveProfile,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/application/{userId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getApplicantProfile,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/recommended-talents',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getRecommendedTalents,
         },
       });
       server.route({

@@ -142,7 +142,7 @@ const getEmailTemplateDataAsync = async (
   customEmail,
 ) => {
   try {
-    const { userId, Emailtemplates, Userinfo } = additionalEData;
+    const { userId, Emailtemplate, Userinfo } = additionalEData;
     const { isCustomEmail, customBody } = customEmail;
     let ownerId = 0;
     // const loopbackCtx = LoopBackContext.getCurrentContext();
@@ -163,84 +163,9 @@ const getEmailTemplateDataAsync = async (
       ownerId = userId;
       isUserCustomTemplate = isUserTemplate;
     }
-    const knownEmailTemplates = [
-      "shortlist",
-      "reject",
-      "interview",
-      // "workflow-created",
-      // "workflow-status-update",
-      // "workflow-action-required",
-      "registration-invite",
-      "reset-password",
-      "email-cv",
-      "reference-invite",
-      "email-job",
-      "interview-reminder",
-      "add-collaborator",
-      "workflow-assign-substage",
-      "scheduling-book-slot",
-      "scheduling-candidate-confirmation",
-      "scheduling-recruiter-confirmation",
-      "scheduling-auto-error",
-      "request-company-access",
-      "written-assessment",
-      "re-scheduling-book-slot",
-      "request-retake-exam",
-      "accept-retake-request",
-      "reject-retake-request",
-      "passive-introduction-email",
-      "passive-followup-email",
-      "recruiter-rejects-interview",
-      "recruiter-sends-consent",
-      "request-reference-invite",
-      "candidate-accepts-consent",
-      "candidate-rejects-consent",
-      "recruiter-sends-offer-details",
-      "zoom-meeting-candidate",
-      "zoom-meeting-recruiter",
-      "custom-email",
-      "candidate-accepts-offer",
-      "candidate-rejects-offer",
-      "registration-request",
-      "candidate-hired",
-      "recruiter-email-hiring",
-      "recruiter-email-not-hiring",
-      "user-reg-request",
-      // "recruiter-reg-request",
-      "add-job-approval",
-      "user-activation",
-      "recruiter-sends-document-details",
-      "candidate-uploads-documents",
-      "remainder-email",
-      "weekly-analytics",
-      "job-reports",
-      "ntuc-programme-invite",
-      "user-ext-reg-request",
-      "user-room-reg-request",
-      "expiry-email",
-      "profile-duplicate-email",
-      "video-interview-otp",
-      "video-interview",
-      "public-profile-otp",
-      "vendor-recommendation-invite",
-      "vendor-registration-invite",
-      "vendor-registration-conformation",
-      "vendor-documentupload-invite",
-      "vendor-agreement",
-      "candidate-registration-email",
-      "vendor-doucment-reupload",
-      "vendor-registration-details",
-      "vendor-empanelment-confirm",
-      "hybrid-interview-confirmation",
-      "csc-interview-reminder",
-      "appl-shortlist-accept-notif-jobowner",
-      "appl-shortlist-accept-notif-referral",
-      "offer-attendance",
-      "candidate-attendance-consent",
-      "interview-final-round-selected",
-      "interview-final-round-rejected",
-      "interview-final-round-onhold",
-      "vendor-documentupload-notify"
+    const knownEmailTemplates = [      
+      "reset-password",      
+      "email-verification"
     ];
     if(!knownEmailTemplates.includes(templateName)) {
       isUserCustomTemplate = true;
@@ -272,7 +197,7 @@ const getEmailTemplateDataAsync = async (
           whereQuery.where.ownerId = null;
         }
       }
-      const emailTemplateRes = await Emailtemplates.findOne(whereQuery);
+      const emailTemplateRes = await Emailtemplate.findOne(whereQuery);
       let { displayName, emailBody, emailFooter } = emailTemplateRes || {};
       if (emailBody) {
         if(isCustomEmail && customBody) {
@@ -301,7 +226,7 @@ const getEmailTemplateDataAsync = async (
         if(isCustomEmail && customBody) {
           emailBody = customBody;
         }
-        const emres = await Emailtemplates.findOne(whereQuery);
+        const emres = await Emailtemplate.findOne(whereQuery);
         const { displayName, emailBody, emailFooter } = emres || {};
         const emresJson = (emres && emres.toJSON && emres.toJSON()) || {};
         const chtml = `${emailLogoSection}${emailBodyStart}${emailBody}${emailBodyEnd}${emailFooter}`;
@@ -473,7 +398,7 @@ const recordSentEmail = async (recordEmailData, additionalEData) => {
       profileId,
       displayName,
     } = recordEmailData || {};
-    const applicationEmailModel = additionalEData.Emaillogs;
+    const applicationEmailModel = additionalEData.Emaillog;
     const recordedEmailRes = await applicationEmailModel.upsert({
       appId: appId || 0,
       templateName: templateName || "unknown",
@@ -768,7 +693,7 @@ const sendEmailAsync = async (edata, additionalEData) => {
         console.log("PROXYING EMAIL:", emails);
         console.log("PROXYING CC EMAILS:", ccEmails);
         toAddresses = [
-          "hemanth@x0pa.com",
+          "manash@x0pa.com",
           "ambareesh@x0pa.com"
         ];
       } else {
