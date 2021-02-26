@@ -71,36 +71,27 @@ const getJobs = async (request, h, noOfJobs) => {
                     return h.response({error: true, message: 'No job found!'}).code(400);
                 }
             } else {
-                job = await Job.findOne({ where: { jobUuid }});
+                job = await Job.findOne({ raw: true, nest: true, where: { jobUuid }});
                 if(!job){
                     return h.response({error: true, message: 'Bad request! No job found!'}).code(400);
                 }
             }
-            const allAppliedJobs = await Jobapplication.findAll({ where: { userId }});
-
-            // finding all questionaire responses
-            const records = await Jobsquesresponse.findAll({ where: { jobId: job.jobId } });
-            const quesRes = [];
-            for (let response of records) {
-            const { questionId, responseVal } = response;
-            const res = { questionId, answer:responseVal.answer };
-                quesRes.push(res);
-            }
-            job.quesRes = quesRes;
-
-            // checking if already applied or not
-            if(allAppliedJobs.length){
-                for(let i=0; i<allAppliedJobs.length; i++){
-                    if(job.jobId === allAppliedJobs[i].jobId){
-                        job.isApplied = true;
-                        break;
-                    } else {
-                        job.isApplied = false;
+            const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+            const appliedJobIds = [];
+                rawAllAppliedJobs.forEach(aj => {
+                    const { jobId } = aj || {};
+                    if(jobId) {
+                        appliedJobIds.push(Number(jobId));
                     }
+                });
+
+                const { jobId } = job || {};
+                if(appliedJobIds.includes(Number(jobId))) {
+                    job.isApplied = true;
+                } else {
+                    job.isApplied = false;
                 }
-            } else {
-                job.isApplied = false;
-            }
+                
             responses = job;            
         } else {
             const { limit, offset } = request.query;            
