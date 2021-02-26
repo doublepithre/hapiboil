@@ -136,19 +136,10 @@ const getJobs = async (request, h, noOfJobs) => {
                     where: {
                         active: true,
                     },
-                    include: [
-                        {
-                            model: Jobsquesresponse,
-                            as: "jobsquesresponses",
-                            attributes: { exclude: ["responseId", "jobId", "createdAt", "updatedAt"] },
-                        }
-                    ],
                     limit: limitNum,
                     offset: offsetNum,
                 });          
-                console.log(rawAllJobs)
                 const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
-                console.log(rawAllAppliedJobs)
 
                 const appliedJobIds = [];
                 rawAllAppliedJobs.forEach(aj => {
