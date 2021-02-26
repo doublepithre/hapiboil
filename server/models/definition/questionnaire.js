@@ -135,7 +135,6 @@ const initRelations = (model) =>{
   const Userquesresponse = model.Userquesresponse;
   const Questiontarget = model.Questiontarget;
   const Questiontype = model.Questiontype;
-  const Userinfo = model.Userinfo;
 
 
   Questionnaire.belongsTo(Company, { as: "company", foreignKey: "companyId"});
