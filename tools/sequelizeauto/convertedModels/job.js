@@ -57,6 +57,11 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
+    },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      field: 'company_id'
     }
   }, {
     sequelize,
