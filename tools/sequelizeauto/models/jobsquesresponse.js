@@ -11,6 +11,13 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
+      references: {
+        model: {
+          tableName: 'questionnaire',
+          schema: 'hris'
+        },
+        key: 'question_id'
+      },
       field: 'question_id'
     },
     responseVal: {
@@ -22,13 +29,6 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      references: {
-        model: {
-          tableName: 'jobs',
-          schema: 'hris'
-        },
-        key: 'job_id'
-      },
       field: 'job_id'
     },
     createdAt: {

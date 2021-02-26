@@ -11,12 +11,14 @@ module.exports = function(sequelize, DataTypes) {
     questionId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'questionnaire',
+          schema: 'hris'
+        },
+        key: 'question_id'
+      },
       field: 'question_id'
-    },
-    questionUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      field: 'question_uuid'
     },
     answerVal: {
       type: DataTypes.TEXT,
@@ -37,7 +39,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     optionId: {
       type: DataTypes.SMALLINT,
-      allowNull: true,
+      allowNull: false,
       field: 'option_id'
     }
   }, {
@@ -46,6 +48,14 @@ module.exports = function(sequelize, DataTypes) {
     schema: 'hris',
     timestamps: false,
     indexes: [
+      {
+        name: "idx_questionnaire_answers",
+        unique: true,
+        fields: [
+          { name: "question_id" },
+          { name: "option_id" },
+        ]
+      },
       {
         name: "questionnaireanswers_pkey",
         unique: true,

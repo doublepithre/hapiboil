@@ -5,7 +5,7 @@ const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 import { formatQueryRes } from '../utils/index';
 import { getDomainURL } from '../utils/toolbox';
-
+import {camelizeKeys} from '../utils/camelizeKeys';
 const createUser = async (request, h) => {
   try {
     if (request.auth.isAuthenticated) {
@@ -28,7 +28,7 @@ const createUser = async (request, h) => {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
     // Checking account type
-    const validAccountTypes = ['candidate', 'employer', 'mentor', 'superadmin', 'specialist'];
+    const validAccountTypes = ['candidate', 'employer', 'mentor', 'superadmin', 'specialist','admin_x0pa'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -358,25 +358,28 @@ const resetPassword = async (request, h) => {
   }
 }
 
-const getQuestionnaire = async (request, h, companyName) => {
+const getQuestionnaire = async (request, h, targetName) => {
   try{
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const db1 = request.getDb('xpaxr');
-    const sequelize = db1.sequelize;
-    const sqlStmt = `select * from hris.company c
-                inner join hris.questionnaire q on c.company_id = q.company_id
-                inner join hris.questiontype qt on q.question_type_id = qt.question_type_id
-                where c.company_name= :companyName`;
-    const responses = await sequelize.query(sqlStmt, { type: QueryTypes.SELECT, replacements: { companyName } });
-    const questions = [];
-    for (const response of responses) {
-      const { question_id, question_name, question_config, question_type_name } = response || {};
-      const question = {questionId:question_id,questionName:question_name,questionConfig:question_config, questionTypeName:question_type_name};
-      questions.push(question);
-    }
-    return h.response(questions).code(200);
+    const { Questionnaire,Questiontarget,Questiontype } = request.getModels('xpaxr');
+    let questions = await Questionnaire.findAll({
+      raw:true,
+      include:[{
+        model:Questiontype,
+        as:"questionType",
+        attributes:[],
+        required:true
+      },{
+        model: Questiontarget,
+        as:"questionTarget",
+        where:{targetName},
+        attributes:[]
+      }
+    ],
+    attributes:["questionId","questionUuid","questionName","questionConfig","isCaseStudy","questionType.question_type_name"]})
+    return h.response(camelizeKeys(questions)).code(200);
   }
   catch (error) {
     console.error(error.stack);
