@@ -395,9 +395,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref:  "#/components/schemas/Question"
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref:  "#/components/schemas/Question"
 
   /account/empauwer-all:
     get:
@@ -412,9 +415,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref:  "#/components/schemas/Question"
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref:  "#/components/schemas/Question"
   /account/profile:
     post:
       summary:  Create profile/Answer Questions
@@ -480,7 +486,7 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/job" 
+                $ref: "#/components/schemas/jobDetailed" 
     get: 
       summary: Get jobs
       tags:
@@ -493,9 +499,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/jobDetailedWithIsApplied" 
+                type: object
+                $ref: "#/components/schemas/paginatedAllJobs"
 
   /job/{jobUuid}:
     get: 
@@ -560,9 +565,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/jobDetailedWithCreator" 
+                type: object
+                $ref: "#/components/schemas/paginatedRecruiterJobs" 
   
   /job/profile/{jobId}:
     get: 
@@ -577,9 +581,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/answers" 
+                type: object
+                properties:
+                  responses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/answers" 
     post: 
       summary: Answer empauwer all responses
       description: This is an upsert command hence it will update/insert responses.
@@ -600,9 +607,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/answers" 
+                type: object
+                properties:
+                  responses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/answers" 
 
   /job/j/applied:
     get: 
@@ -617,8 +627,14 @@ paths:
             content:
               application/json:
                 schema:
-                  type: object
-                  $ref: "#/components/schemas/jobApplicationDetailed"
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    appliedJobs:
+                      type: array
+                      items:
+                      $ref: "#/components/schemas/jobApplicationDetailed"                      
 
   /job/j/apply:
     post: 
@@ -686,9 +702,16 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User" 
+                type: object
+                properties:
+                  count:
+                    type: number
+                  applications:
+                    type: array
+                    items:
+                    $ref: "#/components/schemas/applicationsWithApplicant"  
+                    
+                
 
   /job/j/application/{userId}:
     get: 
@@ -770,6 +793,10 @@ components:
           type: number
         email:
           type: string
+        isEmailVerified:
+          type: boolean        
+        userTypeId:
+          type: number
         roleId:
           type: number
         active:
@@ -789,6 +816,8 @@ components:
         tzid:
           type: number
         primaryMobile:
+          type: string          
+        roleName:
           type: string
         userTypeName:
           type: string
@@ -858,6 +887,8 @@ components:
           type: number
         jobUuid:
           type: string
+        companyId:
+          type: number
         userId:
           type: string
           description: ID of user who created the job
@@ -881,6 +912,8 @@ components:
     jobApplication:
       type: object
       properties:
+        applicationId:
+          type: number
         jobId:
           type: number
         isApplied:
@@ -893,12 +926,13 @@ components:
     jobApplicationDetailed:
       type: object
       description: This extends detailed jobs to include applications
-      allOf:
-        - $ref: "#/components/schemas/jobDetailed"
+      allOf:        
         - $ref: "#/components/schemas/jobApplication"
       properties:
         applicationId:
-          type: number  
+          type: number 
+        job:
+          $ref: "#/components/schemas/jobDetailed"
       
     jobApplicationWithOnlyJobId:
       type: object
@@ -915,7 +949,7 @@ components:
       properties:
         isApplied:
           type: boolean
-        quesRes:
+        jobQuestionResponses:
           type: array
           items:
             $ref: "#/components/schemas/answers" 
@@ -930,6 +964,39 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/User" 
+    
+    paginatedAllJobs:
+      type: object
+      description: This is the schema for paginated jobs' response.      
+      properties:
+        count:
+          type: number        
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/jobDetailedWithIsApplied" 
+    
+    paginatedRecruiterJobs:
+      type: object
+      description: This is the schema for paginated recruiter jobs' response.      
+      properties:
+        count:
+          type: number        
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/jobDetailedWithCreator"
+    
+    applicationsWithApplicant:
+      type: object
+      description: This is the schema for paginated all applicants profiles' response.      
+      allOf:        
+        - $ref: "#/components/schemas/jobApplication"
+      properties:        
+        applicationId:
+          type: number 
+        applicant:      
+          $ref: "#/components/schemas/User"      
 
     meta:
       type: object

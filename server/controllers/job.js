@@ -31,7 +31,7 @@ const createJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId } = userProfileInfo || {};
 
-        const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });
+        const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });        
         return h.response(resRecord).code(201);        
     }
     catch (error) {
@@ -40,7 +40,7 @@ const createJob = async (request, h) => {
     }
 }
 
-const getJobs = async (request, h, noOfJobs) => {
+const getSingleJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
@@ -53,120 +53,137 @@ const getJobs = async (request, h, noOfJobs) => {
                 
         let responses;
         const fres = [];
-        if (noOfJobs === 'one') {
-            let job;
-            // Checking user type from jwt
-            let luserTypeName = request.auth.artifacts.decoded.userTypeName;            
-            if (luserTypeName === "employer"){
-                // get the company of the recruiter
-                const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-                const userProfileInfo = userRecord && userRecord.toJSON();
-                const { companyId: recruiterCompanyId } = userProfileInfo || {};                
-                
-                // filtering the jobs that belong to the recruiter's company
-                job = await Job.findOne({ where: { jobUuid, companyId: recruiterCompanyId }});                
-                const jobInDB = await Job.findOne({ where: { jobUuid }});                
-                if(jobInDB && !job){
-                    return h.response({error: true, message: 'You are not authorized to see this!'}).code(403);
-                } else if(!job && !jobInDB) {
-                    return h.response({error: true, message: 'No job found!'}).code(400);
-                }
-            } else {
-                job = await Job.findOne({ raw: true, nest: true, where: { jobUuid }});
-                if(!job){
-                    return h.response({error: true, message: 'Bad request! No job found!'}).code(400);
-                }
-            }
+        let job;
+
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;            
+              
+        if (luserTypeName === "employer"){
+
+            // get the company of the recruiter
+            const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+            const userProfileInfo = userRecord && userRecord.toJSON();
+            const { companyId: recruiterCompanyId } = userProfileInfo || {};                
+            
+            // filtering the jobs that belong to the recruiter's company
+            job = await Job.findOne({ where: { jobUuid, companyId: recruiterCompanyId }});                
+            const jobInDB = await Job.findOne({ where: { jobUuid }});                
+
+            if(jobInDB && !job) return h.response({error: true, message: 'You are not authorized to see this!'}).code(403);
+            if(!job && !jobInDB) return h.response({error: true, message: 'No job found!'}).code(400);            
+
+        } else {
+            job = await Job.findOne({ raw: true, nest: true, where: { jobUuid }, 
+                include: [{
+                    model: Jobsquesresponse,
+                    as: "jobsquesresponses",
+                }]
+            });
+            if(!job) return h.response({error: true, message: 'Bad request! No job found!'}).code(400);            
+
             const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
             const appliedJobIds = [];
-                rawAllAppliedJobs.forEach(aj => {
-                    const { jobId } = aj || {};
-                    if(jobId) {
-                        appliedJobIds.push(Number(jobId));
-                    }
-                });
+            rawAllAppliedJobs.forEach(aj => {
+                const { jobId } = aj || {};
+                if(jobId) {
+                    appliedJobIds.push(Number(jobId));
+                }
+            });
 
+            (function (){
                 const { jobId } = job || {};
                 if(appliedJobIds.includes(Number(jobId))) {
                     job.isApplied = true;
                 } else {
                     job.isApplied = false;
                 }
-                
-            responses = job;            
-        } else {
-            const { limit, offset } = request.query;            
-            const limitNum = limit ? Number(limit) : 10;
-            const offsetNum = offset ? Number(offset) : 0;
+            })()
 
-            if(isNaN(limitNum) || isNaN(offsetNum)){
-                return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-            }       
-            if(limitNum>100){
-                return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+            const jobsMap = {};
+            const jobQuesMap = {};
+
+            const { jobId, jobsquesresponses, ...rest } = job;
+            jobsMap[jobId] = { jobId, ...rest };
+            const { responseId } = jobsquesresponses;
+            if(responseId){
+                if(jobQuesMap[jobId]) {
+                    jobQuesMap[jobId].push(jobsquesresponses);
+                    } else {
+                    jobQuesMap[jobId] = [jobsquesresponses];
+                }
             }
 
-            let totalJobsInTheDatabase;
-            let allJobs;            
-            let rawAllJobs;            
-            // Checking user type from jwt
-            let luserTypeName = request.auth.artifacts.decoded.userTypeName;            
-            if (luserTypeName === "employer"){
-                // get the company of the recruiter
-                const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-                const userProfileInfo = userRecord && userRecord.toJSON();
-                const { companyId: recruiterCompanyId } = userProfileInfo || {};
+            Object.keys(jobsMap).forEach(jm => {
+                const jqrObj = jobsMap[jm] || {};
+                const records = jobQuesMap[jm] || [];
+
+                const questions = [];
+                for (let response of records) {
+                    const { questionId, responseVal } = response;
+                    const res = { questionId, answer:responseVal.answer };
+                    questions.push(res);
+                }
+                jqrObj.jobQuestionResponses = questions;
+                fres.push(jqrObj);
+            });
+            responses = fres[0];
+        }        
+        return h.response(responses).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+const getAllJobs = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        const { Jobsquesresponse, Userinfo, Jobapplication, Job } = request.getModels('xpaxr');
                 
-                // filtering jobs that belong to the recruiter's company
-                allJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, where: { companyId: recruiterCompanyId, active: true } });                
-                totalJobsInTheDatabase = await Job.count({ where: { companyId: recruiterCompanyId, active: true } });
-            } else {
-                totalJobsInTheDatabase = await Job.count({ where: { active: true }});
-                rawAllJobs = await Job.findAll({
-                    raw: true,
-                    nest: true,
-                    where: {
-                        active: true,
-                    },
-                    include: [{
-                        model: Jobsquesresponse,
-                        as: "jobsquesresponses",
-                    }],
-                    limit: limitNum,
-                    offset: offsetNum,
-                });          
-                const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+        let responses;
+        const fres = [];
+    
+        const { limit, offset } = request.query;            
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
 
+        if(isNaN(limitNum) || isNaN(offsetNum)) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
-                 const appliedJobIds = [];
-                rawAllAppliedJobs.forEach(aj => {
-                    const { jobId } = aj || {};
-                    if(jobId) {
-                        appliedJobIds.push(Number(jobId));
-                    }
-                });
+        let totalJobsInTheDatabase;                
+        let allJobs;            
 
-                rawAllJobs.forEach(j => {
-                  const { jobId } = j || {};
-                    if(appliedJobIds.includes(Number(jobId))) {
-                        j.isApplied = true;
-                    } else {
-                        j.isApplied = false;
-                    }
-                });
-  
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;     
 
-                
-                const jobsMap = {};
-                const jobQuesMap = {};
+        if (luserTypeName === "employer"){
 
-                if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
-                    rawAllJobs.forEach(r => {
+            // get the company of the recruiter
+            const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+            const userProfileInfo = userRecord && userRecord.toJSON();
+            const { companyId: recruiterCompanyId } = userProfileInfo || {};
+            
+            // filtering jobs that belong to the recruiter's company
+            const rawAllJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, raw: true, nest: true, 
+                where: { companyId: recruiterCompanyId, active: true },
+                include: [{
+                    model: Jobsquesresponse,
+                    as: "jobsquesresponses",
+                }]
+            });                
+            totalJobsInTheDatabase = await Job.count({ where: { companyId: recruiterCompanyId, active: true } });
+            
+            const jobsMap = {};
+            const jobQuesMap = {};
+
+            if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
+                rawAllJobs.forEach(r => {
                     const { jobId, jobsquesresponses, ...rest } = r || {};
-                    jobsMap[jobId] = {
-                    jobId,
-                    ...rest
-                    };
+                    jobsMap[jobId] = { jobId, ...rest };
                     const { responseId } = jobsquesresponses;
                     if(responseId){
                         if(jobQuesMap[jobId]) {
@@ -178,19 +195,86 @@ const getJobs = async (request, h, noOfJobs) => {
                 });
                 Object.keys(jobsMap).forEach(jm => {
                     const jqrObj = jobsMap[jm] || {};
-                    jqrObj.quesres = jobQuesMap[jm];
+                    const records = jobQuesMap[jm] || [];
+
+                    const questions = [];
+                    for (let response of records) {
+                        const { questionId, responseVal } = response;
+                        const res = { questionId, answer:responseVal.answer };
+                        questions.push(res);
+                    }
+                    jqrObj.jobQuestionResponses = questions;
                     fres.push(jqrObj);
-                });
+                });                
+            }      
+            allJobs = fres;  
+
+        } else {            
+            totalJobsInTheDatabase = await Job.count({ where: { active: true }});
+            const rawAllJobs = await Job.findAll({
+                raw: true,
+                nest: true,
+                where: {
+                    active: true,
+                },
+                include: [{
+                    model: Jobsquesresponse,
+                    as: "jobsquesresponses",
+                }],
+                limit: limitNum,
+                offset: offsetNum,
+            });          
+            const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+            const appliedJobIds = [];
+            rawAllAppliedJobs.forEach(aj => {
+                const { jobId } = aj || {};
+                if(jobId) {
+                    appliedJobIds.push(Number(jobId));
                 }
+            });
 
+            rawAllJobs.forEach(j => {
+                const { jobId } = j || {};
+                if(appliedJobIds.includes(Number(jobId))) {
+                    j.isApplied = true;
+                } else {
+                    j.isApplied = false;
+                }
+            });
 
+            const jobsMap = {};
+            const jobQuesMap = {};
 
+            if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
+                rawAllJobs.forEach(r => {
+                    const { jobId, jobsquesresponses, ...rest } = r || {};
+                    jobsMap[jobId] = { jobId, ...rest };
+                    const { responseId } = jobsquesresponses;
+                    if(responseId){
+                        if(jobQuesMap[jobId]) {
+                            jobQuesMap[jobId].push(jobsquesresponses);
+                            } else {
+                            jobQuesMap[jobId] = [jobsquesresponses];
+                        }
+                    }
+                });
+                Object.keys(jobsMap).forEach(jm => {
+                    const jqrObj = jobsMap[jm] || {};
+                    const records = jobQuesMap[jm] || [];
 
-               
-            }
-
-            responses = { count: totalJobsInTheDatabase, jobs: fres };
-        }                    
+                    const questions = [];
+                    for (let response of records) {
+                        const { questionId, responseVal } = response;
+                        const res = { questionId, answer:responseVal.answer };
+                        questions.push(res);
+                    }
+                    jqrObj.jobQuestionResponses = questions;
+                    fres.push(jqrObj);
+                });                
+            }      
+            allJobs = fres;      
+        }
+        responses = { count: totalJobsInTheDatabase, jobs: allJobs };                          
         return h.response(responses).code(200);
     }
     catch (error) {
@@ -198,6 +282,7 @@ const getJobs = async (request, h, noOfJobs) => {
         return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
+
 const getRecruiterJobs = async(request,h)=>{
     try{
         if (!request.auth.isAuthenticated) {
@@ -237,8 +322,9 @@ const getRecruiterJobs = async(request,h)=>{
                 model:Userinfo,
                 as:"user",                
                 required: true,
+                attributes: { exclude: ["createdAt", "updatedAt"]}
             }],            
-            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId"],
+            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId", "active"],
             offset: offsetNum,
             limit: limitNum,
         });
@@ -304,7 +390,16 @@ const createJobQuesResponses = async (request, h) => {
         }
         const { Jobsquesresponse } = request.getModels('xpaxr');
         const records = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate:["responseVal"]});
-        return h.response(records).code(201);
+
+        // formatting the questionaire response
+        const quesResponses = [];
+        for (let response of records) {
+          const { questionId, responseVal } = response;
+          const res = { questionId, answer:responseVal.answer };
+          quesResponses.push(res);
+        }
+
+        return h.response({ responses: quesResponses }).code(201);
     }
     catch (error) {
         console.error(error.stack);
@@ -326,7 +421,7 @@ const getJobQuesResponses = async (request, h) => {
           const res = { questionId, answer:responseVal.answer };
           responses.push(res);
         }
-        return h.response(responses).code(200);
+        return h.response({ responses }).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -357,7 +452,11 @@ const applyToJob = async (request, h) => {
             return h.response({error: true, message: 'Already applied!'}).code(400);
         }
         const recordRes = await Jobapplication.upsert(record);
-        return h.response(recordRes[0]).code(200);
+        const recordResponse = recordRes[0] && recordRes[0].toJSON();
+        delete recordResponse.createdAt;
+        delete recordResponse.updatedAt;
+        delete recordResponse.userId;
+        return h.response(recordResponse).code(200);
     }
     catch(error) {
         console.error(error.stack);
@@ -435,7 +534,7 @@ const withdrawFromAppliedJob = async (request, h) => {
       await Jobapplication.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
       const updatedApplication = await Jobapplication.findOne({
           where:{ applicationId: applicationId },
-          attributes: { exclude: ['createdAt', 'updatedAt']
+          attributes: { exclude: ['createdAt', 'updatedAt', 'userId']
         }
       });
       const updatedApplicationData = updatedApplication && updatedApplication.toJSON();
@@ -591,7 +690,8 @@ const isQuestionnaireDone = async(userId,model)=>{
 
 module.exports = {
     createJob,
-    getJobs,
+    getSingleJobs,
+    getAllJobs,
     getRecruiterJobs,
     updateJob,
     createJobQuesResponses,

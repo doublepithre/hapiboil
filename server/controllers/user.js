@@ -390,7 +390,7 @@ const getQuestionnaire = async (request, h, companyName) => {
       const question = {questionId:question_id,questionName:question_name,questionConfig:question_config, questionTypeName:question_type_name};
       questions.push(question);
     }
-    return h.response(questions).code(200);
+    return h.response({ questions }).code(200);
   }
   catch (error) {
     console.error(error.stack);
@@ -414,7 +414,7 @@ const getProfile = async (request, h) => {
       const res = { questionId, answer:responseVal.answer };
       responses.push(res);
     }
-    return h.response(responses).code(200);
+    return h.response({ responses }).code(200);
   }
   catch (error) {
     console.error(error.stack);
@@ -434,7 +434,7 @@ const createProfile = async (request, h) => {
     // Checking user type from jwt
     const db1 = request.getDb('xpaxr');
     let data = []
-    let resRecord;
+    let createProfileResponse;
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     if (userTypeName === "candidate") {
       for (const response of responses) {
@@ -442,15 +442,25 @@ const createProfile = async (request, h) => {
         const record = { questionId, responseVal:{answer}, userId }
         data.push(record);
       }
-      resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
+      await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
+      const quesResponses = await Userquesresponse.findAll({ where: { userId }});      
+      const resRecord = [];
+      for (let response of quesResponses) {
+        response = response && response.toJSON();
+        const { questionId, responseVal } = response;
+        const res = { questionId, answer:responseVal.answer };
+        resRecord.push(res);
+      }
+      createProfileResponse = { responses: resRecord };
+
     } else if ( userTypeName === 'employer') {
       // For Employer profile creation
     } else if ( userTypeName  === 'mentor') {
       // For Mentor profile creation
     } else {
       return h.response({ error: true, message: 'Invalid Request!'}).code(400);
-    }
-    return h.response(resRecord).code(201);
+    }    
+    return h.response(createProfileResponse).code(201);
   }
   catch (error) {
     console.error(error.stack);
