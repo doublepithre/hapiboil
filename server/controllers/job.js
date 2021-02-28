@@ -13,7 +13,7 @@ const createJob = async (request, h) => {
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'employer'){
-            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
         const jobDetails = request.payload || {};
@@ -69,7 +69,7 @@ const getSingleJobs = async (request, h) => {
             job = await Job.findOne({ where: { jobUuid, companyId: recruiterCompanyId }});                
             const jobInDB = await Job.findOne({ where: { jobUuid }});                
 
-            if(jobInDB && !job) return h.response({error: true, message: 'You are not authorized to see this!'}).code(403);
+            if(jobInDB && !job) return h.response({error: true, message: 'You are not authorized!'}).code(403);
             if(!job && !jobInDB) return h.response({error: true, message: 'No job found!'}).code(400);            
 
         } else {
@@ -292,7 +292,7 @@ const getRecruiterJobs = async(request,h)=>{
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'employer'){
-            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
         // pagination
@@ -344,7 +344,7 @@ const updateJob = async (request, h) => {
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'employer'){
-            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
         const { credentials } = request.auth || {};
@@ -436,7 +436,7 @@ const applyToJob = async (request, h) => {
         }
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
         if(luserTypeName !== 'candidate'){
-            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
         // Candidate should not be allowed to modify status
@@ -476,7 +476,7 @@ const getAppliedJobs = async (request, h) => {
         }
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
         if(luserTypeName !== 'candidate'){
-            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
         const { credentials } = request.auth || {};
@@ -521,9 +521,9 @@ const withdrawFromAppliedJob = async (request, h) => {
       }   
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
         if(luserTypeName !== 'candidate'){
-            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
-          
+
       const { jobId, userId } = request.payload || {};
       if(!(jobId && userId)){
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);    
@@ -569,7 +569,7 @@ const getApplicantProfile = async (request, h) => {
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
       if(luserTypeName !== 'employer'){
-        return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
       const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
@@ -602,7 +602,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
       if(luserTypeName !== 'employer'){
-        return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
       // pagination
@@ -648,7 +648,7 @@ const getRecommendedTalents = async (request, h) => {
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
       if(luserTypeName !== 'employer'){
-          return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+          return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
       const { Userinfo } = request.getModels('xpaxr');
       const talents = await Userinfo.findAll({ offset: 0, limit: 20 });      
