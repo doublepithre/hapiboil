@@ -466,7 +466,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job:
+  /job?limit={limit}&&offset={skip}:
     post: 
       summary: Create Job
       tags:
@@ -552,7 +552,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
-  /job/j/recruiter:
+  /job/j/recruiter?limit={limit}&&offset={skip}:
     get: 
       summary: Get recruiter jobs
       tags:
@@ -614,7 +614,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied:
+  /job/j/applied?limit={limit}&&offset={skip}:
     get: 
         summary: Get applied jobs
         tags:
@@ -689,7 +689,7 @@ paths:
                 $ref: "#/components/schemas/jobApplication"
                     
 
-  /job/j/applications/{jobId}:
+  /job/j/applications/{jobId}?limit={limit}&&offset={skip}:
     get: 
       summary: Get all Applicants
       tags:
