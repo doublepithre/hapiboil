@@ -434,6 +434,11 @@ const applyToJob = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
+        if(luserTypeName !== 'candidate'){
+            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        }
+
         // Candidate should not be allowed to modify status
         const { jobId } = request.payload || {};
         if(!jobId){
@@ -469,6 +474,11 @@ const getAppliedJobs = async (request, h) => {
         if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
         }
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
+        if(luserTypeName !== 'candidate'){
+            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        }
+
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
@@ -508,7 +518,12 @@ const withdrawFromAppliedJob = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
-      }     
+      }   
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
+        if(luserTypeName !== 'candidate'){
+            return h.response({error:true, message:'You are not authorized to see this!'}).code(403);
+        }
+          
       const { jobId, userId } = request.payload || {};
       if(!(jobId && userId)){
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);    
