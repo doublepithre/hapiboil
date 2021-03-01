@@ -66,14 +66,14 @@ const getSingleJobs = async (request, h) => {
             const { companyId: recruiterCompanyId } = userProfileInfo || {};                
             
             // filtering the jobs that belong to the recruiter's company
-            job = await Job.findOne({ where: { jobUuid, companyId: recruiterCompanyId }});                
+            job = await Job.findOne({ where: { jobUuid, companyId: recruiterCompanyId, isPrivate: false }});                
             const jobInDB = await Job.findOne({ where: { jobUuid }});                
 
             if(jobInDB && !job) return h.response({error: true, message: 'You are not authorized!'}).code(403);
             if(!job && !jobInDB) return h.response({error: true, message: 'No job found!'}).code(400);            
 
         } else {
-            job = await Job.findOne({ raw: true, nest: true, where: { jobUuid }, 
+            job = await Job.findOne({ raw: true, nest: true, where: { jobUuid, isPrivate: false }, 
                 include: [{
                     model: Jobsquesresponse,
                     as: "jobsquesresponses",
@@ -169,7 +169,7 @@ const getAllJobs = async (request, h) => {
             
             // filtering jobs that belong to the recruiter's company
             const rawAllJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, raw: true, nest: true, 
-                where: { companyId: recruiterCompanyId, active: true },
+                where: { companyId: recruiterCompanyId, active: true, isPrivate: false },
                 include: [{
                     model: Jobsquesresponse,
                     as: "jobsquesresponses",
@@ -216,6 +216,7 @@ const getAllJobs = async (request, h) => {
                 nest: true,
                 where: {
                     active: true,
+                    isPrivate: false
                 },
                 include: [{
                     model: Jobsquesresponse,

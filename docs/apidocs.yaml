@@ -888,11 +888,13 @@ components:
         jobUuid:
           type: string
         companyId:
-          type: number
+          type: number        
         userId:
           type: string
           description: ID of user who created the job
         active:
+          type: boolean
+        isPrivate:
           type: boolean
         createdAt:
           type: string
