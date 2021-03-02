@@ -218,6 +218,9 @@ const getAllJobs = async (request, h) => {
                     active: true,
                     isPrivate: false
                 },
+                order: [
+                    ['jobName', 'DESC']
+                ],
                 include: [{
                     model: Jobsquesresponse,
                     as: "jobsquesresponses",
@@ -243,13 +246,14 @@ const getAllJobs = async (request, h) => {
                 }
             });
 
-            const jobsMap = {};
+            const jobsMap = new Map();
             const jobQuesMap = {};
 
             if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
                 rawAllJobs.forEach(r => {
                     const { jobId, jobsquesresponses, ...rest } = r || {};
-                    jobsMap[jobId] = { jobId, ...rest };
+                    jobsMap.set(jobId, { jobId, ...rest });
+
                     const { responseId } = jobsquesresponses;
                     if(responseId){
                         if(jobQuesMap[jobId]) {
@@ -259,8 +263,7 @@ const getAllJobs = async (request, h) => {
                         }
                     }
                 });
-                Object.keys(jobsMap).forEach(jm => {
-                    const jqrObj = jobsMap[jm] || {};
+                jobsMap.forEach((jqrObj, jm) => {
                     const records = jobQuesMap[jm] || [];
 
                     const questions = [];
