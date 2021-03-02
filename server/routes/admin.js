@@ -8,7 +8,10 @@ import {
     deleteAttribute,
     editAttribute,
     deleteQuestions,
-    getQuestionById
+    updateIsActive,
+    getQuestionById,
+    createQuestionAttributes,
+    getQuestions
 } from "../controllers/admin";
 
 const xadmin = {
@@ -17,6 +20,30 @@ const xadmin = {
   
   register: async (server, options) => {
     try {
+      server.route({
+        method: 'GET',
+        path: '/questions/empauwer-me',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            return await getQuestions(request,h,'empauwer_me')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/questions/empauwer-all',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            return await getQuestions(request,h,'empauwer_all')
+          },
+        },
+      });
       server.route({
         method: 'POST',
         path: '/questions',
@@ -45,6 +72,16 @@ const xadmin = {
             mode: 'try',
           },
           handler: deleteQuestions,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/questions/active',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateIsActive,
         },
       });
       server.route({
@@ -117,6 +154,16 @@ const xadmin = {
             mode: 'try',
           },
           handler: editAttribute,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/questions/question/attributes',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createQuestionAttributes,
         },
       });
     } 
