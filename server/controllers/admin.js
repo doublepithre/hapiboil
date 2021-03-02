@@ -8,6 +8,11 @@ const getQuestions = async (request, h, targetName) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden' }).code(403);
         }
+        let userTypeName = request.auth.artifacts.decoded.userTypeName;
+        let userId = request.auth.credentials.id;
+        if (userTypeName !== 'admin_x0pa') {
+            return h.response({ message: 'Not authorized' }).code(403);
+        }
         const { Questionnaire, Questiontarget, Questiontype } = request.getModels('xpaxr');
         let questions = await Questionnaire.findAll({
             raw: true,
