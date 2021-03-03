@@ -1,5 +1,6 @@
 import { 
     createJob,
+    getJobDetailsOptions,
     getSingleJobs,
     getAllJobs,
     updateJob,
@@ -75,6 +76,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/job-details-options',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobDetailsOptions,
         },
       });
       server.route({
