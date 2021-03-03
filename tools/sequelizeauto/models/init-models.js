@@ -1,13 +1,19 @@
 var DataTypes = require("sequelize").DataTypes;
 var _Accesstoken = require("./accesstoken");
+var _Applicationhiremember = require("./applicationhiremember");
 var _Attributeset = require("./attributeset");
 var _Company = require("./company");
 var _Companyinfo = require("./companyinfo");
 var _Emaillog = require("./emaillog");
 var _Emailtemplate = require("./emailtemplate");
 var _Jobapplication = require("./jobapplication");
+var _Jobfunction = require("./jobfunction");
+var _Jobhiremember = require("./jobhiremember");
+var _Jobindustry = require("./jobindustry");
+var _Joblocation = require("./joblocation");
 var _Job = require("./job");
 var _Jobsquesresponse = require("./jobsquesresponse");
+var _Jobtype = require("./jobtype");
 var _Qaattribute = require("./qaattribute");
 var _Questioncategory = require("./questioncategory");
 var _Questionmapping = require("./questionmapping");
@@ -24,14 +30,20 @@ var _Usertype = require("./usertype");
 
 function initModels(sequelize) {
   var Accesstoken = _Accesstoken(sequelize, DataTypes);
+  var Applicationhiremember = _Applicationhiremember(sequelize, DataTypes);
   var Attributeset = _Attributeset(sequelize, DataTypes);
   var Company = _Company(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
   var Emailtemplate = _Emailtemplate(sequelize, DataTypes);
   var Jobapplication = _Jobapplication(sequelize, DataTypes);
+  var Jobfunction = _Jobfunction(sequelize, DataTypes);
+  var Jobhiremember = _Jobhiremember(sequelize, DataTypes);
+  var Jobindustry = _Jobindustry(sequelize, DataTypes);
+  var Joblocation = _Joblocation(sequelize, DataTypes);
   var Job = _Job(sequelize, DataTypes);
   var Jobsquesresponse = _Jobsquesresponse(sequelize, DataTypes);
+  var Jobtype = _Jobtype(sequelize, DataTypes);
   var Qaattribute = _Qaattribute(sequelize, DataTypes);
   var Questioncategory = _Questioncategory(sequelize, DataTypes);
   var Questionmapping = _Questionmapping(sequelize, DataTypes);
@@ -46,6 +58,8 @@ function initModels(sequelize) {
   var Userrole = _Userrole(sequelize, DataTypes);
   var Usertype = _Usertype(sequelize, DataTypes);
 
+  Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
+  Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
   Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
@@ -56,10 +70,20 @@ function initModels(sequelize) {
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
+  Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
+  Jobfunction.hasMany(Job, { as: "jobs", foreignKey: "jobFunctionId"});
+  Job.belongsTo(Jobindustry, { as: "jobIndustry", foreignKey: "jobIndustryId"});
+  Jobindustry.hasMany(Job, { as: "jobs", foreignKey: "jobIndustryId"});
+  Job.belongsTo(Joblocation, { as: "jobLocation", foreignKey: "jobLocationId"});
+  Joblocation.hasMany(Job, { as: "jobs", foreignKey: "jobLocationId"});
   Jobapplication.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
+  Jobhiremember.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
   Jobsquesresponse.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
+  Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
+  Jobtype.hasMany(Job, { as: "jobs", foreignKey: "jobTypeId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questioncategory.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionCategoryId"});
   Questionmapping.belongsTo(Questionnaire, { as: "empauwerAllQ", foreignKey: "empauwerAllQid"});
@@ -78,6 +102,10 @@ function initModels(sequelize) {
   User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
   User.hasMany(Userinfo, { as: "userUuUserinfos", foreignKey: "userUuid"});
+  Applicationhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
+  Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
   Questionnaire.belongsTo(Userinfo, { as: "createdByUserinfo", foreignKey: "createdBy"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
@@ -87,14 +115,20 @@ function initModels(sequelize) {
 
   return {
     Accesstoken,
+    Applicationhiremember,
     Attributeset,
     Company,
     Companyinfo,
     Emaillog,
     Emailtemplate,
     Jobapplication,
+    Jobfunction,
+    Jobhiremember,
+    Jobindustry,
+    Joblocation,
     Job,
     Jobsquesresponse,
+    Jobtype,
     Qaattribute,
     Questioncategory,
     Questionmapping,

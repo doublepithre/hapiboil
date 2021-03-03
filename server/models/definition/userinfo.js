@@ -153,21 +153,25 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Userinfo = model.Userinfo;
+  const Job = model.Job;
   const Company = model.Company;
   const User = model.User;
+  const Applicationhiremember = model.Applicationhiremember;
+  const Jobhiremember = model.Jobhiremember;
   const Questionnaire = model.Questionnaire;
   const Usermeta = model.Usermeta;
   const Usertype = model.Usertype;
-  const Userrole = model.Userrole;
 
 
+  Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
+  Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
+  Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
-  Userinfo.belongsTo(Userrole, { as: "userRole", foreignKey: "roleId"});
 
 }

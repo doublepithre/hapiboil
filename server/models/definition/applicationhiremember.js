@@ -1,43 +1,38 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  const Jobapplication = sequelize.define('Jobapplication', {
-    applicationId: {
+  const Applicationhiremember = sequelize.define('Applicationhiremember', {
+    applicationHireMemberId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
-      field: 'application_id'
+      field: 'application_hire_member_id'
     },
-    jobId: {
+    applicationId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      references: {
-        model: {
-          tableName: 'jobs',
-          schema: 'hris'
-        },
-        key: 'job_id'
-      },
-      field: 'job_id'
+      field: 'application_id'
     },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       field: 'user_id'
     },
-    isApplied: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      field: 'is_applied'
-    },
-    isWithdrawn: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      field: 'is_withdrawn'
-    },
-    status: {
+    accessLevel: {
       type: DataTypes.STRING,
+      allowNull: true,
+      field: 'access_level'
+    },
+    scopes: {
+      type: DataTypes.JSON,
       allowNull: true
     },
     createdAt: {
@@ -54,30 +49,30 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     sequelize,
-    tableName: 'jobapplications',
+    tableName: 'applicationhiremember',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "jobapplications_pkey",
+        name: "applicationhiremember_pkey",
         unique: true,
         fields: [
-          { name: "job_id" },
+          { name: "application_id" },
           { name: "user_id" },
         ]
       },
     ]
   });
-  Jobapplication.associate = function(model) {
+  Applicationhiremember.associate = function(model) {
     initRelations(model);
   }
-  return Jobapplication;
+  return Applicationhiremember;
 }
 const initRelations = (model) =>{
-  const Jobapplication = model.Jobapplication;
-  const Job = model.Job;
+  const Applicationhiremember = model.Applicationhiremember;
+  const Userinfo = model.Userinfo;
 
 
-  Jobapplication.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Applicationhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

@@ -1,11 +1,22 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  const Jobapplication = sequelize.define('Jobapplication', {
-    applicationId: {
+  const Jobhiremember = sequelize.define('Jobhiremember', {
+    accessLevel: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      field: 'access_level'
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn('now'),
+      field: 'created_at'
+    },
+    jobHireMemberId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
-      field: 'application_id'
+      field: 'job_hire_member_id'
     },
     jobId: {
       type: DataTypes.BIGINT,
@@ -20,31 +31,22 @@ module.exports = (sequelize, DataTypes) => {
       },
       field: 'job_id'
     },
+    scopes: {
+      type: DataTypes.JSON,
+      allowNull: true
+    },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       field: 'user_id'
-    },
-    isApplied: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      field: 'is_applied'
-    },
-    isWithdrawn: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      field: 'is_withdrawn'
-    },
-    status: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    createdAt: {
-      type: DataTypes.DATE,
-      allowNull: true,
-      defaultValue: Sequelize.fn('now'),
-      field: 'created_at'
     },
     updatedAt: {
       type: DataTypes.DATE,
@@ -54,12 +56,12 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     sequelize,
-    tableName: 'jobapplications',
+    tableName: 'jobhiremember',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "jobapplications_pkey",
+        name: "jobhiremember_pkey",
         unique: true,
         fields: [
           { name: "job_id" },
@@ -68,16 +70,18 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Jobapplication.associate = function(model) {
+  Jobhiremember.associate = function(model) {
     initRelations(model);
   }
-  return Jobapplication;
+  return Jobhiremember;
 }
 const initRelations = (model) =>{
-  const Jobapplication = model.Jobapplication;
+  const Jobhiremember = model.Jobhiremember;
   const Job = model.Job;
+  const Userinfo = model.Userinfo;
 
 
-  Jobapplication.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Jobhiremember.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }
