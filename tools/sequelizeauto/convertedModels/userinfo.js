@@ -153,6 +153,7 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Userinfo = model.Userinfo;
+  const Jobapplication = model.Jobapplication;
   const Job = model.Job;
   const Company = model.Company;
   const User = model.User;
@@ -163,6 +164,7 @@ const initRelations = (model) =>{
   const Usertype = model.Usertype;
 
 
+  Userinfo.belongsToMany(Jobapplication, { through: Applicationhiremember, foreignKey: "userId", otherKey: "applicationId" });
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});

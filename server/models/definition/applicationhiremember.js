@@ -11,6 +11,13 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
+      references: {
+        model: {
+          tableName: 'jobapplications',
+          schema: 'hris'
+        },
+        key: 'application_id'
+      },
       field: 'application_id'
     },
     userId: {
@@ -70,9 +77,11 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Applicationhiremember = model.Applicationhiremember;
+  const Jobapplication = model.Jobapplication;
   const Userinfo = model.Userinfo;
 
 
+  Applicationhiremember.belongsTo(Jobapplication, { as: "application", foreignKey: "applicationId"});
   Applicationhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

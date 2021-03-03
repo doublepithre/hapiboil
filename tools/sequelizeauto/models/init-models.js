@@ -58,7 +58,9 @@ function initModels(sequelize) {
   var Userrole = _Userrole(sequelize, DataTypes);
   var Usertype = _Usertype(sequelize, DataTypes);
 
+  Jobapplication.belongsToMany(Userinfo, { through: Applicationhiremember, foreignKey: "applicationId", otherKey: "userId" });
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
+  Userinfo.belongsToMany(Jobapplication, { through: Applicationhiremember, foreignKey: "userId", otherKey: "applicationId" });
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
   Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
@@ -70,6 +72,8 @@ function initModels(sequelize) {
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
+  Applicationhiremember.belongsTo(Jobapplication, { as: "application", foreignKey: "applicationId"});
+  Jobapplication.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "applicationId"});
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
   Jobfunction.hasMany(Job, { as: "jobs", foreignKey: "jobFunctionId"});
   Job.belongsTo(Jobindustry, { as: "jobIndustry", foreignKey: "jobIndustryId"});
