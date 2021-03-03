@@ -9,7 +9,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     empauwerAllQid: {
       type: DataTypes.BIGINT,
-      allowNull: true,
+      allowNull: false,
+      primaryKey: true,
       references: {
         model: {
           tableName: 'questionnaire',
@@ -21,7 +22,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     empauwerMeQid: {
       type: DataTypes.BIGINT,
-      allowNull: true,
+      allowNull: false,
+      primaryKey: true,
       references: {
         model: {
           tableName: 'questionnaire',
@@ -35,7 +37,17 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     tableName: 'questionmapping',
     schema: 'hris',
-    timestamps: false
+    timestamps: false,
+    indexes: [
+      {
+        name: "questionmapping_pkey",
+        unique: true,
+        fields: [
+          { name: "empauwer_all_qid" },
+          { name: "empauwer_me_qid" },
+        ]
+      },
+    ]
   });
   Questionmapping.associate = function(model) {
     initRelations(model);
