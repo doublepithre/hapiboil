@@ -466,7 +466,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job?limit={limit}&&offset={skip}:
+  /job?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     post: 
       summary: Create Job
       tags:
@@ -552,7 +552,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
-  /job/j/recruiter?limit={limit}&&offset={skip}:
+  /job/j/recruiter?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
       summary: Get recruiter jobs
       tags:
@@ -614,7 +614,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&&offset={skip}:
+  /job/j/applied?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
         summary: Get applied jobs
         tags:
