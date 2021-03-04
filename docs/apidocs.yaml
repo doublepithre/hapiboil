@@ -502,6 +502,61 @@ paths:
                 type: object
                 $ref: "#/components/schemas/paginatedAllJobs"
 
+  /job/j/job-details-options:
+    get: 
+      summary: Get job details options
+      tags:
+        - Job
+      security:
+      - bearerAuth: []     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  function:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobFunctionId:
+                          type: number
+                        jobFunctionName:
+                          type: string
+                  
+                  industry:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobIndustryId:
+                          type: number
+                        jobIndustryName:
+                          type: string
+                  
+                  location:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobLocationId:
+                          type: number
+                        jobLocationName:
+                          type: string
+                  
+                  type:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobTypeId:
+                          type: number
+                        jobTypeName:
+                          type: string
+
   /job/{jobUuid}:
     get: 
       summary: Get job by uuid
