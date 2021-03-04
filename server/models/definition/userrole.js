@@ -52,7 +52,9 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Userrole = model.Userrole;
+  const Userinfo = model.Userinfo;
 
 
+  Userrole.hasMany(Userinfo, { as: "userinfos", foreignKey: "roleId"});
 
 }

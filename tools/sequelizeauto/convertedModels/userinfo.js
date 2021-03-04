@@ -34,6 +34,13 @@ module.exports = (sequelize, DataTypes) => {
     roleId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userrole',
+          schema: 'hris'
+        },
+        key: 'role_id'
+      },
       field: 'role_id'
     },
     userTypeId: {
@@ -161,6 +168,7 @@ const initRelations = (model) =>{
   const Jobhiremember = model.Jobhiremember;
   const Questionnaire = model.Questionnaire;
   const Usermeta = model.Usermeta;
+  const Userrole = model.Userrole;
   const Usertype = model.Usertype;
 
 
@@ -174,6 +182,7 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
+  Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
 
 }

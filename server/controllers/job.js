@@ -25,13 +25,14 @@ const createJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
         
-        const { Job, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId } = userProfileInfo || {};
 
         const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });        
+        await Jobhiremember.create({ accessLevel: 'owner', userId, jobId: resRecord.jobId, })
         return h.response(resRecord).code(201);        
     }
     catch (error) {
