@@ -174,12 +174,26 @@ const getAllJobs = async (request, h) => {
         let responses;
         const fres = [];
     
-        const { limit, offset } = request.query;            
+        const { limit, offset, jobTypeId, jobFunctionId, jobIndustryId, minExp, sort } = request.query;
+        let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
+        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
+        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
+
+        const validSorts = [ 'createdAt', 'jobName'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
+        // pagination
         const limitNum = limit ? Number(limit) : 10;
         const offsetNum = offset ? Number(offset) : 0;
 
-        if(isNaN(limitNum) || isNaN(offsetNum)) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+
+        const filters = {}
+        if(jobTypeId) filters.jobTypeId = jobTypeId;
+        if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
+        if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
+        if(minExp) filters.minExp = minExp;
 
         let totalJobsInTheDatabase;                
         let allJobs;            
@@ -196,21 +210,24 @@ const getAllJobs = async (request, h) => {
             
             // filtering jobs that belong to the recruiter's company
             const rawAllJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, raw: true, nest: true, 
-                where: { companyId: recruiterCompanyId, active: true, isPrivate: false },
+                where: { companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters },
+                order: [
+                    [sortBy, sortType]
+                ],
                 include: [{
                     model: Jobsquesresponse,
                     as: "jobsquesresponses",
                 }]
             });                
-            totalJobsInTheDatabase = await Job.count({ where: { companyId: recruiterCompanyId, active: true } });
+            totalJobsInTheDatabase = await Job.count({ where: { companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters } });
             
-            const jobsMap = {};
+            const jobsMap = new Map();
             const jobQuesMap = {};
 
             if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
                 rawAllJobs.forEach(r => {
                     const { jobId, jobsquesresponses, ...rest } = r || {};
-                    jobsMap[jobId] = { jobId, ...rest };
+                    jobsMap.set(jobId, { jobId, ...rest });
                     const { responseId } = jobsquesresponses;
                     if(responseId){
                         if(jobQuesMap[jobId]) {
@@ -220,8 +237,7 @@ const getAllJobs = async (request, h) => {
                         }
                     }
                 });
-                Object.keys(jobsMap).forEach(jm => {
-                    const jqrObj = jobsMap[jm] || {};
+                jobsMap.forEach((jqrObj, jm) => {
                     const records = jobQuesMap[jm] || [];
 
                     const questions = [];
@@ -232,21 +248,22 @@ const getAllJobs = async (request, h) => {
                     }
                     jqrObj.jobQuestionResponses = questions;
                     fres.push(jqrObj);
-                });                
+                });                 
             }      
             allJobs = fres;  
 
         } else {            
-            totalJobsInTheDatabase = await Job.count({ where: { active: true }});
+            totalJobsInTheDatabase = await Job.count({ where: { active: true, isPrivate: false, ...filters }});
             const rawAllJobs = await Job.findAll({
                 raw: true,
                 nest: true,
                 where: {
                     active: true,
-                    isPrivate: false
+                    isPrivate: false,
+                    ...filters
                 },
                 order: [
-                    ['jobName', 'DESC']
+                    [sortBy, sortType]
                 ],
                 include: [{
                     model: Jobsquesresponse,
