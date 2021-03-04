@@ -73,11 +73,9 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const User = model.User;
-  const Job = model.Job;
   const Userinfo = model.Userinfo;
 
 
-  User.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
   User.hasMany(Userinfo, { as: "userUuUserinfos", foreignKey: "userUuid"});
 

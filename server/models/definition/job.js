@@ -35,7 +35,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       references: {
         model: {
-          tableName: 'user',
+          tableName: 'userinfo',
           schema: 'hris'
         },
         key: 'user_id'
@@ -159,7 +159,6 @@ const initRelations = (model) =>{
   const Jobhiremember = model.Jobhiremember;
   const Jobsquesresponse = model.Jobsquesresponse;
   const Jobtype = model.Jobtype;
-  const User = model.User;
 
 
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
@@ -170,6 +169,6 @@ const initRelations = (model) =>{
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
   Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
-  Job.belongsTo(User, { as: "user", foreignKey: "userId"});
+  Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

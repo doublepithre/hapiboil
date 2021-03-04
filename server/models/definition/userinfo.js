@@ -180,9 +180,10 @@ const initRelations = (model) =>{
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Userinfo.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
-  Userinfo.belongsTo(Userrole, { as: "userRole", foreignKey: "roleId"});
+  Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
 
 }

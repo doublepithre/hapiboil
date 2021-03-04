@@ -102,8 +102,6 @@ function initModels(sequelize) {
   Questionnaireanswer.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "answerId"});
   Questionnaire.belongsTo(Questiontype, { as: "questionType", foreignKey: "questionTypeId"});
   Questiontype.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionTypeId"});
-  Job.belongsTo(User, { as: "user", foreignKey: "userId"});
-  User.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
   User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
@@ -112,6 +110,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   Questionnaire.belongsTo(Userinfo, { as: "createdByUserinfo", foreignKey: "createdBy"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});

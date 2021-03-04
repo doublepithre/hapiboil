@@ -343,16 +343,26 @@ const getRecruiterJobs = async(request,h)=>{
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
+        const { limit, offset, jobTypeId, jobFunctionId, jobIndustryId, minExp, sort } = request.query;
+        let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
+        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
+        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
+
+        const validSorts = [ 'createdAt', 'jobName'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
         // pagination
-        const { limit, offset } = request.query;            
         const limitNum = limit ? Number(limit) : 10;
         const offsetNum = offset ? Number(offset) : 0;
-        if(isNaN(limitNum) || isNaN(offsetNum)){
-            return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-        }       
-        if(limitNum>100){
-            return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-        }
+
+        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+
+        const filters = {}
+        if(jobTypeId) filters.jobTypeId = jobTypeId;
+        if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
+        if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
+        if(minExp) filters.minExp = minExp;
         
         const { Job, User, Userinfo } = request.getModels('xpaxr');
 
@@ -364,8 +374,12 @@ const getRecruiterJobs = async(request,h)=>{
         let jobs = await Job.findAll({
             where: {
                 companyId: recruiterCompanyId,
-                userId
+                userId,
+                ...filters
             },
+            order: [
+                [sortBy, sortType]
+            ],
             include:[{
                 model:Userinfo,
                 as:"user",                
@@ -376,7 +390,7 @@ const getRecruiterJobs = async(request,h)=>{
             offset: offsetNum,
             limit: limitNum,
         });
-        const totalRecruiterJobs = await Job.count({ where: {  companyId: recruiterCompanyId, userId }});
+        const totalRecruiterJobs = await Job.count({ where: {  companyId: recruiterCompanyId, userId, ...filters }});
         const paginatedResponse = { count: totalRecruiterJobs, jobs: jobs };
         return h.response(paginatedResponse).code(200);
     }catch(err){
