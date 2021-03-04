@@ -174,7 +174,14 @@ const getAllJobs = async (request, h) => {
         let responses;
         const fres = [];
     
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort } = request.query;
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate } = request.query;
+        const myDate1 = new Date(createDate[0])
+        const myDate2 = new Date(createDate[1])
+
+        const isValidDate = !isNaN(Date.parse(myDate1)) && !isNaN(Date.parse(myDate2));
+        const isValidDateRange = myDate1.getTime() < myDate2.getTime();
+
+
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
         if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
