@@ -413,7 +413,7 @@ const updateJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { jobUuid } = request.params || {};
-        const { jobName, jobDescription, jobWebsite } = request.payload || {};
+        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp } = request.payload || {};
         
         const { Job, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
@@ -426,7 +426,8 @@ const updateJob = async (request, h) => {
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
             return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
         }
-        await Job.update({jobName, jobDescription, jobWebsite}, { where: { jobUuid }});
+        await Job.update({jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp}, { where: { jobUuid }});
+        
         const record = await Job.findOne({where: {jobUuid}});
         return h.response(record).code(201);
     }
