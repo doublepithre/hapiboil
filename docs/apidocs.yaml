@@ -741,7 +741,7 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/jobApplication"
+                $ref: "#/components/schemas/jobApplicationDetailed"                      
                     
 
   /job/j/applications/{jobId}?limit={limit}&&offset={skip}:
