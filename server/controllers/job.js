@@ -2,6 +2,7 @@ const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 import jobUtils from '../utils/jobUtils'
 import {camelizeKeys} from '../utils/camelizeKeys'
 import formatQueryRes from '../utils/index'
+import { isArray } from 'lodash';
 const axios = require('axios')
 const config = require('config');
 
@@ -175,11 +176,32 @@ const getAllJobs = async (request, h) => {
         const fres = [];
     
         const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate } = request.query;
-        const myDate1 = new Date(createDate[0])
-        const myDate2 = new Date(createDate[1])
+        
+        let lowerDateRange;
+        let upperDateRange;
+        if(createDate){
+            if(!isArray(createDate)) {
+                lowerDateRange = new Date(createDate);
+                upperDateRange = new Date('2999-12-31');
+            } else {
+                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
+                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
+                
+                lowerDateRange = new Date(createDate[0]);
+                upperDateRange = new Date(createDate[1]);
+            }
+    
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);            
+            
+        } else {
+            lowerDateRange = new Date('2000-01-01');
+            upperDateRange = new Date('2999-12-31');
+        }
 
-        const isValidDate = !isNaN(Date.parse(myDate1)) && !isNaN(Date.parse(myDate2));
-        const isValidDateRange = myDate1.getTime() < myDate2.getTime();
+        
 
 
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
@@ -261,14 +283,25 @@ const getAllJobs = async (request, h) => {
             allJobs = fres;  
 
         } else {            
-            totalJobsInTheDatabase = await Job.count({ where: { active: true, isPrivate: false, ...filters }});
+            totalJobsInTheDatabase = await Job.count({ 
+                where: { active: true, isPrivate: false, ...filters, 
+                    createdAt: {
+                        [Op.lt]: new Date(upperDateRange),
+                        [Op.gt]: new Date(lowerDateRange)
+                    }
+                }
+            });
             const rawAllJobs = await Job.findAll({
                 raw: true,
                 nest: true,
                 where: {
                     active: true,
                     isPrivate: false,
-                    ...filters
+                    ...filters,
+                    createdAt: {
+                        [Op.lt]: new Date(upperDateRange),
+                        [Op.gt]: new Date(lowerDateRange)
+                    }
                 },
                 order: [
                     [sortBy, sortType]
