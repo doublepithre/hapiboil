@@ -96,7 +96,7 @@ const getUser = async (request, h) => {
         },
         {
           model: Userrole,
-          as: "userRole",
+          as: "role",
           required: true,
         },
       ],
@@ -104,12 +104,12 @@ const getUser = async (request, h) => {
     });
     const luser = userRecord && userRecord.toJSON();
     const { userTypeName } = luser.userType;
-    const { roleName } = luser.userRole;
+    const { roleName } = luser.role;
     luser.userTypeName = userTypeName;
     luser.roleName = roleName;
 
     delete luser.userType;
-    delete luser.userRole;
+    delete luser.role;
     
     return h.response(luser).code(200);
   }
