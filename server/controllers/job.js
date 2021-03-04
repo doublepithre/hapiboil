@@ -174,7 +174,7 @@ const getAllJobs = async (request, h) => {
         let responses;
         const fres = [];
     
-        const { limit, offset, jobTypeId, jobFunctionId, jobIndustryId, minExp, sort } = request.query;
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort } = request.query;
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
         if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
@@ -193,6 +193,7 @@ const getAllJobs = async (request, h) => {
         if(jobTypeId) filters.jobTypeId = jobTypeId;
         if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
         if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
+        if(jobLocationId) filters.jobLocationId = jobLocationId;
         if(minExp) filters.minExp = minExp;
 
         let totalJobsInTheDatabase;                
@@ -343,7 +344,7 @@ const getRecruiterJobs = async(request,h)=>{
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { limit, offset, jobTypeId, jobFunctionId, jobIndustryId, minExp, sort } = request.query;
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort } = request.query;
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
         if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
@@ -362,6 +363,7 @@ const getRecruiterJobs = async(request,h)=>{
         if(jobTypeId) filters.jobTypeId = jobTypeId;
         if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
         if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
+        if(jobLocationId) filters.jobLocationId = jobLocationId;
         if(minExp) filters.minExp = minExp;
         
         const { Job, User, Userinfo } = request.getModels('xpaxr');
@@ -556,7 +558,7 @@ const getAppliedJobs = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { limit, offset, jobTypeId, jobFunctionId, jobIndustryId, minExp, sort } = request.query;
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort } = request.query;
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
         if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
@@ -575,6 +577,7 @@ const getAppliedJobs = async (request, h) => {
         if(jobTypeId) filters.jobTypeId = jobTypeId;
         if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
         if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
+        if(jobLocationId) filters.jobLocationId = jobLocationId;
         if(minExp) filters.minExp = minExp;
 
         const { Jobapplication, Job } = request.getModels('xpaxr');
