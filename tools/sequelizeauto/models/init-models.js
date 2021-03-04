@@ -108,6 +108,8 @@ function initModels(sequelize) {
   User.hasMany(Userinfo, { as: "userUuUserinfos", foreignKey: "userUuid"});
   Applicationhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
+  Jobapplication.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
   Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});

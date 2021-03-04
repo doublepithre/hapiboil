@@ -24,6 +24,13 @@ module.exports = function(sequelize, DataTypes) {
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       unique: "jobapplications_job_id_user_id_key",
       field: 'user_id'
     },

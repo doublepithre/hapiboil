@@ -24,6 +24,13 @@ module.exports = (sequelize, DataTypes) => {
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       unique: "jobapplications_job_id_user_id_key",
       field: 'user_id'
     },
@@ -91,5 +98,6 @@ const initRelations = (model) =>{
   Jobapplication.belongsToMany(Userinfo, { through: Applicationhiremember, foreignKey: "applicationId", otherKey: "userId" });
   Jobapplication.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "applicationId"});
   Jobapplication.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Jobapplication.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

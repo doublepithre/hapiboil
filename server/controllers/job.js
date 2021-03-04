@@ -18,8 +18,8 @@ const createJob = async (request, h) => {
         }
 
         const jobDetails = request.payload || {};
-        const { jobName, jobDescription, jobWebsite } = jobDetails;
-        if(!(jobName && jobDescription && jobWebsite)){
+        const { jobName, jobDescription } = jobDetails;
+        if(!(jobName && jobDescription)){
             return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
         }
 
@@ -95,7 +95,7 @@ const getSingleJobs = async (request, h) => {
             
             // filtering the jobs that belong to the recruiter's company
             job = await Job.findOne({ 
-                where: { jobUuid, companyId: recruiterCompanyId, isPrivate: false,
+                where: { jobUuid, companyId: recruiterCompanyId, isPrivate: false },
                 include: [
                     {
                         model: Jobtype,
@@ -115,13 +115,13 @@ const getSingleJobs = async (request, h) => {
                     },
                 ],
                 attributes: { exclude: ["jobTypeId", "jobIndustryId", "jobFunctionId", "jobLocationId"] }
-                
-            }});                
+            });                
             const jobInDB = await Job.findOne({ where: { jobUuid }});                
 
             if(jobInDB && !job) return h.response({error: true, message: 'You are not authorized!'}).code(403);
             if(!job && !jobInDB) return h.response({error: true, message: 'No job found!'}).code(400);            
 
+            responses = job;
         } else {
             job = await Job.findOne({ raw: true, nest: true, where: { jobUuid, isPrivate: false }, 
                 include: [
