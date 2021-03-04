@@ -466,7 +466,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
+  /job?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&createDate={lowerDate}&createDate={upperDate}:
     post: 
       summary: Create Job
       tags:
