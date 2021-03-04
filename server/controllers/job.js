@@ -77,7 +77,7 @@ const getSingleJobs = async (request, h) => {
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
-        const { Jobsquesresponse, Userinfo, Jobapplication, Job } = request.getModels('xpaxr');
+        const { Jobsquesresponse, Userinfo, Jobapplication, Job, Jobtype, Jobindustry, Jobfunction, Joblocation, } = request.getModels('xpaxr');
                 
         let responses;
         const fres = [];
@@ -94,7 +94,29 @@ const getSingleJobs = async (request, h) => {
             const { companyId: recruiterCompanyId } = userProfileInfo || {};                
             
             // filtering the jobs that belong to the recruiter's company
-            job = await Job.findOne({ where: { jobUuid, companyId: recruiterCompanyId, isPrivate: false }});                
+            job = await Job.findOne({ 
+                where: { jobUuid, companyId: recruiterCompanyId, isPrivate: false,
+                include: [
+                    {
+                        model: Jobtype,
+                        as: "jobType",
+                    },
+                    {
+                        model: Jobindustry,
+                        as: "jobIndustry",
+                    },
+                    {
+                        model: Jobfunction,
+                        as: "jobFunction",
+                    },
+                    {
+                        model: Joblocation,
+                        as: "jobLocation",
+                    },
+                ],
+                attributes: { exclude: ["jobTypeId", "jobIndustryId", "jobFunctionId", "jobLocationId"] }
+                
+            }});                
             const jobInDB = await Job.findOne({ where: { jobUuid }});                
 
             if(jobInDB && !job) return h.response({error: true, message: 'You are not authorized!'}).code(403);
@@ -102,10 +124,30 @@ const getSingleJobs = async (request, h) => {
 
         } else {
             job = await Job.findOne({ raw: true, nest: true, where: { jobUuid, isPrivate: false }, 
-                include: [{
-                    model: Jobsquesresponse,
-                    as: "jobsquesresponses",
-                }]
+                include: [
+                    {
+                        model: Jobsquesresponse,
+                        as: "jobsquesresponses",
+                    },
+                    {
+                        model: Jobtype,
+                        as: "jobType",
+                    },
+                    {
+                        model: Jobindustry,
+                        as: "jobIndustry",
+                    },
+                    {
+                        model: Jobfunction,
+                        as: "jobFunction",
+                    },
+                    {
+                        model: Joblocation,
+                        as: "jobLocation",
+                    },
+                ],
+                attributes: { exclude: ["jobTypeId", "jobIndustryId", "jobFunctionId", "jobLocationId"] }
+
             });
             if(!job) return h.response({error: true, message: 'Bad request! No job found!'}).code(400);            
 
@@ -170,7 +212,7 @@ const getAllJobs = async (request, h) => {
         }
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
-        const { Jobsquesresponse, Userinfo, Jobapplication, Job } = request.getModels('xpaxr');
+        const { Jobsquesresponse, Userinfo, Jobapplication, Job, Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
                 
         let responses;
         const fres = [];
@@ -189,20 +231,15 @@ const getAllJobs = async (request, h) => {
                 
                 lowerDateRange = new Date(createDate[0]);
                 upperDateRange = new Date(createDate[1]);
-            }
-    
+            }    
             const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
             if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);            
-            
+            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
         } else {
             lowerDateRange = new Date('2000-01-01');
             upperDateRange = new Date('2999-12-31');
         }
-
-        
-
 
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
@@ -244,10 +281,29 @@ const getAllJobs = async (request, h) => {
                 order: [
                     [sortBy, sortType]
                 ],
-                include: [{
-                    model: Jobsquesresponse,
-                    as: "jobsquesresponses",
-                }]
+                include: [
+                    {
+                        model: Jobsquesresponse,
+                        as: "jobsquesresponses",
+                    },
+                    {
+                        model: Jobtype,
+                        as: "jobType",
+                    },
+                    {
+                        model: Jobindustry,
+                        as: "jobIndustry",
+                    },
+                    {
+                        model: Jobfunction,
+                        as: "jobFunction",
+                    },
+                    {
+                        model: Joblocation,
+                        as: "jobLocation",
+                    },
+                ],
+                
             });                
             totalJobsInTheDatabase = await Job.count({ where: { companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters } });
             
@@ -306,10 +362,28 @@ const getAllJobs = async (request, h) => {
                 order: [
                     [sortBy, sortType]
                 ],
-                include: [{
-                    model: Jobsquesresponse,
-                    as: "jobsquesresponses",
-                }],
+                include: [
+                    {
+                        model: Jobsquesresponse,
+                        as: "jobsquesresponses",
+                    },
+                    {
+                        model: Jobtype,
+                        as: "jobType",
+                    },
+                    {
+                        model: Jobindustry,
+                        as: "jobIndustry",
+                    },
+                    {
+                        model: Jobfunction,
+                        as: "jobFunction",
+                    },
+                    {
+                        model: Joblocation,
+                        as: "jobLocation",
+                    },
+                ],                
                 limit: limitNum,
                 offset: offsetNum,
             });          
@@ -406,7 +480,7 @@ const getRecruiterJobs = async(request,h)=>{
         if(jobLocationId) filters.jobLocationId = jobLocationId;
         if(minExp) filters.minExp = minExp;
         
-        const { Job, User, Userinfo } = request.getModels('xpaxr');
+        const { Job, User, Userinfo, Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -422,13 +496,31 @@ const getRecruiterJobs = async(request,h)=>{
             order: [
                 [sortBy, sortType]
             ],
-            include:[{
-                model:Userinfo,
-                as:"user",                
-                required: true,
-                attributes: { exclude: ["createdAt", "updatedAt"]}
-            }],            
-            attributes:["jobId","jobUuid","jobName","jobDescription","jobWebsite","userId", "companyId", "active"],
+            include:[
+                {
+                    model:Userinfo,
+                    as:"user",                
+                    required: true,
+                    attributes: { exclude: ["createdAt", "updatedAt"]}
+                },                
+                {
+                    model: Jobtype,
+                    as: "jobType",
+                },
+                {
+                    model: Jobindustry,
+                    as: "jobIndustry",
+                },
+                {
+                    model: Jobfunction,
+                    as: "jobFunction",
+                },
+                {
+                    model: Joblocation,
+                    as: "jobLocation",
+                },
+            ],
+            attributes:["jobId","jobUuid","jobName","jobDescription","userId", "companyId", "active"],
             offset: offsetNum,
             limit: limitNum,
         });
