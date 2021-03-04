@@ -25,11 +25,6 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       field: 'job_description'
     },
-    jobWebsite: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      field: 'job_website'
-    },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: true,

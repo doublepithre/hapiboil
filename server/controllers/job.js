@@ -638,7 +638,7 @@ const withdrawFromAppliedJob = async (request, h) => {
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);      
       }
 
-      const { Jobapplication } = request.getModels('xpaxr');            
+      const { Job, Jobapplication } = request.getModels('xpaxr');            
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
@@ -652,6 +652,11 @@ const withdrawFromAppliedJob = async (request, h) => {
       await Jobapplication.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
       const updatedApplication = await Jobapplication.findOne({
           where:{ applicationId: applicationId },
+          include: [{
+            model: Job,
+            as: "job",                      
+            required: true,
+          }],
           attributes: { exclude: ['createdAt', 'updatedAt', 'userId']
         }
       });
