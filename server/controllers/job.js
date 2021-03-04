@@ -555,16 +555,26 @@ const getAppliedJobs = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
+        const { limit, offset, jobTypeId, jobFunctionId, jobIndustryId, minExp, sort } = request.query;
+        let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
+        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
+        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
+
+        const validSorts = [ 'createdAt', 'jobName'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
         // pagination
-        const { limit, offset } = request.query;            
         const limitNum = limit ? Number(limit) : 10;
         const offsetNum = offset ? Number(offset) : 0;
-        if(isNaN(limitNum) || isNaN(offsetNum)){
-            return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-        }       
-        if(limitNum>100){
-            return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-        }
+
+        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+
+        const filters = {}
+        if(jobTypeId) filters.jobTypeId = jobTypeId;
+        if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
+        if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
+        if(minExp) filters.minExp = minExp;
 
         const { Jobapplication, Job } = request.getModels('xpaxr');
         const jobs = await Jobapplication.findAll({ 
@@ -572,12 +582,28 @@ const getAppliedJobs = async (request, h) => {
             include: [{
                 model: Job,
                 as: "job",
+                where: {
+                    ...filters,
+                },
+                order: [
+                    [sortBy, sortType]
+                ],
                 required: true,
             }],
             offset: offsetNum,
             limit: limitNum,
         });
-        const totalAppliedJobs = await Jobapplication.count({ where: { userId }});
+        const totalAppliedJobs = await Jobapplication.count({ 
+            where: { userId },
+            include: [{
+                model: Job,
+                as: "job",
+                where: {
+                    ...filters,
+                },                
+                required: true,
+            }],
+        });
         const paginatedResponse = { count: totalAppliedJobs, appliedJobs: jobs }
         return h.response(paginatedResponse).code(200);
     }
