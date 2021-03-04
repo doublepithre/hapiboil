@@ -874,8 +874,16 @@ components:
           type: string
         jobDescription:
           type: string
-        jobWebsite:
-          type: string
+        jobIndustryId:
+          type: number
+        jobFunctionId:
+          type: number
+        jobTypeId:
+          type: number
+        jobLocationId:
+          type: number
+        minExp:
+          type: number
 
     jobDetailed:
       type: object
