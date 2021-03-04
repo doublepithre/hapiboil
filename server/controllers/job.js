@@ -480,15 +480,26 @@ const applyToJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Under Review" }
-        const { Jobapplication } = request.getModels('xpaxr');
+        const { Job, Jobapplication, Applicationhiremember } = request.getModels('xpaxr');
+        
+        const jobInDB = await Job.findOne({ where: { jobId }});
+        const {jobId: jobInDbId} = jobInDB || {};
+        if(!jobInDbId) return h.response({error: true, message: 'Bad request! No job found!'}).code(400);
         
         const alreadyAppliedRecord = await Jobapplication.findOne({ where: { jobId, userId, isApplied: true }});
         const {applicationId: alreadyAppliedApplicationId} = alreadyAppliedRecord || {};
-        if(alreadyAppliedApplicationId){
-            return h.response({error: true, message: 'Already applied!'}).code(400);
-        }
-        const recordRes = await Jobapplication.upsert(record);
-        const recordResponse = recordRes[0] && recordRes[0].toJSON();
+        if(alreadyAppliedApplicationId) return h.response({error: true, message: 'Already applied!'}).code(400);
+        
+        const [recordRes] = await Jobapplication.upsert(record);
+        const recordResponse = recordRes && recordRes.toJSON();
+        const { applicationId } = recordRes;
+        const { userId: employerId } = await Job.findOne({ where: { jobId }})
+        
+        await Promise.all([
+            Applicationhiremember.create({ applicationId, userId, accessLevel: 'candidate', }),
+            Applicationhiremember.create({ applicationId, userId: employerId, accessLevel: 'employer', })
+        ]);            
+
         delete recordResponse.createdAt;
         delete recordResponse.updatedAt;
         delete recordResponse.userId;
