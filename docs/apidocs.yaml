@@ -101,6 +101,98 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
+  /account/company-superadmin:
+    post:
+      summary: Create Company Superadmin
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: me@mymail.com
+                password:
+                  type: string
+                  example: password                
+      responses:
+        '201':
+          description: Company Superadmin successfully created
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to create user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+                
+  /account/employer:
+    post:
+      summary: Create Recruiters
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: me@mymail.com
+                password:
+                  type: string
+                  example: password                
+      responses:
+        '201':
+          description: Recruiter successfully created
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to create user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+                
   /login:
     post:
       summary: Login user
