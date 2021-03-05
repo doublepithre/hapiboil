@@ -1,5 +1,5 @@
 const request = require("request");
-import {camelizeKeys} from '../utils/camelizeKeys';
+import { camelizeKeys } from '../utils/camelizeKeys';
 // note potential json injection when passing directly 
 // from request.payload into sequelize fn but okay as this is for admin only
 
@@ -28,8 +28,8 @@ const getQuestions = async (request, h, targetName) => {
                 attributes: []
             },
             ],
-            order:[["isActive","DESC"]],
-            attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "isCaseStudy", "questionType.question_type_name","isActive"],
+            order: [["isActive", "DESC"]],
+            attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "isCaseStudy", "questionType.question_type_name", "isActive"],
         })
         return h.response(camelizeKeys(questions)).code(200);
     }
@@ -53,7 +53,6 @@ const createQuestions = async (request, h) => {
         const sequelize = request.getDb('xpaxr').sequelize;
         let transaction = await sequelize.transaction();//need to use transaction here because there are two inserts if insertion fails both inserts should fail
         let questions = request.payload;
-        console.log(questions);
         try {
             let [questionCategories, questionTypes, questionTargets] = await Promise.all([Questioncategory.findAll({ attributes: ['questionCategoryId', 'questionCategoryName'] }),
             Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
@@ -195,7 +194,7 @@ const getQuestionById = async (request, h, questionId) => {
     }
 }
 
-const updateIsActive = async (request,h)=>{
+const updateIsActive = async (request, h) => {
     if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Not authenticated' }).code(401);
     }
@@ -204,9 +203,8 @@ const updateIsActive = async (request,h)=>{
     if (userTypeName !== 'admin_x0pa') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
-        console.log(request.payload);
         const { Questionnaire } = request.getModels('xpaxr');
-        let res = await Questionnaire.update({isActive:request.payload.isActive},{
+        let res = await Questionnaire.update({ isActive: request.payload.isActive }, {
             where: {
                 questionId: request.payload.questionId
             }
@@ -230,6 +228,8 @@ const deleteQuestions = async (request, h) => {
                 questionId: request.payload.questionId
             }
         });
+        console.log("DELETE")
+        console.log(request.payload);
         return h.response(res).code(200);
     }
 }
@@ -372,12 +372,122 @@ const createQuestionAttributes = async (request, h) => {
             await transaction.commit();
             return h.response(res).code(200);
         } catch (err) {
+            await transaction.rollback();
             console.error(err.stack);
             return h.response({ error: true }).code(503);
         }
 
     }
 }
+
+const addQuestionMapping = async (request, h) => {
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated' }).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa') {
+        return h.response({ message: 'Not authorized' }).code(403);
+    } else {
+        let { Questionmapping } = request.getModels('xpaxr');
+        try {
+            let res = await Questionmapping.create(request.payload);
+            return h.response(res).code(200);
+        } catch (err) {
+            console.error(err.stack);
+            return h.response({ error: true }).code(503);
+        }
+    }
+}
+
+const getQuestionMapping = async (request, h) => {
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated' }).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa') {
+        return h.response({ message: 'Not authorized' }).code(403);
+    } else {
+        let { Questionmapping, Questionnaire, Questiontarget, Questiontype } = request.getModels('xpaxr');
+        try {
+            let res = await Questionmapping.findAll({
+                include: [
+                    {
+                        model: Questionnaire,
+                        as: "empauwerAllQ",
+                        include: [
+                            {
+                                model:Questiontype,
+                                as:"questionType",
+                                attributes:["questionTypeName"],
+                            },
+                            {
+                                model:Questiontarget,
+                                as:"questionTarget",
+                                attributes:["targetName"]
+                            }
+                        ],
+                        attributes: ["questionId", "questionUuid", "questionName", "questionConfig","isActive"]
+                    },
+                    {
+                        model: Questionnaire,
+                        as: "empauwerMeQ",
+                        include: [
+                            {
+                                model:Questiontype,
+                                as:"questionType",
+                                attributes:["questionTypeName"],
+                            },
+                            {
+                                model:Questiontarget,
+                                as:"questionTarget",
+                                attributes:["targetName"]
+                            }
+                        ],
+                        attributes: ["questionId", "questionUuid", "questionName", "questionConfig","isActive"]
+                    },
+                ],
+                attributes: { exclude: ["createdAt", "updatedAt"] }
+            });
+            res = JSON.parse(JSON.stringify(res)); // need to do this to unnest attributes
+            for (let row of res){
+                row.empauwerMeQ["questionTypeName"] = row.empauwerMeQ.questionType.questionTypeName;
+                row.empauwerAllQ["questionTypeName"] = row.empauwerAllQ.questionType.questionTypeName;
+            }
+            return h.response(res).code(200);
+        } catch (err) {
+            console.error(err.stack);
+            return h.response({ error: true }).code(503);
+        }
+    }
+}
+
+const deleteQuestionMapping = async (request,h)=>{
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated' }).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'admin_x0pa') {
+        return h.response({ message: 'Not authorized' }).code(403);
+    } else {
+        let { Questionmapping } = request.getModels('xpaxr');
+        try {
+            let res = await Questionmapping.destroy({
+                where:{
+                    empauwerAllQid:request.payload.empauwerAllQid,
+                    empauwerMeQid:request.payload.empauwerMeQid,
+                }
+            });
+            return h.response(res).code(200);
+        } catch (err) {
+            console.error(err.stack);
+            return h.response({ error: true }).code(503);
+        }
+    }
+}
+
 
 function swap(json) {
     var ret = {};
@@ -405,5 +515,8 @@ module.exports = {
     createAttribute,
     deleteAttribute,
     editAttribute,
-    createQuestionAttributes
+    createQuestionAttributes,
+    addQuestionMapping,
+    getQuestionMapping,
+    deleteQuestionMapping
 }

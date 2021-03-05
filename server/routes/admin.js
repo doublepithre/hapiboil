@@ -11,7 +11,10 @@ import {
     updateIsActive,
     getQuestionById,
     createQuestionAttributes,
-    getQuestions
+    getQuestions,
+    addQuestionMapping,
+    getQuestionMapping,
+    deleteQuestionMapping
 } from "../controllers/admin";
 
 const xadmin = {
@@ -164,6 +167,36 @@ const xadmin = {
             mode: 'try',
           },
           handler: createQuestionAttributes,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/questions/mapping',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: addQuestionMapping,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/questions/mapping',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getQuestionMapping,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/questions/mapping',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteQuestionMapping,
         },
       });
     } 
