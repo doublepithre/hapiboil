@@ -18,8 +18,8 @@ const createJob = async (request, h) => {
         }
 
         const jobDetails = request.payload || {};
-        const { jobName, jobDescription } = jobDetails;
-        if(!(jobName && jobDescription)){
+        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, } = jobDetails;
+        if(!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp)){
             return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
         }
 
@@ -311,7 +311,14 @@ const getAllJobs = async (request, h) => {
             const jobQuesMap = {};
 
             if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
-                rawAllJobs.forEach(r => {
+                rawAllJobs.forEach(r => {                    
+                    // deleting the snake cased duplicated properties
+                    delete r.job_id;
+                    delete r.job_type_id;
+                    delete r.job_industry_id;
+                    delete r.job_function_id;
+                    delete r.job_location_id;
+
                     const { jobId, jobsquesresponses, ...rest } = r || {};
                     jobsMap.set(jobId, { jobId, ...rest });
                     const { responseId } = jobsquesresponses;
@@ -397,6 +404,13 @@ const getAllJobs = async (request, h) => {
             });
 
             rawAllJobs.forEach(j => {
+                // deleting the snake cased duplicated properties
+                delete j.job_id;
+                delete j.job_type_id;
+                delete j.job_industry_id;
+                delete j.job_function_id;
+                delete j.job_location_id;
+
                 const { jobId } = j || {};
                 if(appliedJobIds.includes(Number(jobId))) {
                     j.isApplied = true;
@@ -712,7 +726,7 @@ const getAppliedJobs = async (request, h) => {
         if(jobLocationId) filters.jobLocationId = jobLocationId;
         if(minExp) filters.minExp = minExp;
 
-        const { Jobapplication, Job } = request.getModels('xpaxr');
+        const { Jobapplication, Job, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');
         const jobs = await Jobapplication.findAll({ 
             where: { userId },
             include: [{
@@ -725,6 +739,22 @@ const getAppliedJobs = async (request, h) => {
                     [sortBy, sortType]
                 ],
                 required: true,
+                include: [{
+                    model: Jobtype,
+                    as: "jobType",
+                },
+                {
+                    model: Jobindustry,
+                    as: "jobIndustry",
+                },
+                {
+                    model: Jobfunction,
+                    as: "jobFunction",
+                },
+                {
+                    model: Joblocation,
+                    as: "jobLocation",
+                }]
             }],
             offset: offsetNum,
             limit: limitNum,
@@ -770,7 +800,7 @@ const withdrawFromAppliedJob = async (request, h) => {
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);      
       }
 
-      const { Job, Jobapplication } = request.getModels('xpaxr');            
+      const { Job, Jobapplication, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
@@ -788,6 +818,22 @@ const withdrawFromAppliedJob = async (request, h) => {
             model: Job,
             as: "job",                      
             required: true,
+            include: [{
+                model: Jobtype,
+                as: "jobType",
+            },
+            {
+                model: Jobindustry,
+                as: "jobIndustry",
+            },
+            {
+                model: Jobfunction,
+                as: "jobFunction",
+            },
+            {
+                model: Joblocation,
+                as: "jobLocation",
+            }]
           }],
           attributes: { exclude: ['createdAt', 'updatedAt', 'userId']
         }
@@ -863,7 +909,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
           where: { jobId }, 
           include: [{
             model: Userinfo,
-            as: "applicant",
+            as: "user",
             required: true,
           }],
           offset: offsetNum,
