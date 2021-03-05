@@ -1,6 +1,7 @@
 import { 
   createUser, 
   createCompanySuperAdmin,
+  createCompanyRecruiter,
   getUser, 
   updateUser, 
   sendVerificationEmail,
@@ -35,6 +36,16 @@ const xuser = {
             mode: 'try',
           },
           handler: createCompanySuperAdmin,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/employer',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createCompanyRecruiter,
         },
       });
       server.route({

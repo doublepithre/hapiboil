@@ -28,7 +28,7 @@ const createUser = async (request, h) => {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
     // Checking account type
-    const validAccountTypes = ['candidate', 'employer', 'mentor', 'superadmin', 'specialist'];
+    const validAccountTypes = ['candidate', 'mentor', 'superadmin', 'specialist'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -117,6 +117,87 @@ const createCompanySuperAdmin = async (request, h) => {
     const cidata = await Companyinfo.create({ companyId });
 
     // creating company superadmin user
+    const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
+    const userTypeRecord = await Usertype.findOne({
+      where: {
+        user_type_name: accountType
+      }, 
+      attributes: ['userTypeId']
+    });
+    const { userTypeId } = userTypeRecord && userTypeRecord.toJSON();
+    const userRoleRecord = await Userrole.findOne({
+      where: {
+        role_name: accountType
+      }
+    });
+    const { roleId } = userRoleRecord && userRoleRecord.toJSON();
+    const emailLower = email.toLowerCase().trim();
+    const udata = await User.create({ email: emailLower, password: hashedPassword, });
+    const userRes = udata && udata.toJSON();
+    const { userId, userUuid } = userRes || {};
+    const uidata = await Userinfo.create({
+      userId,
+      userUuid,
+      email: emailLower,
+      roleId,
+      userTypeId,
+      active: true,
+      firstName: email.split('@')[0],
+      companyId,
+      companyUuid,
+    });
+    delete udata.dataValues.password; //remove hasedpassword when returning
+    return h.response(udata).code(201);
+  } catch (error) {
+    console.error(error.stack);
+    return h.response({
+      error: true, message: 'Bad Request!'
+    }).code(400);
+  }
+};
+
+const createCompanyRecruiter = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+    }
+
+    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo } = request.getModels('xpaxr');
+    const { email, password, companyName, } = request.payload || {};
+    const accountType = 'employer';
+
+    if ( !(email && password)) {
+      return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+    }
+
+    // Validating Email & Password
+    if (!validator.isEmail(email)) {
+      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
+    }
+    if (password.length < 8) {
+      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
+    } else if (password.length > 100) {
+      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
+    }        
+    // Checking if User already Exists
+    const alreadyExistingUserRecord = await User.findOne({ where: { email }});
+    const record = alreadyExistingUserRecord && alreadyExistingUserRecord.toJSON();
+    if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
+    
+    const { credentials } = request.auth || {};
+    const { id: csaUserId } = credentials || {};
+    
+    // get the company of the companysuperadmin
+    const userRecord = await Userinfo.findOne({ where: { userId: csaUserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userProfileInfo = userRecord && userRecord.toJSON();
+    const { companyId, companyUuid } = userProfileInfo || {};                
+
+    // creating company recruiter
     const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
     const userTypeRecord = await Usertype.findOne({
       where: {
@@ -615,6 +696,7 @@ const updateMetaData = async (request, h) => {
 module.exports = {
   createUser,
   createCompanySuperAdmin,
+  createCompanyRecruiter,
   getUser,
   updateUser,
   sendVerificationEmail,
