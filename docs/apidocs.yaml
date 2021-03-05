@@ -963,6 +963,35 @@ components:
           type: string
         updatedAt:
           type: string
+        jobType:
+          type: object
+          properties:
+            jobTypeId:
+              type: number
+            jobTypeName:
+              type: string
+        jobIndustry:
+          type: object
+          properties:
+            jobIndustryId:
+              type: number
+            jobIndustryName:
+              type: string
+        jobFunction:
+          type: object
+          properties:
+            jobFunctionId:
+              type: number
+            jobFunctionName:
+              type: string
+        jobLocation:
+          type: object
+          properties:
+            jobLocationId:
+              type: number
+            jobLocationName:
+              type: string
+        
     
     jobDetailedWithCreator:
       type: object
@@ -1060,7 +1089,7 @@ components:
       properties:        
         applicationId:
           type: number 
-        applicant:      
+        user:      
           $ref: "#/components/schemas/User"      
 
     meta:
