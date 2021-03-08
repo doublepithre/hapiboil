@@ -39,7 +39,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     optionId: {
       type: DataTypes.SMALLINT,
-      allowNull: false,
+      allowNull: true,
       field: 'option_id'
     }
   }, {
@@ -48,14 +48,6 @@ module.exports = function(sequelize, DataTypes) {
     schema: 'hris',
     timestamps: false,
     indexes: [
-      {
-        name: "idx_questionnaire_answers",
-        unique: true,
-        fields: [
-          { name: "question_id" },
-          { name: "option_id" },
-        ]
-      },
       {
         name: "questionnaireanswers_pkey",
         unique: true,
