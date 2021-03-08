@@ -56,27 +56,10 @@ module.exports = function(sequelize, DataTypes) {
       },
       field: 'created_by'
     },
-    companyId: {
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      references: {
-        model: {
-          tableName: 'company',
-          schema: 'hris'
-        },
-        key: 'company_id'
-      },
-      field: 'company_id'
-    },
     questionConfig: {
       type: DataTypes.JSONB,
       allowNull: true,
       field: 'question_config'
-    },
-    answerConfig: {
-      type: DataTypes.JSON,
-      allowNull: true,
-      field: 'answer_config'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -89,6 +72,35 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
+    },
+    questionTargetId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'questiontarget',
+          schema: 'hris'
+        },
+        key: 'target_id'
+      },
+      field: 'question_target_id'
+    },
+    isActive: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: true,
+      field: 'is_active'
+    },
+    isCaseStudy: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_case_study'
+    },
+    weight: {
+      type: DataTypes.REAL,
+      allowNull: true,
+      defaultValue: 1.0
     }
   }, {
     sequelize,

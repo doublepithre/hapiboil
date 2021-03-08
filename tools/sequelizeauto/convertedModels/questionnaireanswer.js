@@ -11,12 +11,14 @@ module.exports = (sequelize, DataTypes) => {
     questionId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'questionnaire',
+          schema: 'hris'
+        },
+        key: 'question_id'
+      },
       field: 'question_id'
-    },
-    questionUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      field: 'question_uuid'
     },
     answerVal: {
       type: DataTypes.TEXT,
@@ -62,9 +64,11 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Questionnaireanswer = model.Questionnaireanswer;
+  const Questionnaire = model.Questionnaire;
   const Qaattribute = model.Qaattribute;
 
 
+  Questionnaireanswer.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Questionnaireanswer.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "answerId"});
 
 }

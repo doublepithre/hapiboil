@@ -11,12 +11,14 @@ module.exports = function(sequelize, DataTypes) {
     questionId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'questionnaire',
+          schema: 'hris'
+        },
+        key: 'question_id'
+      },
       field: 'question_id'
-    },
-    questionUuid: {
-      type: DataTypes.UUID,
-      allowNull: false,
-      field: 'question_uuid'
     },
     answerVal: {
       type: DataTypes.TEXT,
