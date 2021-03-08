@@ -1,16 +1,29 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  const Usermeta = sequelize.define('Usermeta', {
-    umetaId: {
+  const Applicationhiremember = sequelize.define('Applicationhiremember', {
+    applicationHireMemberId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
+      field: 'application_hire_member_id'
+    },
+    applicationId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
       primaryKey: true,
-      field: 'umeta_id'
+      references: {
+        model: {
+          tableName: 'jobapplications',
+          schema: 'hris'
+        },
+        key: 'application_id'
+      },
+      field: 'application_id'
     },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      primaryKey: true,
       references: {
         model: {
           tableName: 'userinfo',
@@ -18,19 +31,16 @@ module.exports = (sequelize, DataTypes) => {
         },
         key: 'user_id'
       },
-      unique: "usermeta_user_id_meta_key_key",
       field: 'user_id'
     },
-    metaKey: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      unique: "usermeta_user_id_meta_key_key",
-      field: 'meta_key'
-    },
-    metaValue: {
+    accessLevel: {
       type: DataTypes.STRING,
       allowNull: true,
-      field: 'meta_value'
+      field: 'access_level'
+    },
+    scopes: {
+      type: DataTypes.JSON,
+      allowNull: true
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -46,37 +56,32 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     sequelize,
-    tableName: 'usermeta',
+    tableName: 'applicationhiremember',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "usermeta_pkey",
+        name: "applicationhiremember_pkey",
         unique: true,
         fields: [
-          { name: "umeta_id" },
-        ]
-      },
-      {
-        name: "usermeta_user_id_meta_key_key",
-        unique: true,
-        fields: [
+          { name: "application_id" },
           { name: "user_id" },
-          { name: "meta_key" },
         ]
       },
     ]
   });
-  Usermeta.associate = function(model) {
+  Applicationhiremember.associate = function(model) {
     initRelations(model);
   }
-  return Usermeta;
+  return Applicationhiremember;
 }
 const initRelations = (model) =>{
-  const Usermeta = model.Usermeta;
+  const Applicationhiremember = model.Applicationhiremember;
+  const Jobapplication = model.Jobapplication;
   const Userinfo = model.Userinfo;
 
 
-  Usermeta.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Applicationhiremember.belongsTo(Jobapplication, { as: "application", foreignKey: "applicationId"});
+  Applicationhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

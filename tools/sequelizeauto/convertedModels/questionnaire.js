@@ -75,7 +75,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     questionTargetId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: {
           tableName: 'questiontarget',
@@ -91,11 +91,10 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: true,
       field: 'is_active'
     },
-    isCaseStudy: {
-      type: DataTypes.BOOLEAN,
+    weight: {
+      type: DataTypes.REAL,
       allowNull: true,
-      defaultValue: false,
-      field: 'is_case_study'
+      defaultValue: 1.0
     }
   }, {
     sequelize,
@@ -126,7 +125,7 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Questionnaire = model.Questionnaire;
-  const Userinfo = model.Userinfo;
+  const Job = model.Job;
   const Questioncategory = model.Questioncategory;
   const Jobsquesresponse = model.Jobsquesresponse;
   const Questionmapping = model.Questionmapping;
@@ -134,11 +133,12 @@ const initRelations = (model) =>{
   const Userquesresponse = model.Userquesresponse;
   const Questiontarget = model.Questiontarget;
   const Questiontype = model.Questiontype;
+  const Userinfo = model.Userinfo;
 
 
+  Questionnaire.belongsToMany(Job, { through: Jobsquesresponse, foreignKey: "questionId", otherKey: "jobId" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid", as:"ea2em" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid", as:"em2ea" });
-  Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questionnaire.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "questionId"});
   Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});

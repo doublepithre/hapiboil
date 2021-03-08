@@ -75,7 +75,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     questionTargetId: {
       type: DataTypes.INTEGER,
-      allowNull: false,
+      allowNull: true,
       references: {
         model: {
           tableName: 'questiontarget',
@@ -91,11 +91,10 @@ module.exports = function(sequelize, DataTypes) {
       defaultValue: true,
       field: 'is_active'
     },
-    isCaseStudy: {
-      type: DataTypes.BOOLEAN,
+    weight: {
+      type: DataTypes.REAL,
       allowNull: true,
-      defaultValue: false,
-      field: 'is_case_study'
+      defaultValue: 1.0
     }
   }, {
     sequelize,

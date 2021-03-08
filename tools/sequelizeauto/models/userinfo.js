@@ -34,6 +34,13 @@ module.exports = function(sequelize, DataTypes) {
     roleId: {
       type: DataTypes.INTEGER,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userrole',
+          schema: 'hris'
+        },
+        key: 'role_id'
+      },
       field: 'role_id'
     },
     userTypeId: {

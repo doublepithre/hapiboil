@@ -101,6 +101,98 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
+  /account/company-superadmin:
+    post:
+      summary: Create Company Superadmin
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: me@mymail.com
+                password:
+                  type: string
+                  example: password                
+      responses:
+        '201':
+          description: Company Superadmin successfully created
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to create user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+                
+  /account/employer:
+    post:
+      summary: Create Recruiters
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                  example: me@mymail.com
+                password:
+                  type: string
+                  example: password                
+      responses:
+        '201':
+          description: Recruiter successfully created
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to create user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+                
   /login:
     post:
       summary: Login user
@@ -395,9 +487,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref:  "#/components/schemas/Question"
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref:  "#/components/schemas/Question"
 
   /account/empauwer-all:
     get:
@@ -412,9 +507,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref:  "#/components/schemas/Question"
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref:  "#/components/schemas/Question"
   /account/profile:
     post:
       summary:  Create profile/Answer Questions
@@ -460,7 +558,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job:
+  /job?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&createDate={lowerDate}&createDate={upperDate}:
     post: 
       summary: Create Job
       tags:
@@ -480,7 +578,7 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/job" 
+                $ref: "#/components/schemas/jobDetailed" 
     get: 
       summary: Get jobs
       tags:
@@ -493,9 +591,63 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/jobDetailedWithIsApplied" 
+                type: object
+                $ref: "#/components/schemas/paginatedAllJobs"
+
+  /job/j/job-details-options:
+    get: 
+      summary: Get job details options
+      tags:
+        - Job
+      security:
+      - bearerAuth: []     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  function:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobFunctionId:
+                          type: number
+                        jobFunctionName:
+                          type: string
+                  
+                  industry:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobIndustryId:
+                          type: number
+                        jobIndustryName:
+                          type: string
+                  
+                  location:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobLocationId:
+                          type: number
+                        jobLocationName:
+                          type: string
+                  
+                  type:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobTypeId:
+                          type: number
+                        jobTypeName:
+                          type: string
 
   /job/{jobUuid}:
     get: 
@@ -547,7 +699,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
-  /job/j/recruiter:
+  /job/j/recruiter?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
       summary: Get recruiter jobs
       tags:
@@ -560,9 +712,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/jobDetailedWithCreator" 
+                type: object
+                $ref: "#/components/schemas/paginatedRecruiterJobs" 
   
   /job/profile/{jobId}:
     get: 
@@ -577,9 +728,12 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/answers" 
+                type: object
+                properties:
+                  responses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/answers" 
     post: 
       summary: Answer empauwer all responses
       description: This is an upsert command hence it will update/insert responses.
@@ -600,11 +754,14 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/answers" 
+                type: object
+                properties:
+                  responses:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/answers" 
 
-  /job/j/applied:
+  /job/j/applied?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
         summary: Get applied jobs
         tags:
@@ -617,8 +774,14 @@ paths:
             content:
               application/json:
                 schema:
-                  type: object
-                  $ref: "#/components/schemas/jobApplicationDetailed"
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    appliedJobs:
+                      type: array
+                      items:
+                      $ref: "#/components/schemas/jobApplicationDetailed"                      
 
   /job/j/apply:
     post: 
@@ -670,10 +833,10 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/jobApplication"
+                $ref: "#/components/schemas/jobApplicationDetailed"                      
                     
 
-  /job/j/applications/{jobId}:
+  /job/j/applications/{jobId}?limit={limit}&&offset={skip}:
     get: 
       summary: Get all Applicants
       tags:
@@ -686,9 +849,16 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/User" 
+                type: object
+                properties:
+                  count:
+                    type: number
+                  applications:
+                    type: array
+                    items:
+                    $ref: "#/components/schemas/applicationsWithApplicant"  
+                    
+                
 
   /job/j/application/{userId}:
     get: 
@@ -770,6 +940,10 @@ components:
           type: number
         email:
           type: string
+        isEmailVerified:
+          type: boolean        
+        userTypeId:
+          type: number
         roleId:
           type: number
         active:
@@ -789,6 +963,8 @@ components:
         tzid:
           type: number
         primaryMobile:
+          type: string          
+        roleName:
           type: string
         userTypeName:
           type: string
@@ -845,8 +1021,16 @@ components:
           type: string
         jobDescription:
           type: string
-        jobWebsite:
-          type: string
+        jobIndustryId:
+          type: number
+        jobFunctionId:
+          type: number
+        jobTypeId:
+          type: number
+        jobLocationId:
+          type: number
+        minExp:
+          type: number
 
     jobDetailed:
       type: object
@@ -858,15 +1042,48 @@ components:
           type: number
         jobUuid:
           type: string
+        companyId:
+          type: number        
         userId:
           type: string
           description: ID of user who created the job
         active:
           type: boolean
+        isPrivate:
+          type: boolean
         createdAt:
           type: string
         updatedAt:
           type: string
+        jobType:
+          type: object
+          properties:
+            jobTypeId:
+              type: number
+            jobTypeName:
+              type: string
+        jobIndustry:
+          type: object
+          properties:
+            jobIndustryId:
+              type: number
+            jobIndustryName:
+              type: string
+        jobFunction:
+          type: object
+          properties:
+            jobFunctionId:
+              type: number
+            jobFunctionName:
+              type: string
+        jobLocation:
+          type: object
+          properties:
+            jobLocationId:
+              type: number
+            jobLocationName:
+              type: string
+        
     
     jobDetailedWithCreator:
       type: object
@@ -881,6 +1098,8 @@ components:
     jobApplication:
       type: object
       properties:
+        applicationId:
+          type: number
         jobId:
           type: number
         isApplied:
@@ -893,12 +1112,13 @@ components:
     jobApplicationDetailed:
       type: object
       description: This extends detailed jobs to include applications
-      allOf:
-        - $ref: "#/components/schemas/jobDetailed"
+      allOf:        
         - $ref: "#/components/schemas/jobApplication"
       properties:
         applicationId:
-          type: number  
+          type: number 
+        job:
+          $ref: "#/components/schemas/jobDetailed"
       
     jobApplicationWithOnlyJobId:
       type: object
@@ -915,7 +1135,7 @@ components:
       properties:
         isApplied:
           type: boolean
-        quesRes:
+        jobQuestionResponses:
           type: array
           items:
             $ref: "#/components/schemas/answers" 
@@ -930,6 +1150,39 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/User" 
+    
+    paginatedAllJobs:
+      type: object
+      description: This is the schema for paginated jobs' response.      
+      properties:
+        count:
+          type: number        
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/jobDetailedWithIsApplied" 
+    
+    paginatedRecruiterJobs:
+      type: object
+      description: This is the schema for paginated recruiter jobs' response.      
+      properties:
+        count:
+          type: number        
+        jobs:
+          type: array
+          items:
+            $ref: "#/components/schemas/jobDetailedWithCreator"
+    
+    applicationsWithApplicant:
+      type: object
+      description: This is the schema for paginated all applicants profiles' response.      
+      allOf:        
+        - $ref: "#/components/schemas/jobApplication"
+      properties:        
+        applicationId:
+          type: number 
+        user:      
+          $ref: "#/components/schemas/User"      
 
     meta:
       type: object

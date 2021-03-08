@@ -1,29 +1,46 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Questionnaireanswer', {
-    answerId: {
+  return sequelize.define('Applicationhiremember', {
+    applicationHireMemberId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
-      primaryKey: true,
-      field: 'answer_id'
+      field: 'application_hire_member_id'
     },
-    questionId: {
+    applicationId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      primaryKey: true,
       references: {
         model: {
-          tableName: 'questionnaire',
+          tableName: 'jobapplications',
           schema: 'hris'
         },
-        key: 'question_id'
+        key: 'application_id'
       },
-      field: 'question_id'
+      field: 'application_id'
     },
-    answerVal: {
-      type: DataTypes.TEXT,
+    userId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
+      field: 'user_id'
+    },
+    accessLevel: {
+      type: DataTypes.STRING,
       allowNull: true,
-      field: 'answer_val'
+      field: 'access_level'
+    },
+    scopes: {
+      type: DataTypes.JSON,
+      allowNull: true
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -36,23 +53,19 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
-    },
-    optionId: {
-      type: DataTypes.SMALLINT,
-      allowNull: true,
-      field: 'option_id'
     }
   }, {
     sequelize,
-    tableName: 'questionnaireanswers',
+    tableName: 'applicationhiremember',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "questionnaireanswers_pkey",
+        name: "applicationhiremember_pkey",
         unique: true,
         fields: [
-          { name: "answer_id" },
+          { name: "application_id" },
+          { name: "user_id" },
         ]
       },
     ]

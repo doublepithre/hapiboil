@@ -1,5 +1,7 @@
 import { 
   createUser, 
+  createCompanySuperAdmin,
+  createCompanyRecruiter,
   getUser, 
   updateUser, 
   sendVerificationEmail,
@@ -24,6 +26,26 @@ const xuser = {
         options: {
           auth: false,
           handler: createUser,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/company-superadmin',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createCompanySuperAdmin,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/employer',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createCompanyRecruiter,
         },
       });
       server.route({
