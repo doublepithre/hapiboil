@@ -551,8 +551,11 @@ const getQuestionnaire = async (request, h, targetName) => {
         as:"questionTarget",
         where:{targetName},
         attributes:[]
-      }
+      },
     ],
+    where:{
+      isActive:true
+    },
     attributes:["questionId","questionUuid","questionName","questionConfig","isCaseStudy","questionType.question_type_name"]})
     return h.response(camelizeKeys(questions)).code(200);
   }
