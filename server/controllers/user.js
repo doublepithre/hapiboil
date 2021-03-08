@@ -563,7 +563,7 @@ const getQuestionnaire = async (request, h, targetName) => {
       isActive:true
     },
     attributes:["questionId","questionUuid","questionName","questionConfig","questionType.question_type_name","questionCategory.question_category_name"]});;
-    return h.response(camelizeKeys(questions)).code(200);
+    return h.response(camelizeKeys({ questions })).code(200);
   }
   catch (error) {
     console.error(error.stack);
