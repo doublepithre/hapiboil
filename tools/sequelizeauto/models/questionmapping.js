@@ -1,12 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
   return sequelize.define('Questionmapping', {
-    qmId: {
-      autoIncrement: true,
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      field: 'qm_id'
-    },
     empauwerAllQid: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -32,6 +26,12 @@ module.exports = function(sequelize, DataTypes) {
         key: 'question_id'
       },
       field: 'empauwer_me_qid'
+    },
+    mappingValue: {
+      type: DataTypes.REAL,
+      allowNull: true,
+      defaultValue: 1.0,
+      field: 'mapping_value'
     }
   }, {
     sequelize,

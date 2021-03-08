@@ -1,5 +1,4 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
-import jobUtils from '../utils/jobUtils'
 import {camelizeKeys} from '../utils/camelizeKeys'
 import formatQueryRes from '../utils/index'
 import { isArray } from 'lodash';
@@ -948,7 +947,7 @@ const getRecommendedTalents = async (request, h) => {
     }
 }
 
-const getJobRecommendations = async (request,h,jobCache) => {
+const getJobRecommendations = async (request,h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
@@ -959,12 +958,8 @@ const getJobRecommendations = async (request,h,jobCache) => {
       return h.response({error:"Questionnaire Not Done"}).code(409)
     }
     let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
-    recommendations = recommendations.data["recommendation"]//this will be  sorted array of {job_id,score}
-    let jobIds = recommendations.map(x=>{
-      return x["jobId"]
-    })
-    let jobInfo = await jobUtils.getJobInfos(jobIds,model.Job,jobCache);
-    return h.response(jobInfo).code(200);
+    recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+    return h.response().code(200);
 }
 
 const isQuestionnaireDone = async(userId,model)=>{

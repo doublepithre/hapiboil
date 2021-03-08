@@ -13,12 +13,6 @@ const sequelizeInstance = new Sequelize('canopus', null, null, {
 const manifest = {
   server: {
     port: config.get('port'),
-    cache : [{
-      name: 'memoryCache',
-      provider: {
-        constructor: CatBoxMemory,
-      }
-  }],
   },
   register: {
     plugins: [
@@ -52,6 +46,12 @@ const manifest = {
         plugin: require('./routes/login'),
         routes: {
           prefix: `${apiRootPrefix}/login`,
+        },
+      },
+      {
+        plugin: require('./routes/admin'),
+        routes: {
+          prefix: `${apiRootPrefix}/admin`,
         },
       },
     ],

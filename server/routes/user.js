@@ -132,7 +132,7 @@ const xuser = {
             mode: 'try',
           },
           handler: async (request, h) => {
-            return await getQuestionnaire(request, h, 'empauwer - x0pa')
+            return await getQuestionnaire(request, h, 'empauwer_me')
           },
         },
       });
@@ -144,7 +144,7 @@ const xuser = {
             mode: 'try',
           },
           handler: async (request, h) => {
-            return await getQuestionnaire(request, h, 'empauwer all - x0pa')
+            return await getQuestionnaire(request, h, 'empauwer_all')
           },
         },
       });

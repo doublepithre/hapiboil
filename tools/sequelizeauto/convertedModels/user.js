@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: "user_email_key"
+      unique: "user_email_key3"
     },
     password: {
       type: DataTypes.STRING,
@@ -45,6 +45,27 @@ module.exports = (sequelize, DataTypes) => {
     indexes: [
       {
         name: "user_email_key",
+        unique: true,
+        fields: [
+          { name: "email" },
+        ]
+      },
+      {
+        name: "user_email_key1",
+        unique: true,
+        fields: [
+          { name: "email" },
+        ]
+      },
+      {
+        name: "user_email_key2",
+        unique: true,
+        fields: [
+          { name: "email" },
+        ]
+      },
+      {
+        name: "user_email_key3",
         unique: true,
         fields: [
           { name: "email" },
