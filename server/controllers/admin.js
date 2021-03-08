@@ -13,7 +13,7 @@ const getQuestions = async (request, h, targetName) => {
         if (userTypeName !== 'superadmin') {
             return h.response({ message: 'Not authorized' }).code(403);
         }
-        const { Questionnaire, Questiontarget, Questiontype } = request.getModels('xpaxr');
+        const { Questionnaire, Questiontarget, Questiontype,Questioncategory } = request.getModels('xpaxr');
         let questions = await Questionnaire.findAll({
             raw: true,
             include: [{
@@ -27,9 +27,14 @@ const getQuestions = async (request, h, targetName) => {
                 where: { targetName },
                 attributes: []
             },
+            {
+                model:Questioncategory,
+                as:'questionCategory',
+                required:true
+            }
             ],
             order: [["isActive", "DESC"]],
-            attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "isCaseStudy", "questionType.question_type_name", "isActive"],
+            attributes: ["questionId", "questionUuid", "questionName", "questionConfig","questionCategory.question_category_name","questionType.question_type_name", "isActive"],
         })
         return h.response(camelizeKeys(questions)).code(200);
     }
@@ -55,8 +60,8 @@ const createQuestions = async (request, h) => {
         let questions = request.payload;
         try {
             let [questionCategories, questionTypes, questionTargets] = await Promise.all([Questioncategory.findAll({ attributes: ['questionCategoryId', 'questionCategoryName'] }),
-            Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
-            Questiontarget.findAll({ attributes: ["targetId", "targetName"] })]);
+                Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
+                Questiontarget.findAll({ attributes: ["targetId", "targetName"] })]);
             //since there are only a few categories/types its okay to find all here
 
             let questionCategoryMap = questionCategories.reduce((map, obj) => (map[obj.questionCategoryName] = obj.questionCategoryId, map), {});
@@ -69,21 +74,20 @@ const createQuestions = async (request, h) => {
                     if (ques.questionName && ques.questionTypeName && ques.target) {
                         let questionName = ques.questionName;
                         let createdBy = userId;
-                        let questionCategoryId = questionCategoryMap[ques.questionCategory];
+                        let questionCategoryId = questionCategoryMap[ques.category];
                         let questionTypeId = questionTypeMap[ques.questionTypeName];
                         let questionTargetId = questionTargetMap[ques.target];
                         let isActive = ques.isActive !== undefined ? ques.isActive : true; //default active is true
                         let questionConfig = ques.questionConfig || {};
-                        let isCaseStudy = ques.isCaseStudy;
                         let weight = ques.weight || 1.0;
+                        let isDemographic=  ques.isDemographic;
 
                         if (questionTypeId == null) {
                             throw new incorrectQuestionFormatException(`Question type ${ques.questionTypeName} is not in database please add question type first`);
                         }
-                        // allow null questionCategory for now
-                        // else if(questionCategoryId==null){
-                        //     throw new incorrectQuestionFormatException(`Question category ${ques.questionCategory} is not in database please add question category first`);
-                        // }
+                        else if(questionCategoryId==null){
+                            throw new incorrectQuestionFormatException(`Question category ${ques.questionCategory} is not in database please add question category first`);
+                        }
                         if (ques.questionTypeName == 'scale5') {
                             if (questionConfig.desc == null) {
                                 throw new incorrectQuestionFormatException('desc expected when questiontype is scale');
@@ -100,7 +104,7 @@ const createQuestions = async (request, h) => {
                                 throw new incorrectQuestionFormatException("single choice and multiple choice questions require and options array of non zero length in questionconfig");
                             }
                         }
-                        quesArr.push({ questionTypeId, questionName, questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, isCaseStudy, weight });
+                        quesArr.push({ questionTypeId, questionName, questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, weight,isDemographic });
                     } else {
                         throw new incorrectQuestionFormatException("Some fields are missing");
                     }

@@ -91,12 +91,6 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: true,
       field: 'is_active'
     },
-    isCaseStudy: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: false,
-      field: 'is_case_study'
-    },
     weight: {
       type: DataTypes.REAL,
       allowNull: true,

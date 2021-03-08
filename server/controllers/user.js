@@ -538,7 +538,7 @@ const getQuestionnaire = async (request, h, targetName) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { Questionnaire,Questiontarget,Questiontype } = request.getModels('xpaxr');
+    const { Questionnaire,Questiontarget,Questiontype,Questioncategory } = request.getModels('xpaxr');
     let questions = await Questionnaire.findAll({
       raw:true,
       include:[{
@@ -552,11 +552,17 @@ const getQuestionnaire = async (request, h, targetName) => {
         where:{targetName},
         attributes:[]
       },
+      {
+        model:Questioncategory,
+        as:"questionCategory",
+        attributes:[],
+        required:true
+      }
     ],
     where:{
       isActive:true
     },
-    attributes:["questionId","questionUuid","questionName","questionConfig", "isDemographic", "isCaseStudy","questionType.question_type_name"]})
+    attributes:["questionId","questionUuid","questionName","questionConfig","questionType.question_type_name","questionCategory.question_category_name"]});;
     return h.response(camelizeKeys(questions)).code(200);
   }
   catch (error) {
