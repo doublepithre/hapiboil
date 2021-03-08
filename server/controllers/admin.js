@@ -10,7 +10,7 @@ const getQuestions = async (request, h, targetName) => {
         }
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
-        if (userTypeName !== 'admin_x0pa') {
+        if (userTypeName !== 'superadmin') {
             return h.response({ message: 'Not authorized' }).code(403);
         }
         const { Questionnaire, Questiontarget, Questiontype } = request.getModels('xpaxr');
@@ -46,7 +46,7 @@ const createQuestions = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         const { Questionnaire, Questioncategory, Questiontype, Questiontarget, Questionnaireanswer } = request.getModels('xpaxr');
@@ -147,7 +147,7 @@ const getQuestionById = async (request, h, questionId) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         const { Questionnaire, Questiontype, Questionnaireanswer, Qaattribute, Attributeset } = request.getModels('xpaxr');
@@ -200,7 +200,7 @@ const updateIsActive = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         const { Questionnaire } = request.getModels('xpaxr');
@@ -219,7 +219,7 @@ const deleteQuestions = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         const { Questionnaire } = request.getModels('xpaxr');
@@ -241,7 +241,7 @@ const editQuestions = (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
     }
@@ -253,7 +253,7 @@ const getQuestionCategories = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Questioncategory } = request.getModels('xpaxr');
@@ -268,7 +268,7 @@ const getQuestionTypes = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Questiontype } = request.getModels('xpaxr');
@@ -283,7 +283,7 @@ const getAttributes = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Attributeset } = request.getModels('xpaxr');
@@ -298,7 +298,7 @@ const createAttribute = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Attributeset } = request.getModels('xpaxr');
@@ -313,7 +313,7 @@ const deleteAttribute = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Attributeset } = request.getModels('xpaxr');
@@ -332,7 +332,7 @@ const editAttribute = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Attributeset } = request.getModels('xpaxr');
@@ -351,7 +351,7 @@ const createQuestionAttributes = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Qaattribute } = request.getModels('xpaxr');
@@ -386,7 +386,7 @@ const addQuestionMapping = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Questionmapping } = request.getModels('xpaxr');
@@ -406,7 +406,7 @@ const getQuestionMapping = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Questionmapping, Questionnaire, Questiontarget, Questiontype } = request.getModels('xpaxr');
@@ -469,7 +469,7 @@ const deleteQuestionMapping = async (request,h)=>{
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
-    if (userTypeName !== 'admin_x0pa') {
+    if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Questionmapping } = request.getModels('xpaxr');
