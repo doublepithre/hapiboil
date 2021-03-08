@@ -381,7 +381,7 @@ const getQuestionnaire = async (request, h, targetName) => {
     where:{
       isActive:true
     },
-    attributes:["questionId","questionUuid","questionName","questionConfig","isCaseStudy","questionType.question_type_name"]})
+    attributes:["questionId","questionUuid","questionName","questionConfig","isCaseStudy","questionType.question_type_name","isDemographic"]});
     return h.response(camelizeKeys(questions)).code(200);
   }
   catch (error) {

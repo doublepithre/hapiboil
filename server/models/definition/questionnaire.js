@@ -101,6 +101,12 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.REAL,
       allowNull: true,
       defaultValue: 1.0
+    },
+    isDemographic: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_demographic'
     }
   }, {
     sequelize,

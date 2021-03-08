@@ -29,7 +29,7 @@ const getQuestions = async (request, h, targetName) => {
             },
             ],
             order: [["isActive", "DESC"]],
-            attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "isCaseStudy", "questionType.question_type_name", "isActive"],
+            attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "isCaseStudy","isDemographic" ,"questionType.question_type_name", "isActive"],
         })
         return h.response(camelizeKeys(questions)).code(200);
     }
@@ -76,6 +76,7 @@ const createQuestions = async (request, h) => {
                         let questionConfig = ques.questionConfig || {};
                         let isCaseStudy = ques.isCaseStudy;
                         let weight = ques.weight || 1.0;
+                        let isDemographic=  ques.isDemographic;
 
                         if (questionTypeId == null) {
                             throw new incorrectQuestionFormatException(`Question type ${ques.questionTypeName} is not in database please add question type first`);
@@ -100,7 +101,7 @@ const createQuestions = async (request, h) => {
                                 throw new incorrectQuestionFormatException("single choice and multiple choice questions require and options array of non zero length in questionconfig");
                             }
                         }
-                        quesArr.push({ questionTypeId, questionName, questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, isCaseStudy, weight });
+                        quesArr.push({ questionTypeId, questionName, questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, isCaseStudy, weight,isDemographic });
                     } else {
                         throw new incorrectQuestionFormatException("Some fields are missing");
                     }
