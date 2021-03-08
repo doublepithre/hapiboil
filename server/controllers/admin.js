@@ -79,8 +79,7 @@ const createQuestions = async (request, h) => {
                         let questionTargetId = questionTargetMap[ques.target];
                         let isActive = ques.isActive !== undefined ? ques.isActive : true; //default active is true
                         let questionConfig = ques.questionConfig || {};
-                        let weight = ques.weight || 1.0;
-                        let isDemographic=  ques.isDemographic;
+                        let weight = ques.weight || 1.0;                        
 
                         if (questionTypeId == null) {
                             throw new incorrectQuestionFormatException(`Question type ${ques.questionTypeName} is not in database please add question type first`);
@@ -104,7 +103,7 @@ const createQuestions = async (request, h) => {
                                 throw new incorrectQuestionFormatException("single choice and multiple choice questions require and options array of non zero length in questionconfig");
                             }
                         }
-                        quesArr.push({ questionTypeId, questionName, questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, weight,isDemographic });
+                        quesArr.push({ questionTypeId, questionName, questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, weight });
                     } else {
                         throw new incorrectQuestionFormatException("Some fields are missing");
                     }
