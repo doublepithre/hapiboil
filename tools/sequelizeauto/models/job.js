@@ -25,17 +25,12 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       field: 'job_description'
     },
-    jobWebsite: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      field: 'job_website'
-    },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: true,
       references: {
         model: {
-          tableName: 'user',
+          tableName: 'userinfo',
           schema: 'hris'
         },
         key: 'user_id'
@@ -62,6 +57,65 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BIGINT,
       allowNull: false,
       field: 'company_id'
+    },
+    isPrivate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_private'
+    },
+    jobIndustryId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'jobindustry',
+          schema: 'hris'
+        },
+        key: 'job_industry_id'
+      },
+      field: 'job_industry_id'
+    },
+    jobFunctionId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'jobfunction',
+          schema: 'hris'
+        },
+        key: 'job_function_id'
+      },
+      field: 'job_function_id'
+    },
+    jobTypeId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'jobtype',
+          schema: 'hris'
+        },
+        key: 'job_type_id'
+      },
+      field: 'job_type_id'
+    },
+    minExp: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'min_exp'
+    },
+    jobLocationId: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'joblocation',
+          schema: 'hris'
+        },
+        key: 'job_location_id'
+      },
+      field: 'job_location_id'
     }
   }, {
     sequelize,

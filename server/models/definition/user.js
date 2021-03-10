@@ -18,7 +18,7 @@ module.exports = (sequelize, DataTypes) => {
     email: {
       type: DataTypes.STRING(255),
       allowNull: false,
-      unique: "user_email_key3"
+      unique: "user_email_key"
     },
     password: {
       type: DataTypes.STRING,
@@ -51,27 +51,6 @@ module.exports = (sequelize, DataTypes) => {
         ]
       },
       {
-        name: "user_email_key1",
-        unique: true,
-        fields: [
-          { name: "email" },
-        ]
-      },
-      {
-        name: "user_email_key2",
-        unique: true,
-        fields: [
-          { name: "email" },
-        ]
-      },
-      {
-        name: "user_email_key3",
-        unique: true,
-        fields: [
-          { name: "email" },
-        ]
-      },
-      {
         name: "user_pkey",
         unique: true,
         fields: [
@@ -94,11 +73,9 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const User = model.User;
-  const Job = model.Job;
   const Userinfo = model.Userinfo;
 
 
-  User.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
   User.hasMany(Userinfo, { as: "userUuUserinfos", foreignKey: "userUuid"});
 

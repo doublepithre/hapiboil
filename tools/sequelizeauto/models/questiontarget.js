@@ -10,6 +10,7 @@ module.exports = function(sequelize, DataTypes) {
     targetName: {
       type: DataTypes.STRING,
       allowNull: true,
+      unique: "questiontarget_target_name_key",
       field: 'target_name'
     }
   }, {
@@ -19,14 +20,14 @@ module.exports = function(sequelize, DataTypes) {
     timestamps: false,
     indexes: [
       {
-        name: "targetaudience_pkey",
+        name: "questiontarget_pkey",
         unique: true,
         fields: [
           { name: "target_id" },
         ]
       },
       {
-        name: "targetaudience_target_name",
+        name: "questiontarget_target_name_key",
         unique: true,
         fields: [
           { name: "target_name" },

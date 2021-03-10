@@ -1,35 +1,10 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Userquesresponse', {
-    responseId: {
-      autoIncrement: true,
-      type: DataTypes.BIGINT,
+  return sequelize.define('Jobhiremember', {
+    accessLevel: {
+      type: DataTypes.STRING,
       allowNull: false,
-      field: 'response_id'
-    },
-    questionId: {
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
-      references: {
-        model: {
-          tableName: 'questionnaire',
-          schema: 'hris'
-        },
-        key: 'question_id'
-      },
-      field: 'question_id'
-    },
-    responseVal: {
-      type: DataTypes.JSONB,
-      allowNull: false,
-      field: 'response_val'
-    },
-    userId: {
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
-      field: 'user_id'
+      field: 'access_level'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -37,28 +12,59 @@ module.exports = function(sequelize, DataTypes) {
       defaultValue: Sequelize.fn('now'),
       field: 'created_at'
     },
+    jobHireMemberId: {
+      autoIncrement: true,
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      field: 'job_hire_member_id'
+    },
+    jobId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: {
+          tableName: 'jobs',
+          schema: 'hris'
+        },
+        key: 'job_id'
+      },
+      field: 'job_id'
+    },
+    scopes: {
+      type: DataTypes.JSON,
+      allowNull: true
+    },
+    userId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
+      field: 'user_id'
+    },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
-    },
-    timeTaken: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-      field: 'time_taken'
     }
   }, {
     sequelize,
-    tableName: 'userquesresponses',
+    tableName: 'jobhiremember',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "userquesresponses_pkey",
+        name: "jobhiremember_pkey",
         unique: true,
         fields: [
-          { name: "question_id" },
+          { name: "job_id" },
           { name: "user_id" },
         ]
       },

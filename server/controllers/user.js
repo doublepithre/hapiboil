@@ -28,7 +28,7 @@ const createUser = async (request, h) => {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
     // Checking account type
-    const validAccountTypes = ['candidate', 'employer', 'mentor', 'superadmin', 'specialist','admin_x0pa'];
+    const validAccountTypes = ['candidate', 'mentor', 'superadmin', 'specialist'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -76,6 +76,167 @@ const createUser = async (request, h) => {
   }
 };
 
+const createCompanySuperAdmin = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'superadmin'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+    }
+
+    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo } = request.getModels('xpaxr');
+    const { email, password, companyName, } = request.payload || {};
+    const accountType = 'companysuperadmin';
+
+    if ( !(email && password && companyName)) {
+      return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+    }
+
+    // Validating Email & Password
+    if (!validator.isEmail(email)) {
+      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
+    }
+    if (password.length < 8) {
+      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
+    } else if (password.length > 100) {
+      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
+    }        
+    // Checking if User already Exists
+    const userRecord = await User.findOne({ where: { email }});
+    const record = userRecord && userRecord.toJSON();
+    if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
+    
+    // creating company
+    const cdata = await Company.create({ companyName, displayName: companyName, active: true });
+    const companyRes = cdata && cdata.toJSON();
+    const { companyId, companyUuid } = companyRes || {};
+
+    const cidata = await Companyinfo.create({ companyId });
+
+    // creating company superadmin user
+    const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
+    const userTypeRecord = await Usertype.findOne({
+      where: {
+        user_type_name: accountType
+      }, 
+      attributes: ['userTypeId']
+    });
+    const { userTypeId } = userTypeRecord && userTypeRecord.toJSON();
+    const userRoleRecord = await Userrole.findOne({
+      where: {
+        role_name: accountType
+      }
+    });
+    const { roleId } = userRoleRecord && userRoleRecord.toJSON();
+    const emailLower = email.toLowerCase().trim();
+    const udata = await User.create({ email: emailLower, password: hashedPassword, });
+    const userRes = udata && udata.toJSON();
+    const { userId, userUuid } = userRes || {};
+    const uidata = await Userinfo.create({
+      userId,
+      userUuid,
+      email: emailLower,
+      roleId,
+      userTypeId,
+      active: true,
+      firstName: email.split('@')[0],
+      companyId,
+      companyUuid,
+    });
+    delete udata.dataValues.password; //remove hasedpassword when returning
+    return h.response(udata).code(201);
+  } catch (error) {
+    console.error(error.stack);
+    return h.response({
+      error: true, message: 'Bad Request!'
+    }).code(400);
+  }
+};
+
+const createCompanyRecruiter = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+    }
+
+    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo } = request.getModels('xpaxr');
+    const { email, password, companyName, } = request.payload || {};
+    const accountType = 'employer';
+
+    if ( !(email && password)) {
+      return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+    }
+
+    // Validating Email & Password
+    if (!validator.isEmail(email)) {
+      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
+    }
+    if (password.length < 8) {
+      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
+    } else if (password.length > 100) {
+      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
+    }        
+    // Checking if User already Exists
+    const alreadyExistingUserRecord = await User.findOne({ where: { email }});
+    const record = alreadyExistingUserRecord && alreadyExistingUserRecord.toJSON();
+    if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
+    
+    const { credentials } = request.auth || {};
+    const { id: csaUserId } = credentials || {};
+    
+    // get the company of the companysuperadmin
+    const userRecord = await Userinfo.findOne({ where: { userId: csaUserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userProfileInfo = userRecord && userRecord.toJSON();
+    const { companyId, companyUuid } = userProfileInfo || {};                
+
+    // creating company recruiter
+    const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
+    const userTypeRecord = await Usertype.findOne({
+      where: {
+        user_type_name: accountType
+      }, 
+      attributes: ['userTypeId']
+    });
+    const { userTypeId } = userTypeRecord && userTypeRecord.toJSON();
+    const userRoleRecord = await Userrole.findOne({
+      where: {
+        role_name: accountType
+      }
+    });
+    const { roleId } = userRoleRecord && userRoleRecord.toJSON();
+    const emailLower = email.toLowerCase().trim();
+    const udata = await User.create({ email: emailLower, password: hashedPassword, });
+    const userRes = udata && udata.toJSON();
+    const { userId, userUuid } = userRes || {};
+    const uidata = await Userinfo.create({
+      userId,
+      userUuid,
+      email: emailLower,
+      roleId,
+      userTypeId,
+      active: true,
+      firstName: email.split('@')[0],
+      companyId,
+      companyUuid,
+    });
+    delete udata.dataValues.password; //remove hasedpassword when returning
+    return h.response(udata).code(201);
+  } catch (error) {
+    console.error(error.stack);
+    return h.response({
+      error: true, message: 'Bad Request!'
+    }).code(400);
+  }
+};
+
 const getUser = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -85,18 +246,32 @@ const getUser = async (request, h) => {
     
     const { credentials } = request.auth || {};
     const userId = credentials.id;
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const luser = userRecord && userRecord.toJSON();
-    const { userTypeId, roleId } = luser || {};
-    
-    const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
-    const userRoleRecord = await Userrole.findOne({ where: { roleId }});
-    const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
-    const { roleName } = userRoleRecord && userRoleRecord.toJSON();    
 
+    const userRecord = await Userinfo.findOne({ 
+      where: { userId },      
+      include: [
+        {
+          model: Usertype,
+          as: "userType",
+          required: true,
+        },
+        {
+          model: Userrole,
+          as: "role",
+          required: true,
+        },
+      ],
+      attributes: { exclude: ['createdAt', 'updatedAt'] },
+    });
+    const luser = userRecord && userRecord.toJSON();
+    const { userTypeName } = luser.userType;
+    const { roleName } = luser.role;
     luser.userTypeName = userTypeName;
     luser.roleName = roleName;
 
+    delete luser.userType;
+    delete luser.role;
+    
     return h.response(luser).code(200);
   }
   catch(error) {
@@ -363,7 +538,7 @@ const getQuestionnaire = async (request, h, targetName) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { Questionnaire,Questiontarget,Questiontype } = request.getModels('xpaxr');
+    const { Questionnaire,Questiontarget,Questiontype,Questioncategory } = request.getModels('xpaxr');
     let questions = await Questionnaire.findAll({
       raw:true,
       include:[{
@@ -376,10 +551,19 @@ const getQuestionnaire = async (request, h, targetName) => {
         as:"questionTarget",
         where:{targetName},
         attributes:[]
+      },
+      {
+        model:Questioncategory,
+        as:"questionCategory",
+        attributes:[],
+        required:true
       }
     ],
-    attributes:["questionId","questionUuid","questionName","questionConfig","isCaseStudy","questionType.question_type_name"]})
-    return h.response(camelizeKeys(questions)).code(200);
+    where:{
+      isActive:true
+    },
+    attributes:["questionId","questionUuid","questionName","questionConfig","questionType.question_type_name","questionCategory.question_category_name"]});;
+    return h.response(camelizeKeys({ questions })).code(200);
   }
   catch (error) {
     console.error(error.stack);
@@ -403,7 +587,7 @@ const getProfile = async (request, h) => {
       const res = { questionId, answer:responseVal.answer };
       responses.push(res);
     }
-    return h.response(responses).code(200);
+    return h.response({ responses }).code(200);
   }
   catch (error) {
     console.error(error.stack);
@@ -423,23 +607,33 @@ const createProfile = async (request, h) => {
     // Checking user type from jwt
     const db1 = request.getDb('xpaxr');
     let data = []
-    let resRecord;
+    let createProfileResponse;
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     if (userTypeName === "candidate") {
       for (const response of responses) {
-        const { questionId, answer } = response || {};
-        const record = { questionId, responseVal:{answer}, userId }
+        const { questionId, answer, timeTaken } = response || {};
+        const record = { questionId, responseVal:{answer}, userId, timeTaken }
         data.push(record);
       }
-      resRecord = await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
+      await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal", "timeTaken"]});
+      const quesResponses = await Userquesresponse.findAll({ where: { userId }});      
+      const resRecord = [];
+      for (let response of quesResponses) {
+        response = response && response.toJSON();
+        const { questionId, responseVal } = response;
+        const res = { questionId, answer:responseVal.answer };
+        resRecord.push(res);
+      }
+      createProfileResponse = { responses: resRecord };
+
     } else if ( userTypeName === 'employer') {
       // For Employer profile creation
     } else if ( userTypeName  === 'mentor') {
       // For Mentor profile creation
     } else {
       return h.response({ error: true, message: 'Invalid Request!'}).code(400);
-    }
-    return h.response(resRecord).code(201);
+    }    
+    return h.response(createProfileResponse).code(201);
   }
   catch (error) {
     console.error(error.stack);
@@ -513,6 +707,8 @@ const updateMetaData = async (request, h) => {
 
 module.exports = {
   createUser,
+  createCompanySuperAdmin,
+  createCompanyRecruiter,
   getUser,
   updateUser,
   sendVerificationEmail,

@@ -29,24 +29,24 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      references: {
-        model: {
-          tableName: 'userinfo',
-          schema: 'hris'
-        },
-        key: 'user_id'
-      },
       field: 'user_id'
     },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      defaultValue: Sequelize.fn('now'),
       field: 'created_at'
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
+    },
+    timeTaken: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      field: 'time_taken'
     }
   }, {
     sequelize,
@@ -72,10 +72,8 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Userquesresponse = model.Userquesresponse;
   const Questionnaire = model.Questionnaire;
-  const Userinfo = model.Userinfo;
 
 
   Userquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
-  Userquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }
