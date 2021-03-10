@@ -502,7 +502,9 @@ const getRecruiterJobs = async(request,h)=>{
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort } = request.query;
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, search } = request.query;
+        const searchVal = search ? search.toLowerCase() : '';
+
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
         if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
@@ -535,7 +537,11 @@ const getRecruiterJobs = async(request,h)=>{
             where: {
                 companyId: recruiterCompanyId,
                 userId,
-                ...filters
+                ...filters,
+                [Op.or]: [
+                    { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
+                    { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
+                ],
             },
             order: [
                 [sortBy, sortType]
@@ -568,7 +574,15 @@ const getRecruiterJobs = async(request,h)=>{
             offset: offsetNum,
             limit: limitNum,
         });
-        const totalRecruiterJobs = await Job.count({ where: {  companyId: recruiterCompanyId, userId, ...filters }});
+        const totalRecruiterJobs = await Job.count({ 
+            where: {  
+                companyId: recruiterCompanyId, userId, ...filters,
+                [Op.or]: [
+                    { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
+                    { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
+                ],
+            }
+        });
         const paginatedResponse = { count: totalRecruiterJobs, jobs: jobs };
         return h.response(paginatedResponse).code(200);
     }catch(err){
