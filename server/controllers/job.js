@@ -216,8 +216,9 @@ const getAllJobs = async (request, h) => {
         let responses;
         const fres = [];
     
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate } = request.query;
-        
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const searchVal = search ? search.toLowerCase() : '';
+
         let lowerDateRange;
         let upperDateRange;
         if(createDate){
@@ -276,7 +277,17 @@ const getAllJobs = async (request, h) => {
             
             // filtering jobs that belong to the recruiter's company
             const rawAllJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, raw: true, nest: true, 
-                where: { companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters },
+                where: { 
+                    companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters,
+                    [Op.or]: [
+                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
+                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
+                    ],
+                    createdAt: {
+                        [Op.lt]: new Date(upperDateRange),
+                        [Op.gt]: new Date(lowerDateRange)
+                    }
+                },
                 order: [
                     [sortBy, sortType]
                 ],
@@ -304,7 +315,19 @@ const getAllJobs = async (request, h) => {
                 ],
                 
             });                
-            totalJobsInTheDatabase = await Job.count({ where: { companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters } });
+            totalJobsInTheDatabase = await Job.count({ 
+                where: { 
+                    companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters,
+                    [Op.or]: [
+                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
+                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
+                    ],
+                    createdAt: {
+                        [Op.lt]: new Date(upperDateRange),
+                        [Op.gt]: new Date(lowerDateRange)
+                    }
+                }
+            });
             
             const jobsMap = new Map();
             const jobQuesMap = {};
@@ -346,7 +369,11 @@ const getAllJobs = async (request, h) => {
 
         } else {            
             totalJobsInTheDatabase = await Job.count({ 
-                where: { active: true, isPrivate: false, ...filters, 
+                where: { active: true, isPrivate: false, ...filters,
+                    [Op.or]: [
+                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
+                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
+                    ], 
                     createdAt: {
                         [Op.lt]: new Date(upperDateRange),
                         [Op.gt]: new Date(lowerDateRange)
@@ -360,6 +387,10 @@ const getAllJobs = async (request, h) => {
                     active: true,
                     isPrivate: false,
                     ...filters,
+                    [Op.or]: [
+                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
+                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
+                    ],
                     createdAt: {
                         [Op.lt]: new Date(upperDateRange),
                         [Op.gt]: new Date(lowerDateRange)
