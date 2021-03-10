@@ -468,6 +468,7 @@ const forgotPassword = async (request, h) => {
 
     const emailData = {
       emails: [email],
+      email,
       ccEmails: [],
       templateName: 'reset-password',
       resetLink,
