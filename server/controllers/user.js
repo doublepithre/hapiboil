@@ -363,6 +363,7 @@ const sendVerificationEmail = async (request, h) => {
 
     const emailData = {
       emails: [email],
+      email: email,
       ccEmails: [],
       templateName: 'email-verification',
       resetLink,      
