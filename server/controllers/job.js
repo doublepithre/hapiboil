@@ -502,8 +502,31 @@ const getRecruiterJobs = async(request,h)=>{
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, search } = request.query;
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, createDate, sort, search } = request.query;
         const searchVal = search ? search.toLowerCase() : '';
+
+        // filter by custom date
+        let lowerDateRange;
+        let upperDateRange;
+        if(createDate){
+            if(!isArray(createDate)) {
+                lowerDateRange = new Date(createDate);
+                upperDateRange = new Date('2999-12-31');
+            } else {
+                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
+                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
+                
+                lowerDateRange = new Date(createDate[0]);
+                upperDateRange = new Date(createDate[1]);
+            }    
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
+        } else {
+            lowerDateRange = new Date('2000-01-01');
+            upperDateRange = new Date('2999-12-31');
+        }
 
         let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
@@ -542,6 +565,10 @@ const getRecruiterJobs = async(request,h)=>{
                     { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
                     { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
                 ],
+                createdAt: {
+                    [Op.lt]: new Date(upperDateRange),
+                    [Op.gt]: new Date(lowerDateRange)
+                }
             },
             order: [
                 [sortBy, sortType]
@@ -581,6 +608,10 @@ const getRecruiterJobs = async(request,h)=>{
                     { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
                     { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
                 ],
+                createdAt: {
+                    [Op.lt]: new Date(upperDateRange),
+                    [Op.gt]: new Date(lowerDateRange)
+                }
             }
         });
         const paginatedResponse = { count: totalRecruiterJobs, jobs: jobs };
