@@ -611,11 +611,11 @@ const createProfile = async (request, h) => {
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     if (userTypeName === "candidate") {
       for (const response of responses) {
-        const { questionId, answer } = response || {};
-        const record = { questionId, responseVal:{answer}, userId }
+        const { questionId, answer, timeTaken } = response || {};
+        const record = { questionId, responseVal:{answer}, userId, timeTaken }
         data.push(record);
       }
-      await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal"]});
+      await Userquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal", "timeTaken"]});
       const quesResponses = await Userquesresponse.findAll({ where: { userId }});      
       const resRecord = [];
       for (let response of quesResponses) {
