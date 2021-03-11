@@ -76,7 +76,7 @@ const emailLogoSection = `
                       align="center" valign="top">
                       <div class="mark" style="text-align: center" align="center">
                         <a href="#" style="color: #4183C4; text-decoration: none">
-                          <img height="100" class="center logo-wordmark" src="https://x0pa-companies.s3-ap-southeast-1.amazonaws.com/public/tmigroup-logo.png"  style="-ms-interpolation-mode: bicubic; border: none; float: none; margin: 0 auto; max-width: 100%; outline: none; padding: 25px 0 17px; text-align: center; text-decoration: none; width: auto" align="none"/>
+                          <img height="100" class="center logo-wordmark" src="https://emppubassets.blob.core.windows.net/pubassets/empauwer-logo.png"  style="-ms-interpolation-mode: bicubic; border: none; float: none; margin: 0 auto; max-width: 100%; outline: none; padding: 25px 0 17px; text-align: center; text-decoration: none; width: auto" align="none"/>
                         </a>
                       </div>
                     </td>

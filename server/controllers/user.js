@@ -445,6 +445,7 @@ const sendVerificationEmail = async (request, h) => {
 
     const emailData = {
       emails: [email],
+      email: email,
       ccEmails: [],
       templateName: 'email-verification',
       resetLink,      
@@ -549,6 +550,7 @@ const forgotPassword = async (request, h) => {
 
     const emailData = {
       emails: [email],
+      email,
       ccEmails: [],
       templateName: 'reset-password',
       resetLink,
