@@ -1,8 +1,7 @@
 import { 
   createUser, 
-  createEmpauwerSuperAdmin,
   createCompanySuperAdmin,
-  createCompanyRecruiter,
+  createCompanyRecruiterAndMentor,
   getUser, 
   updateUser, 
   sendVerificationEmail,
@@ -28,17 +27,7 @@ const xuser = {
           auth: false,
           handler: createUser,
         },
-      });
-      server.route({
-        method: 'POST',
-        path: '/empauwer-superadmin',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: createEmpauwerSuperAdmin,
-        },
-      });
+      });     
       server.route({
         method: 'POST',
         path: '/company-superadmin',
@@ -56,7 +45,7 @@ const xuser = {
           auth: {
             mode: 'try',
           },
-          handler: createCompanyRecruiter,
+          handler: createCompanyRecruiterAndMentor,
         },
       });
       server.route({

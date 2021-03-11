@@ -29,7 +29,7 @@ const createUser = async (request, h) => {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
     // Checking account type
-    const validAccountTypes = ['candidate', 'mentor', 'specialist'];
+    const validAccountTypes = ['candidate', 'specialist'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -68,87 +68,6 @@ const createUser = async (request, h) => {
       companyUuid: null
     });
     delete udata.dataValues.password;//remove hasedpassword when returning
-    return h.response(udata).code(201);
-  } catch (error) {
-    console.error(error.stack);
-    return h.response({
-      error: true, message: 'Bad Request!'
-    }).code(400);
-  }
-};
-
-const createEmpauwerSuperAdmin = async (request, h) => {
-  try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo } = request.getModels('xpaxr');
-    
-    // Checking if the user is authorized for creating Empauwer Superadmin
-    const { credentials } = request.auth || {};
-    const { id: luserId } = credentials || {};
-
-    const luserRecord = await Userinfo.findOne({ where: { userId: luserId }});
-    const luser = luserRecord && luserRecord.toJSON();
-    const { email: luserEmail, isAdmin, companyId, companyUuid } = luser || {};
-    const isX0PA = luserEmail.toLowerCase().includes('@x0pa.com');
-
-    if(!(isX0PA && isAdmin)){
-      return h.response({error:true, message:'You are not authorized!'}).code(403);
-    }
-
-    const { email, password } = request.payload || {};
-    const accountType = 'superadmin';
-
-    if ( !(email && password)) {
-      return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
-    }
-
-    // Validating Email & Password
-    if (!validator.isEmail(email)) {
-      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
-    }
-    if (password.length < 8) {
-      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
-    } else if (password.length > 100) {
-      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
-    }        
-    // Checking if User already Exists
-    const userRecord = await User.findOne({ where: { email }});
-    const record = userRecord && userRecord.toJSON();
-    if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
-    
-    // creating empauwer superadmin
-    const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
-    const userTypeRecord = await Usertype.findOne({
-      where: {
-        user_type_name: accountType
-      }, 
-      attributes: ['userTypeId']
-    });
-    const { userTypeId } = userTypeRecord && userTypeRecord.toJSON();
-    const userRoleRecord = await Userrole.findOne({
-      where: {
-        role_name: accountType
-      }
-    });
-    const { roleId } = userRoleRecord && userRoleRecord.toJSON();
-    const emailLower = email.toLowerCase().trim();
-    const udata = await User.create({ email: emailLower, password: hashedPassword, });
-    const userRes = udata && udata.toJSON();
-    const { userId, userUuid } = userRes || {};
-    const uidata = await Userinfo.create({
-      userId,
-      userUuid,
-      email: emailLower,
-      roleId,
-      userTypeId,
-      active: true,
-      firstName: email.split('@')[0],
-      companyId, 
-      companyUuid
-    });
-    delete udata.dataValues.password; //remove hasedpassword when returning
     return h.response(udata).code(201);
   } catch (error) {
     console.error(error.stack);
@@ -238,7 +157,7 @@ const createCompanySuperAdmin = async (request, h) => {
   }
 };
 
-const createCompanyRecruiter = async (request, h) => {
+const createCompanyRecruiterAndMentor = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
@@ -250,10 +169,9 @@ const createCompanyRecruiter = async (request, h) => {
     }
 
     const { User, Userinfo, Usertype, Userrole, Company, Companyinfo } = request.getModels('xpaxr');
-    const { email, password, companyName, } = request.payload || {};
-    const accountType = 'employer';
-
-    if ( !(email && password)) {
+    const { email, password, companyName, accountType } = request.payload || {};
+    
+    if ( !(email && password && accountType)) {
       return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
     }
 
@@ -265,7 +183,14 @@ const createCompanyRecruiter = async (request, h) => {
       return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
     } else if (password.length > 100) {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
-    }        
+    }
+    
+    // Checking account type
+    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    if (!validAccountTypes.includes(accountType)) {
+      return h.response({ error: true, message: 'Invalid account type'}).code(400);
+    }
+
     // Checking if User already Exists
     const alreadyExistingUserRecord = await User.findOne({ where: { email }});
     const record = alreadyExistingUserRecord && alreadyExistingUserRecord.toJSON();
@@ -791,9 +716,8 @@ const updateMetaData = async (request, h) => {
 
 module.exports = {
   createUser,
-  createEmpauwerSuperAdmin,
   createCompanySuperAdmin,
-  createCompanyRecruiter,
+  createCompanyRecruiterAndMentor,
   getUser,
   updateUser,
   sendVerificationEmail,
