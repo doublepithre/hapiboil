@@ -168,8 +168,8 @@ const createCompanyRecruiterAndMentor = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
     }
 
-    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo } = request.getModels('xpaxr');
-    const { email, password, companyName, accountType } = request.payload || {};
+    const { User, Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+    const { email, password, accountType } = request.payload || {};
     
     if ( !(email && password && accountType)) {
       return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
