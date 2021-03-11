@@ -73,56 +73,10 @@ paths:
                   example: password
                 accountType:
                   type: string
-                  enum: [candidate, mentor, specialist]
+                  enum: [candidate, specialist]
       responses:
         '201':
           description: User successfully created
-          content:
-            application/json:
-              schema: 
-                type: object
-                properties: 
-                  userUuid:
-                    type: string
-                  userId:
-                    type: number
-                  email: 
-                    type: string
-        '400':
-          description: Failed to create user
-          content:
-            application/json: 
-              schema: 
-                type: object
-                properties:
-                  error:
-                    type: boolean
-                  message:
-                    description: Describes reason for failure
-                    type: string
-                
-  /account/empauwer-superadmin:
-    post:
-      summary: Create Empauwer Superadmin
-      tags:
-        - User
-      security:
-        - bearerAuth: []
-      requestBody: 
-        content:
-          application/json:
-            schema:
-              type: object
-              properties:                
-                email:
-                  type: string
-                  example: me@mymail.com
-                password:
-                  type: string
-                  example: password                
-      responses:
-        '201':
-          description: Company Superadmin successfully created
           content:
             application/json:
               schema: 
@@ -195,9 +149,9 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/employer:
+  /account/create-staff:
     post:
-      summary: Create Recruiters
+      summary: Create Company Staff
       tags:
         - User
       security:
@@ -214,9 +168,12 @@ paths:
                 password:
                   type: string
                   example: password                
+                accountType:
+                  type: string
+                  enum: [employer, mentor, companysuperadmin]             
       responses:
         '201':
-          description: Recruiter successfully created
+          description: Recruiter/Mentor/CompanySuperadmin successfully created
           content:
             application/json:
               schema: 

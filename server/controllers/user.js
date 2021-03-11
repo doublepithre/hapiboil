@@ -157,7 +157,7 @@ const createCompanySuperAdmin = async (request, h) => {
   }
 };
 
-const createCompanyRecruiterAndMentor = async (request, h) => {
+const createCompanyStaff = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
@@ -717,7 +717,7 @@ const updateMetaData = async (request, h) => {
 module.exports = {
   createUser,
   createCompanySuperAdmin,
-  createCompanyRecruiterAndMentor,
+  createCompanyStaff,
   getUser,
   updateUser,
   sendVerificationEmail,
