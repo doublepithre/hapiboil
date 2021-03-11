@@ -1,5 +1,6 @@
 import { 
   createUser, 
+  createEmpauwerSuperAdmin,
   createCompanySuperAdmin,
   createCompanyRecruiter,
   getUser, 
@@ -26,6 +27,16 @@ const xuser = {
         options: {
           auth: false,
           handler: createUser,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/empauwer-superadmin',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createEmpauwerSuperAdmin,
         },
       });
       server.route({

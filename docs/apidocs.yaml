@@ -73,10 +73,56 @@ paths:
                   example: password
                 accountType:
                   type: string
-                  enum: [candidate,employer,mentor,superadmin,specialist]
+                  enum: [candidate, mentor, specialist]
       responses:
         '201':
           description: User successfully created
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to create user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+                
+  /account/empauwer-superadmin:
+    post:
+      summary: Create Empauwer Superadmin
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:                
+                email:
+                  type: string
+                  example: me@mymail.com
+                password:
+                  type: string
+                  example: password                
+      responses:
+        '201':
+          description: Company Superadmin successfully created
           content:
             application/json:
               schema: 
@@ -114,6 +160,8 @@ paths:
             schema:
               type: object
               properties:
+                companyName:
+                  type: string
                 email:
                   type: string
                   example: me@mymail.com
