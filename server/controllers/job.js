@@ -294,20 +294,16 @@ const getAllJobs = async (request, h) => {
 
             // filters
             if(jobTypeId){
-                if(isArray(jobTypeId)) sqlStmt += ` and j.job_type_id in (:jobTypeId)`;
-                else sqlStmt += ` and j.job_type_id=:jobTypeId`;
+                sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
             } 
             if(jobFunctionId){
-                if(isArray(jobFunctionId)) sqlStmt += ` and j.job_type_id in (:jobFunctionId)`;
-                else sqlStmt += ` and j.job_type_id=:jobFunctionId`;
+                sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
             } 
             if(jobIndustryId){
-                if(isArray(jobIndustryId)) sqlStmt += ` and j.job_type_id in (:jobIndustryId)`;
-                else sqlStmt += ` and j.job_type_id=:jobIndustryId`;
+                sqlStmt += isArray(jobIndustryId) ? sqlStmt += ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
             }         
             if(jobLocationId){
-                if(isArray(jobLocationId)) sqlStmt += ` and j.job_type_id in (:jobLocationId)`;
-                else sqlStmt += ` and j.job_type_id=:jobLocationId`;
+                sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
             }         
             if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
 
@@ -462,22 +458,18 @@ const getRecruiterJobs = async (request, h) => {
                         and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
                         and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
 
-                 // filters
+                // filters
                 if(jobTypeId){
-                    if(isArray(jobTypeId)) sqlStmt += ` and j.job_type_id in (:jobTypeId)`;
-                    else sqlStmt += ` and j.job_type_id=:jobTypeId`;
+                    sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
                 } 
                 if(jobFunctionId){
-                    if(isArray(jobFunctionId)) sqlStmt += ` and j.job_type_id in (:jobFunctionId)`;
-                    else sqlStmt += ` and j.job_type_id=:jobFunctionId`;
+                    sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
                 } 
                 if(jobIndustryId){
-                    if(isArray(jobIndustryId)) sqlStmt += ` and j.job_type_id in (:jobIndustryId)`;
-                    else sqlStmt += ` and j.job_type_id=:jobIndustryId`;
+                    sqlStmt += isArray(jobIndustryId) ? sqlStmt += ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
                 }         
                 if(jobLocationId){
-                    if(isArray(jobLocationId)) sqlStmt += ` and j.job_type_id in (:jobLocationId)`;
-                    else sqlStmt += ` and j.job_type_id=:jobLocationId`;
+                    sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
                 }
                 if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
 
