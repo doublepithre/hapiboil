@@ -268,7 +268,9 @@ const getAllJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        function getSqlStmt(queryType){
+        const filters = { luserTypeName, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        function getSqlStmt(queryType, obj = filters){
+            const { luserTypeName, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -437,7 +439,9 @@ const getRecruiterJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
 
             // get sql statement for getting jobs or jobs count
-            function getSqlStmt(queryType){
+            const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+            function getSqlStmt(queryType, obj = filters){
+                const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
                 let sqlStmt;
                 const type = queryType && queryType.toLowerCase();
                 if(type === 'count'){
