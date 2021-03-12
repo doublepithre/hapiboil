@@ -55,7 +55,7 @@ const xjob = {
             return await getAllJobs(request, h);
           },
         },
-      });
+      });      
       server.route({
         method: 'GET',
         path: '/j/recruiter',

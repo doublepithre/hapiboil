@@ -204,21 +204,46 @@ const getSingleJobs = async (request, h) => {
         return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
+
+// getAllJobs (SQL)
 const getAllJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
         const { credentials } = request.auth || {};
-        const { id: userId } = credentials || {};        
-        const { Jobsquesresponse, Userinfo, Jobapplication, Job, Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
-                
-        let responses;
-        const fres = [];
-    
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
-        const searchVal = search ? search.toLowerCase() : '';
+        const { id: userId } = credentials || {};  
+        
+        const { Jobapplication, Userinfo } = request.getModels('xpaxr');
 
+        // get the company of the luser (using it only if he is a recruiter)
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
+        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;             
+        
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
+        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
+        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
+        const validSorts = [ 'created_at', 'job_name'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
+        // pagination query
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
+
+        // query validation
+        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+
+
+        // custom date search query
         let lowerDateRange;
         let upperDateRange;
         if(createDate){
@@ -241,247 +266,197 @@ const getAllJobs = async (request, h) => {
             upperDateRange = new Date('2999-12-31');
         }
 
-        let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
+        const db1 = request.getDb('xpaxr');
+        let sqlStmt = `select j.*, 
+                jqr.response_id, jqr.question_id, jqr.response_val,
+                jt.*, jf.*,ji.*,jl.*,c.display_name as company_name
+            from hris.jobs j
+                left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
+                left join hris.company c on c.company_id=j.company_id
+                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where j.active=true and j.is_private=false and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
+
+        // if he is an employer
+        if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
+
+        // filters
+        if(jobTypeId) sqlStmt += ` and j.job_type_id=:jobTypeId`;        
+        if(jobFunctionId) sqlStmt += ` and j.job_function_id=:jobFunctionId`;
+        if(jobIndustryId) sqlStmt += ` and j.job_industry_id=:jobIndustryId`;
+        if(jobLocationId) sqlStmt += ` and j.job_location_id=:jobLocationId`;
+        if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+
+        // search
+        if(search) {
+            sqlStmt += ` and (
+                j.job_name ilike :searchVal
+                or j.job_description ilike :searchVal
+                or jt.job_type_name ilike :searchVal
+                or jf.job_function_name ilike :searchVal
+                or ji.job_industry_name ilike :searchVal
+                or jl.job_location_name ilike :searchVal
+            )`;
+        }
+
+        // sorts
+        sqlStmt += ` order by j.${sortBy} ${sortType}`;
+        // limit and offset
+        sqlStmt += ` limit :limitNum  offset :offsetNum`;
+
+        const sequelize = db1.sequelize;
+      	const allSQLJobs = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId },
+        });
+           
+        const allJobs = camelizeKeys(allSQLJobs);
+
+        // check if already applied
+        const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+        const appliedJobIds = [];
+        rawAllAppliedJobs.forEach(aj => {
+            const { jobId } = aj || {};
+            if(jobId) {
+                appliedJobIds.push(Number(jobId));
+            }
+        });
+
+        allJobs.forEach(j => {
+            const { jobId } = j || {};
+            if(appliedJobIds.includes(Number(jobId))) {
+                j.isApplied = true;
+            } else {
+                j.isApplied = false;
+            }
+        });      
+
+        const responses = { count: allJobs.length, jobs: allJobs };                          
+        return h.response(responses).code(200);
+
+    } catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
+// getAllRecruiterJobs (SQL)
+const getRecruiterJobs = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};  
+        
+        const { Userinfo } = request.getModels('xpaxr');
+        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }           
+        
+        // get the company of the luser (using it only if he is a recruiter)
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
+        
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
         if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
         if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
-
-        const validSorts = [ 'createdAt', 'jobName'];
+        const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
-        // pagination
+        // pagination query
         const limitNum = limit ? Number(limit) : 10;
         const offsetNum = offset ? Number(offset) : 0;
 
+        // query validation
         if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
-        const filters = {}
-        if(jobTypeId) filters.jobTypeId = jobTypeId;
-        if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
-        if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
-        if(jobLocationId) filters.jobLocationId = jobLocationId;
-        if(minExp) filters.minExp = minExp;
-
-        let totalJobsInTheDatabase;                
-        let allJobs;            
-
-        // Checking user type from jwt
-        let luserTypeName = request.auth.artifacts.decoded.userTypeName;     
-
-        if (luserTypeName === "employer"){
-
-            // get the company of the recruiter
-            const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-            const userProfileInfo = userRecord && userRecord.toJSON();
-            const { companyId: recruiterCompanyId } = userProfileInfo || {};
-            
-            // filtering jobs that belong to the recruiter's company
-            const rawAllJobs = await Job.findAll({ limit: limitNum, offset: offsetNum, raw: true, nest: true, 
-                where: { 
-                    companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters,
-                    [Op.or]: [
-                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
-                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
-                    ],
-                    createdAt: {
-                        [Op.lt]: new Date(upperDateRange),
-                        [Op.gt]: new Date(lowerDateRange)
-                    }
-                },
-                order: [
-                    [sortBy, sortType]
-                ],
-                include: [
-                    {
-                        model: Jobsquesresponse,
-                        as: "jobsquesresponses",
-                    },
-                    {
-                        model: Jobtype,
-                        as: "jobType",
-                    },
-                    {
-                        model: Jobindustry,
-                        as: "jobIndustry",
-                    },
-                    {
-                        model: Jobfunction,
-                        as: "jobFunction",
-                    },
-                    {
-                        model: Joblocation,
-                        as: "jobLocation",
-                    },
-                ],
+        // custom date search query
+        let lowerDateRange;
+        let upperDateRange;
+        if(createDate){
+            if(!isArray(createDate)) {
+                lowerDateRange = new Date(createDate);
+                upperDateRange = new Date('2999-12-31');
+            } else {
+                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
+                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
                 
-            });                
-            totalJobsInTheDatabase = await Job.count({ 
-                where: { 
-                    companyId: recruiterCompanyId, active: true, isPrivate: false, ...filters,
-                    [Op.or]: [
-                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
-                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
-                    ],
-                    createdAt: {
-                        [Op.lt]: new Date(upperDateRange),
-                        [Op.gt]: new Date(lowerDateRange)
-                    }
-                }
-            });
-            
-            const jobsMap = new Map();
-            const jobQuesMap = {};
-
-            if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
-                rawAllJobs.forEach(r => {                    
-                    // deleting the snake cased duplicated properties
-                    delete r.job_id;
-                    delete r.job_type_id;
-                    delete r.job_industry_id;
-                    delete r.job_function_id;
-                    delete r.job_location_id;
-
-                    const { jobId, jobsquesresponses, ...rest } = r || {};
-                    jobsMap.set(jobId, { jobId, ...rest });
-                    const { responseId } = jobsquesresponses;
-                    if(responseId){
-                        if(jobQuesMap[jobId]) {
-                            jobQuesMap[jobId].push(jobsquesresponses);
-                            } else {
-                            jobQuesMap[jobId] = [jobsquesresponses];
-                        }
-                    }
-                });
-                jobsMap.forEach((jqrObj, jm) => {
-                    const records = jobQuesMap[jm] || [];
-
-                    const questions = [];
-                    for (let response of records) {
-                        const { questionId, responseVal } = response;
-                        const res = { questionId, answer:responseVal.answer };
-                        questions.push(res);
-                    }
-                    jqrObj.jobQuestionResponses = questions;
-                    fres.push(jqrObj);
-                });                 
-            }      
-            allJobs = fres;  
-
-        } else {            
-            totalJobsInTheDatabase = await Job.count({ 
-                where: { active: true, isPrivate: false, ...filters,
-                    [Op.or]: [
-                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
-                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
-                    ], 
-                    createdAt: {
-                        [Op.lt]: new Date(upperDateRange),
-                        [Op.gt]: new Date(lowerDateRange)
-                    }
-                }
-            });
-            const rawAllJobs = await Job.findAll({
-                raw: true,
-                nest: true,
-                where: {
-                    active: true,
-                    isPrivate: false,
-                    ...filters,
-                    [Op.or]: [
-                        { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
-                        { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
-                    ],
-                    createdAt: {
-                        [Op.lt]: new Date(upperDateRange),
-                        [Op.gt]: new Date(lowerDateRange)
-                    }
-                },
-                order: [
-                    [sortBy, sortType]
-                ],
-                include: [
-                    {
-                        model: Jobsquesresponse,
-                        as: "jobsquesresponses",
-                    },
-                    {
-                        model: Jobtype,
-                        as: "jobType",
-                    },
-                    {
-                        model: Jobindustry,
-                        as: "jobIndustry",
-                    },
-                    {
-                        model: Jobfunction,
-                        as: "jobFunction",
-                    },
-                    {
-                        model: Joblocation,
-                        as: "jobLocation",
-                    },
-                ],                
-                limit: limitNum,
-                offset: offsetNum,
-            });          
-            const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
-            const appliedJobIds = [];
-            rawAllAppliedJobs.forEach(aj => {
-                const { jobId } = aj || {};
-                if(jobId) {
-                    appliedJobIds.push(Number(jobId));
-                }
-            });
-
-            rawAllJobs.forEach(j => {
-                // deleting the snake cased duplicated properties
-                delete j.job_id;
-                delete j.job_type_id;
-                delete j.job_industry_id;
-                delete j.job_function_id;
-                delete j.job_location_id;
-
-                const { jobId } = j || {};
-                if(appliedJobIds.includes(Number(jobId))) {
-                    j.isApplied = true;
-                } else {
-                    j.isApplied = false;
-                }
-            });
-
-            const jobsMap = new Map();
-            const jobQuesMap = {};
-
-            if(Array.isArray(rawAllJobs) && rawAllJobs.length) {
-                rawAllJobs.forEach(r => {
-                    const { jobId, jobsquesresponses, ...rest } = r || {};
-                    jobsMap.set(jobId, { jobId, ...rest });
-
-                    const { responseId } = jobsquesresponses;
-                    if(responseId){
-                        if(jobQuesMap[jobId]) {
-                            jobQuesMap[jobId].push(jobsquesresponses);
-                            } else {
-                            jobQuesMap[jobId] = [jobsquesresponses];
-                        }
-                    }
-                });
-                jobsMap.forEach((jqrObj, jm) => {
-                    const records = jobQuesMap[jm] || [];
-
-                    const questions = [];
-                    for (let response of records) {
-                        const { questionId, responseVal } = response;
-                        const res = { questionId, answer:responseVal.answer };
-                        questions.push(res);
-                    }
-                    jqrObj.jobQuestionResponses = questions;
-                    fres.push(jqrObj);
-                });                
-            }      
-            allJobs = fres;      
+                lowerDateRange = new Date(createDate[0]);
+                upperDateRange = new Date(createDate[1]);
+            }    
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
+        } else {
+            lowerDateRange = new Date('2000-01-01');
+            upperDateRange = new Date('2999-12-31');
         }
-        responses = { count: totalJobsInTheDatabase, jobs: allJobs };                          
+        
+        const db1 = request.getDb('xpaxr');
+        let sqlStmt = `
+            select 
+                j.*, jt.*, jf.*, ji.*, jl.*,
+                c.display_name as company_name
+            from hris.jobs j
+                left join hris.company c on c.company_id=j.company_id
+                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where j.active=true and j.is_private=false 
+                and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
+                and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
+
+        // filters
+        if(jobTypeId) sqlStmt += ` and j.job_type_id=:jobTypeId`;        
+        if(jobFunctionId) sqlStmt += ` and j.job_function_id=:jobFunctionId`;
+        if(jobIndustryId) sqlStmt += ` and j.job_industry_id=:jobIndustryId`;
+        if(jobLocationId) sqlStmt += ` and j.job_location_id=:jobLocationId`;
+        if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+
+        // search
+        if(search) {
+            sqlStmt += ` and (
+                j.job_name ilike :searchVal
+                or j.job_description ilike :searchVal
+                or jt.job_type_name ilike :searchVal
+                or jf.job_function_name ilike :searchVal
+                or ji.job_industry_name ilike :searchVal
+                or jl.job_location_name ilike :searchVal
+            )`;
+        };
+        
+        // sorts
+        sqlStmt += ` order by j.${sortBy} ${sortType}`;
+        // limit and offset
+        sqlStmt += ` limit :limitNum  offset :offsetNum`;
+
+        const sequelize = db1.sequelize;
+      	const allSQLJobs = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                userId, recruiterCompanyId, 
+                jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp,
+                sortBy, sortType, limitNum, offsetNum, 
+                searchVal, lowerDateRange, upperDateRange 
+            },
+        });
+        const allJobs = camelizeKeys(allSQLJobs);
+       
+        const responses = { count: allJobs.length, jobs: allJobs };                          
         return h.response(responses).code(200);
     }
     catch (error) {
@@ -490,137 +465,6 @@ const getAllJobs = async (request, h) => {
     }
 }
 
-const getRecruiterJobs = async(request,h)=>{
-    try{
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden'}).code(403);
-        }        
-        let userId = request.auth.credentials.id;
-        // Checking user type from jwt
-        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-        if(luserTypeName !== 'employer'){
-            return h.response({error:true, message:'You are not authorized!'}).code(403);
-        }
-
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, createDate, sort, search } = request.query;
-        const searchVal = search ? search.toLowerCase() : '';
-
-        // filter by custom date
-        let lowerDateRange;
-        let upperDateRange;
-        if(createDate){
-            if(!isArray(createDate)) {
-                lowerDateRange = new Date(createDate);
-                upperDateRange = new Date('2999-12-31');
-            } else {
-                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
-                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
-                
-                lowerDateRange = new Date(createDate[0]);
-                upperDateRange = new Date(createDate[1]);
-            }    
-            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
-            if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
-            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
-        } else {
-            lowerDateRange = new Date('2000-01-01');
-            upperDateRange = new Date('2999-12-31');
-        }
-
-        let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
-        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
-        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
-
-        const validSorts = [ 'createdAt', 'jobName'];
-        const isSortReqValid = validSorts.includes(sortBy);
-
-        // pagination
-        const limitNum = limit ? Number(limit) : 10;
-        const offsetNum = offset ? Number(offset) : 0;
-
-        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
-        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-
-        const filters = {}
-        if(jobTypeId) filters.jobTypeId = jobTypeId;
-        if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
-        if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
-        if(jobLocationId) filters.jobLocationId = jobLocationId;
-        if(minExp) filters.minExp = minExp;
-        
-        const { Job, User, Userinfo, Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
-
-        // get the company of the recruiter
-        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-        const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
-
-        let jobs = await Job.findAll({
-            where: {
-                companyId: recruiterCompanyId,
-                userId,
-                ...filters,
-                [Op.or]: [
-                    { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
-                    { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
-                ],
-                createdAt: {
-                    [Op.lt]: new Date(upperDateRange),
-                    [Op.gt]: new Date(lowerDateRange)
-                }
-            },
-            order: [
-                [sortBy, sortType]
-            ],
-            include:[
-                {
-                    model:Userinfo,
-                    as:"user",                
-                    required: true,
-                    attributes: { exclude: ["createdAt", "updatedAt"]}
-                },                
-                {
-                    model: Jobtype,
-                    as: "jobType",
-                },
-                {
-                    model: Jobindustry,
-                    as: "jobIndustry",
-                },
-                {
-                    model: Jobfunction,
-                    as: "jobFunction",
-                },
-                {
-                    model: Joblocation,
-                    as: "jobLocation",
-                },
-            ],
-            attributes:["jobId","jobUuid","jobName","jobDescription","userId", "companyId", "active"],
-            offset: offsetNum,
-            limit: limitNum,
-        });
-        const totalRecruiterJobs = await Job.count({ 
-            where: {  
-                companyId: recruiterCompanyId, userId, ...filters,
-                [Op.or]: [
-                    { jobName: { [Op.iLike]: '%' + searchVal + '%' } },
-                    { jobDescription: { [Op.iLike]: '%' + searchVal + '%' } },
-                ],
-                createdAt: {
-                    [Op.lt]: new Date(upperDateRange),
-                    [Op.gt]: new Date(lowerDateRange)
-                }
-            }
-        });
-        const paginatedResponse = { count: totalRecruiterJobs, jobs: jobs };
-        return h.response(paginatedResponse).code(200);
-    }catch(err){
-        console.error(err.stack);
-        return h.response({error:true,message:'Internal Server Error!'}).code(500);
-    }
-}
 const updateJob = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -1058,7 +902,7 @@ const isQuestionnaireDone = async(userId,model)=>{
         userId
       }});
       return questionnaireCount === responsesCount;
-  }
+}
 
 module.exports = {
     createJob,
