@@ -242,7 +242,6 @@ const getAllJobs = async (request, h) => {
         if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
-
         // custom date search query
         let lowerDateRange;
         let upperDateRange;
@@ -267,11 +266,20 @@ const getAllJobs = async (request, h) => {
         }
 
         const db1 = request.getDb('xpaxr');
-        let sqlStmt = `select j.*, 
-                jqr.response_id, jqr.question_id, jqr.response_val,
-                jt.*, jf.*,ji.*,jl.*,c.display_name as company_name
+
+        // get sql statement for getting jobs or jobs count
+        function getSqlStmt(queryType){
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select
+                    j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+            }
+
+            sqlStmt += `
             from hris.jobs j
-                left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
                 left join hris.company c on c.company_id=j.company_id
                 left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                 left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
@@ -279,35 +287,56 @@ const getAllJobs = async (request, h) => {
                 left join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where j.active=true and j.is_private=false and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
 
-        // if he is an employer
-        if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
+            // if he is an employer
+            if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
 
-        // filters
-        if(jobTypeId) sqlStmt += ` and j.job_type_id=:jobTypeId`;        
-        if(jobFunctionId) sqlStmt += ` and j.job_function_id=:jobFunctionId`;
-        if(jobIndustryId) sqlStmt += ` and j.job_industry_id=:jobIndustryId`;
-        if(jobLocationId) sqlStmt += ` and j.job_location_id=:jobLocationId`;
-        if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+            // filters
+            if(jobTypeId){
+                if(isArray(jobTypeId)) sqlStmt += ` and j.job_type_id in (:jobTypeId)`;
+                else sqlStmt += ` and j.job_type_id=:jobTypeId`;
+            } 
+            if(jobFunctionId){
+                if(isArray(jobFunctionId)) sqlStmt += ` and j.job_type_id in (:jobFunctionId)`;
+                else sqlStmt += ` and j.job_type_id=:jobFunctionId`;
+            } 
+            if(jobIndustryId){
+                if(isArray(jobIndustryId)) sqlStmt += ` and j.job_type_id in (:jobIndustryId)`;
+                else sqlStmt += ` and j.job_type_id=:jobIndustryId`;
+            }         
+            if(jobLocationId){
+                if(isArray(jobLocationId)) sqlStmt += ` and j.job_type_id in (:jobLocationId)`;
+                else sqlStmt += ` and j.job_type_id=:jobLocationId`;
+            }         
+            if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
 
-        // search
-        if(search) {
-            sqlStmt += ` and (
-                j.job_name ilike :searchVal
-                or j.job_description ilike :searchVal
-                or jt.job_type_name ilike :searchVal
-                or jf.job_function_name ilike :searchVal
-                or ji.job_industry_name ilike :searchVal
-                or jl.job_location_name ilike :searchVal
-            )`;
-        }
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    j.job_name ilike :searchVal
+                    or j.job_description ilike :searchVal
+                    or jt.job_type_name ilike :searchVal
+                    or jf.job_function_name ilike :searchVal
+                    or ji.job_industry_name ilike :searchVal
+                    or jl.job_location_name ilike :searchVal
+                )`;
+            }
 
-        // sorts
-        sqlStmt += ` order by j.${sortBy} ${sortType}`;
-        // limit and offset
-        sqlStmt += ` limit :limitNum  offset :offsetNum`;
+            if(type !== 'count') {
+                // sorts
+                sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+
+            return sqlStmt;
+        };
 
         const sequelize = db1.sequelize;
-      	const allSQLJobs = await sequelize.query(sqlStmt, {
+      	const allSQLJobs = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId },
+        });
+      	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId },
         });
@@ -333,7 +362,7 @@ const getAllJobs = async (request, h) => {
             }
         });      
 
-        const responses = { count: allJobs.length, jobs: allJobs };                          
+        const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };                          
         return h.response(responses).code(200);
 
     } catch (error) {
@@ -406,46 +435,81 @@ const getRecruiterJobs = async (request, h) => {
         }
         
         const db1 = request.getDb('xpaxr');
-        let sqlStmt = `
-            select 
-                j.*, jt.*, jf.*, ji.*, jl.*,
-                c.display_name as company_name
-            from hris.jobs j
-                left join hris.company c on c.company_id=j.company_id
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where j.active=true and j.is_private=false 
-                and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
-                and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
 
-        // filters
-        if(jobTypeId) sqlStmt += ` and j.job_type_id=:jobTypeId`;        
-        if(jobFunctionId) sqlStmt += ` and j.job_function_id=:jobFunctionId`;
-        if(jobIndustryId) sqlStmt += ` and j.job_industry_id=:jobIndustryId`;
-        if(jobLocationId) sqlStmt += ` and j.job_location_id=:jobLocationId`;
-        if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+            // get sql statement for getting jobs or jobs count
+            function getSqlStmt(queryType){
+                let sqlStmt;
+                const type = queryType && queryType.toLowerCase();
+                if(type === 'count'){
+                    sqlStmt = `select count(*)`;
+                } else {
+                    sqlStmt = `select
+                    j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+                }
 
-        // search
-        if(search) {
-            sqlStmt += ` and (
-                j.job_name ilike :searchVal
-                or j.job_description ilike :searchVal
-                or jt.job_type_name ilike :searchVal
-                or jf.job_function_name ilike :searchVal
-                or ji.job_industry_name ilike :searchVal
-                or jl.job_location_name ilike :searchVal
-            )`;
-        };
+                sqlStmt += `                    
+                    from hris.jobs j
+                        left join hris.company c on c.company_id=j.company_id
+                        left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                        left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                        left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                        left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                    where j.active=true and j.is_private=false 
+                        and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
+                        and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
+
+                 // filters
+                if(jobTypeId){
+                    if(isArray(jobTypeId)) sqlStmt += ` and j.job_type_id in (:jobTypeId)`;
+                    else sqlStmt += ` and j.job_type_id=:jobTypeId`;
+                } 
+                if(jobFunctionId){
+                    if(isArray(jobFunctionId)) sqlStmt += ` and j.job_type_id in (:jobFunctionId)`;
+                    else sqlStmt += ` and j.job_type_id=:jobFunctionId`;
+                } 
+                if(jobIndustryId){
+                    if(isArray(jobIndustryId)) sqlStmt += ` and j.job_type_id in (:jobIndustryId)`;
+                    else sqlStmt += ` and j.job_type_id=:jobIndustryId`;
+                }         
+                if(jobLocationId){
+                    if(isArray(jobLocationId)) sqlStmt += ` and j.job_type_id in (:jobLocationId)`;
+                    else sqlStmt += ` and j.job_type_id=:jobLocationId`;
+                }
+                if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+
+                // search
+                if(search) {
+                    sqlStmt += ` and (
+                        j.job_name ilike :searchVal
+                        or j.job_description ilike :searchVal
+                        or jt.job_type_name ilike :searchVal
+                        or jf.job_function_name ilike :searchVal
+                        or ji.job_industry_name ilike :searchVal
+                        or jl.job_location_name ilike :searchVal
+                    )`;
+                };
+                
+                if(type !== 'count') {
+                    // sorts
+                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                    // limit and offset
+                    sqlStmt += ` limit :limitNum  offset :offsetNum`
+                };
+                
+                return sqlStmt;                
+            }
         
-        // sorts
-        sqlStmt += ` order by j.${sortBy} ${sortType}`;
-        // limit and offset
-        sqlStmt += ` limit :limitNum  offset :offsetNum`;
-
         const sequelize = db1.sequelize;
-      	const allSQLJobs = await sequelize.query(sqlStmt, {
+      	const allSQLJobs = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                userId, recruiterCompanyId, 
+                jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp,
+                sortBy, sortType, limitNum, offsetNum, 
+                searchVal, lowerDateRange, upperDateRange 
+            },
+        });
+      	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: { 
                 userId, recruiterCompanyId, 
@@ -456,7 +520,7 @@ const getRecruiterJobs = async (request, h) => {
         });
         const allJobs = camelizeKeys(allSQLJobs);
        
-        const responses = { count: allJobs.length, jobs: allJobs };                          
+        const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };                          
         return h.response(responses).code(200);
     }
     catch (error) {
