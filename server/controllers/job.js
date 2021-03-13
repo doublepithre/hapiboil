@@ -229,8 +229,8 @@ const getAllJobs = async (request, h) => {
 
         // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
-        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
+        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
+        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
@@ -396,8 +396,8 @@ const getRecruiterJobs = async (request, h) => {
 
         // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
-        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
+        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
+        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
