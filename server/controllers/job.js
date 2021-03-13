@@ -540,7 +540,7 @@ const updateJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { jobUuid } = request.params || {};
-        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp } = request.payload || {};
+        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate } = request.payload || {};
         
         const { Job, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
@@ -553,7 +553,7 @@ const updateJob = async (request, h) => {
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
             return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
         }
-        await Job.update({jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp}, { where: { jobUuid }});
+        await Job.update({jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate}, { where: { jobUuid }});
         
         const record = await Job.findOne({where: {jobUuid}});
         return h.response(record).code(201);
@@ -885,7 +885,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const { Jobapplication, Userinfo } = request.getModels('xpaxr');
 
       const allApplicantions = await Jobapplication.findAll({ 
-          where: { jobId }, 
+          where: { jobId, isWithdrawn: false }, 
           include: [{
             model: Userinfo,
             as: "user",
@@ -894,7 +894,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
           offset: offsetNum,
           limit: limitNum        
       });
-      const totalJobApplications = await Jobapplication.count({ where: { jobId }});
+      const totalJobApplications = await Jobapplication.count({ where: { jobId, isWithdrawn: false }});
       const paginatedResponse = { count: totalJobApplications, applications: allApplicantions };
       
       return h.response(paginatedResponse).code(200);
