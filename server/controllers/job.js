@@ -337,29 +337,30 @@ const getAllJobs = async (request, h) => {
       	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId },
-        });
-           
+        });           
         const allJobs = camelizeKeys(allSQLJobs);
 
         // check if already applied
-        const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
-        const appliedJobIds = [];
-        rawAllAppliedJobs.forEach(aj => {
-            const { jobId } = aj || {};
-            if(jobId) {
-                appliedJobIds.push(Number(jobId));
-            }
-        });
+        if(luserTypeName === 'candidate'){
+            const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+            const appliedJobIds = [];
+            rawAllAppliedJobs.forEach(aj => {
+                const { jobId } = aj || {};
+                if(jobId) {
+                    appliedJobIds.push(Number(jobId));
+                }
+            });
 
-        allJobs.forEach(j => {
-            const { jobId } = j || {};
-            if(appliedJobIds.includes(Number(jobId))) {
-                j.isApplied = true;
-            } else {
-                j.isApplied = false;
-            }
-        });      
-
+            allJobs.forEach(j => {
+                const { jobId } = j || {};
+                if(appliedJobIds.includes(Number(jobId))) {
+                    j.isApplied = true;
+                } else {
+                    j.isApplied = false;
+                }
+            });      
+    
+        }
         const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };                          
         return h.response(responses).code(200);
 
