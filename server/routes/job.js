@@ -1,7 +1,7 @@
 import { 
     createJob,
     getJobDetailsOptions,
-    getSingleJobs,
+    getSingleJob,
     getAllJobs,
     updateJob,
     createJobQuesResponses,
@@ -40,7 +40,7 @@ const xjob = {
             mode: 'try',
           },
           handler: async (request, h) => {
-            return await getSingleJobs(request, h);
+            return await getSingleJob(request, h);
           },
         },
       });

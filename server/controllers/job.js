@@ -67,89 +67,64 @@ const getJobDetailsOptions = async (request, h) => {
     }
 }
 
-const getSingleJobs = async (request, h) => {
+// getSingleJob (SQL)
+const getSingleJob = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        const { jobUuid } = request.params || {};
-
         const { credentials } = request.auth || {};
-        const { id: userId } = credentials || {};        
-        const { Jobsquesresponse, Userinfo, Jobapplication, Job, Jobtype, Jobindustry, Jobfunction, Joblocation, } = request.getModels('xpaxr');
-                
-        let responses;
-        const fres = [];
-        let job;
+        const { id: userId } = credentials || {};  
+        const { jobUuid } = request.params || {};
+        
+        const { Jobapplication, Userinfo } = request.getModels('xpaxr');
 
+        // get the company of the luser (using it only if he is a recruiter)
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
+        
         // Checking user type from jwt
-        let luserTypeName = request.auth.artifacts.decoded.userTypeName;            
-              
-        if (luserTypeName === "employer"){
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;             
+                
+        const db1 = request.getDb('xpaxr');
 
-            // get the company of the recruiter
-            const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-            const userProfileInfo = userRecord && userRecord.toJSON();
-            const { companyId: recruiterCompanyId } = userProfileInfo || {};                
+        // get sql statement for getting jobs or jobs count        
+        function getSqlStmt(queryType){            
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select
+                j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
+            }
+
+            sqlStmt += `
+            from hris.jobs j
+                left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
+                left join hris.company c on c.company_id=j.company_id
+                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where j.active=true and j.is_private=false and j.job_uuid=:jobUuid`;
+
+            // if he is an employer
+            if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
             
-            // filtering the jobs that belong to the recruiter's company
-            job = await Job.findOne({ 
-                where: { jobUuid, companyId: recruiterCompanyId, isPrivate: false },
-                include: [
-                    {
-                        model: Jobtype,
-                        as: "jobType",
-                    },
-                    {
-                        model: Jobindustry,
-                        as: "jobIndustry",
-                    },
-                    {
-                        model: Jobfunction,
-                        as: "jobFunction",
-                    },
-                    {
-                        model: Joblocation,
-                        as: "jobLocation",
-                    },
-                ],
-                attributes: { exclude: ["jobTypeId", "jobIndustryId", "jobFunctionId", "jobLocationId"] }
-            });                
-            const jobInDB = await Job.findOne({ where: { jobUuid }});                
+            return sqlStmt;
+        };
 
-            if(jobInDB && !job) return h.response({error: true, message: 'You are not authorized!'}).code(403);
-            if(!job && !jobInDB) return h.response({error: true, message: 'No job found!'}).code(400);            
+        const sequelize = db1.sequelize;
+      	const sqlJobArray = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { jobUuid, recruiterCompanyId },
+        });      	        
+        const rawJobArray = camelizeKeys(sqlJobArray);
 
-            responses = job;
-        } else {
-            job = await Job.findOne({ raw: true, nest: true, where: { jobUuid, isPrivate: false }, 
-                include: [
-                    {
-                        model: Jobsquesresponse,
-                        as: "jobsquesresponses",
-                    },
-                    {
-                        model: Jobtype,
-                        as: "jobType",
-                    },
-                    {
-                        model: Jobindustry,
-                        as: "jobIndustry",
-                    },
-                    {
-                        model: Jobfunction,
-                        as: "jobFunction",
-                    },
-                    {
-                        model: Joblocation,
-                        as: "jobLocation",
-                    },
-                ],
-                attributes: { exclude: ["jobTypeId", "jobIndustryId", "jobFunctionId", "jobLocationId"] }
-
-            });
-            if(!job) return h.response({error: true, message: 'Bad request! No job found!'}).code(400);            
-
+        // check if already applied
+        if(luserTypeName === 'candidate'){
             const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
             const appliedJobIds = [];
             rawAllAppliedJobs.forEach(aj => {
@@ -159,31 +134,36 @@ const getSingleJobs = async (request, h) => {
                 }
             });
 
-            (function (){
-                const { jobId } = job || {};
+            rawJobArray.forEach(j => {
+                const { jobId } = j || {};
                 if(appliedJobIds.includes(Number(jobId))) {
-                    job.isApplied = true;
+                    j.isApplied = true;
                 } else {
-                    job.isApplied = false;
+                    j.isApplied = false;
                 }
-            })()
+            });      
+    
+        }
+        
+        const jobsMap = new Map();
+        const jobQuesMap = {};
+        const fres = [];
 
-            const jobsMap = {};
-            const jobQuesMap = {};
-
-            const { jobId, jobsquesresponses, ...rest } = job;
-            jobsMap[jobId] = { jobId, ...rest };
-            const { responseId } = jobsquesresponses;
-            if(responseId){
-                if(jobQuesMap[jobId]) {
-                    jobQuesMap[jobId].push(jobsquesresponses);
-                    } else {
-                    jobQuesMap[jobId] = [jobsquesresponses];
+        // attaching jobQuestionResponses
+        if(Array.isArray(rawJobArray) && rawJobArray.length) {
+            rawJobArray.forEach(r => {
+                const { jobId, questionId, responseId, responseVal, ...rest } = r || {};
+                jobsMap.set(jobId, { jobId, ...rest });
+                
+                if(responseId){
+                    if(jobQuesMap[jobId]) {
+                        jobQuesMap[jobId].push({questionId, responseId, responseVal});
+                        } else {
+                        jobQuesMap[jobId] = [{questionId, responseId, responseVal}];
+                    }
                 }
-            }
-
-            Object.keys(jobsMap).forEach(jm => {
-                const jqrObj = jobsMap[jm] || {};
+            });
+            jobsMap.forEach((jqrObj, jm) => {
                 const records = jobQuesMap[jm] || [];
 
                 const questions = [];
@@ -194,17 +174,16 @@ const getSingleJobs = async (request, h) => {
                 }
                 jqrObj.jobQuestionResponses = questions;
                 fres.push(jqrObj);
-            });
-            responses = fres[0];
-        }        
-        return h.response(responses).code(200);
-    }
-    catch (error) {
+            });                
+        }   
+        const responseJob = fres[0];
+        return h.response(responseJob).code(200);
+
+    } catch (error) {
         console.error(error.stack);
         return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
-
 // getAllJobs (SQL)
 const getAllJobs = async (request, h) => {
     try{
@@ -968,7 +947,7 @@ const isQuestionnaireDone = async(userId,model)=>{
 module.exports = {
     createJob,
     getJobDetailsOptions,
-    getSingleJobs,
+    getSingleJob,
     getAllJobs,
     getRecruiterJobs,
     updateJob,

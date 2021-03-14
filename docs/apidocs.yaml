@@ -261,7 +261,6 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/meta"
-
  
   /account/me/meta:
     patch:
@@ -839,8 +838,7 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/jobApplicationDetailed"                      
-                    
-
+      
   /job/j/applications/{jobId}?limit={limit}&&offset={skip}:
     get: 
       summary: Get all Applicants
@@ -862,9 +860,7 @@ paths:
                     type: array
                     items:
                     $ref: "#/components/schemas/applicationsWithApplicant"  
-                    
-                
-
+   
   /job/j/application/{userId}:
     get: 
       summary: Get Applicant's profile
@@ -881,7 +877,6 @@ paths:
                 type: object
                 $ref: "#/components/schemas/User" 
 
-  
   /job/j/recommended-talents:
     get: 
       summary: Get all recommended talents
@@ -1036,6 +1031,8 @@ components:
           type: number
         minExp:
           type: number
+        isPrivate:
+          type: boolean
 
     jobDetailed:
       type: object
@@ -1060,46 +1057,23 @@ components:
           type: string
         updatedAt:
           type: string
-        jobType:
-          type: object
-          properties:
-            jobTypeId:
-              type: number
-            jobTypeName:
-              type: string
-        jobIndustry:
-          type: object
-          properties:
-            jobIndustryId:
-              type: number
-            jobIndustryName:
-              type: string
-        jobFunction:
-          type: object
-          properties:
-            jobFunctionId:
-              type: number
-            jobFunctionName:
-              type: string
-        jobLocation:
-          type: object
-          properties:
-            jobLocationId:
-              type: number
-            jobLocationName:
-              type: string
-        
-    
-    jobDetailedWithCreator:
+ 
+    jobFullDetailed:
       type: object
       description: This extends the job model and provides more information.
       allOf:
         - $ref: "#/components/schemas/job"
         - $ref: "#/components/schemas/jobDetailed"
-      properties:
-        user:          
-          $ref: "#/components/schemas/User"
-    
+      properties:        
+        jobTypeName:
+          type: string
+        jobIndustryName:
+          type: string
+        jobFunctionName:
+          type: string
+        jobLocationName:
+          type: string
+      
     jobApplication:
       type: object
       properties:
@@ -1135,8 +1109,7 @@ components:
       type: object
       description: This extends the job model and provides more information.
       allOf:
-        - $ref: "#/components/schemas/job"
-        - $ref: "#/components/schemas/jobDetailed"
+        - $ref: "#/components/schemas/jobFullDetailed"
       properties:
         isApplied:
           type: boolean
@@ -1169,15 +1142,15 @@ components:
     
     paginatedRecruiterJobs:
       type: object
-      description: This is the schema for paginated recruiter jobs' response.      
+      description: This is the schema for paginated jobs' response.      
       properties:
         count:
           type: number        
         jobs:
           type: array
           items:
-            $ref: "#/components/schemas/jobDetailedWithCreator"
-    
+            $ref: "#/components/schemas/jobFullDetailed" 
+            
     applicationsWithApplicant:
       type: object
       description: This is the schema for paginated all applicants profiles' response.      
