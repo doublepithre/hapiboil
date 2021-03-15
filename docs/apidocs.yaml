@@ -703,6 +703,70 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
+  /job/j/share-job/{jobUuid}:
+    post: 
+      summary: Share Job
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                accessLevel:
+                  type: string     
+                  enum: [reader, administrator]                             
+                userId:
+                  type: string
+                  example: "182"
+
+      responses:
+        '201':
+          description: Job shared
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobShared" 
+
+    patch: 
+      summary: Update Shared Job
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobUuid
+          in: path
+          description: UUID of job
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                accessLevel:
+                  type: string  
+                  enum: [reader, administrator]                
+                userId:
+                  type: string
+                  example: "182"
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobShared" 
+
   /job/j/recruiter?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
       summary: Get recruiter jobs
@@ -1150,6 +1214,22 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/jobFullDetailed" 
+    
+    jobShared:
+      type: object
+      description: This is the schema for job shared response
+      properties:
+        accessLevel:
+          type: string  
+          enum: [reader, administrator]                      
+        userId:
+          type: string
+        jobId:
+          type: string
+        jobHireMemberId:
+          type: string
+        scopes:
+          type: json
             
     applicationsWithApplicant:
       type: object
