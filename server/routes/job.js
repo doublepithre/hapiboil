@@ -3,6 +3,9 @@ import {
     getJobDetailsOptions,
     getSingleJob,
     getAllJobs,
+    getRecruiterJobs,
+    shareJob,
+    updateSharedJob,
     updateJob,
     createJobQuesResponses,
     getJobQuesResponses,
@@ -13,7 +16,6 @@ import {
     getAllApplicantsSelectiveProfile,
     getRecommendedTalents,
     getJobRecommendations,
-    getRecruiterJobs
 } from "../controllers/job";
 
 const xjob = {
@@ -76,6 +78,26 @@ const xjob = {
             mode: 'try',
           },
           handler: updateJob,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/j/share-job/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: shareJob,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/j/share-job/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateSharedJob,
         },
       });
       server.route({

@@ -265,11 +265,15 @@ const getAllJobs = async (request, h) => {
                 left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                 left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where j.active=true and j.is_private=false and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
 
             // if he is an employer
-            if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
+            if(luserTypeName === 'employer') sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id `;        
+
+
+            sqlStmt += `where j.active=true and j.is_private=false and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
+            // if he is an employer
+            if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId and jhm.access_level in ('owner', 'administrator', 'reader') and jhm.user_id=:userId`;        
 
             // filters
             if(jobTypeId){
@@ -311,11 +315,11 @@ const getAllJobs = async (request, h) => {
         const sequelize = db1.sequelize;
       	const allSQLJobs = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
-            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId },
+            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId, userId },
         });
       	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
-            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId },
+            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId, userId },
         });           
         const allJobs = camelizeKeys(allSQLJobs);
 
@@ -502,6 +506,141 @@ const getRecruiterJobs = async (request, h) => {
     catch (error) {
         console.error(error.stack);
         return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
+const shareJob = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { jobUuid } = request.params || {};
+        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
+        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobUuid}});
+
+        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
+            return h.response({error: true, message: `You are not authorized`}).code(403);
+        }
+
+        // sharing job with fellow recruiter
+        const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
+        if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+
+        const validAccessLevel = ['reader', 'administrator'];
+        const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
+
+        if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+
+        // is he really a fellow recruiter
+        const fellowUserRecord = await Userinfo.findOne({ 
+            where: { userId: fellowRecruiterId }, 
+            include: [{
+                model: Usertype,
+                as: "userType",
+                required: true,
+            }]
+        });
+        const fellowUserProfileInfo = fellowUserRecord && fellowUserRecord.toJSON();
+        const { userType: fuserType, companyId: fuserCompanyId } = fellowUserProfileInfo || {};
+        const { userTypeName: fuserTypeName } = fuserType || {};
+
+        if(fuserTypeName !== 'employer') return h.response({error: true, message: 'The fellow user is not a recruiter.'}).code(400);
+        if(recruiterCompanyId !== fuserCompanyId) return h.response({error: true, message: 'The fellow recruiter is not from the same company.'}).code(400);
+              
+        // is already shared with this fellow recruiter
+        const alreadySharedRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
+        const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
+        const { jobHireMemberId } = alreadySharedInfo || {};
+
+        if(jobHireMemberId) return h.response({ error: true, message: 'Already shared with this user!'}).code(400);
+
+        const accessRecord = await Jobhiremember.create({ accessLevel, userId: fellowRecruiterId, jobId })
+        return h.response(accessRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const updateSharedJob = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { jobUuid } = request.params || {};
+        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
+        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobUuid}});
+        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
+        
+        const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
+        if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+        const validAccessLevel = ['reader', 'administrator'];
+        const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
+        
+        if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+
+        // is he really a fellow recruiter
+        const fellowUserRecord = await Userinfo.findOne({ 
+            where: { userId: fellowRecruiterId }, 
+            include: [{
+                model: Usertype,
+                as: "userType",
+                required: true,
+            }]
+        });
+        const fellowUserProfileInfo = fellowUserRecord && fellowUserRecord.toJSON();
+        const { userType: fuserType } = fellowUserProfileInfo || {};
+        const { userTypeName: fuserTypeName } = fuserType || {};
+
+        if(fuserTypeName !== 'employer') return h.response({error: true, message: 'The fellow user is not a recruiter.'}).code(400);
+
+        // is already shared with this fellow recruiter
+        const alreadySharedRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
+        const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
+        const { jobHireMemberId } = alreadySharedInfo || {};
+
+        if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+
+        // update the shared job          
+        await Jobhiremember.update({ accessLevel, userId: fellowRecruiterId, jobId }, { where: { jobId, userId: fellowRecruiterId }});
+        await Jobhiremember.update({ accessLevel, userId: fellowRecruiterId, jobId }, { where: { jobId, userId: fellowRecruiterId }});
+        const updatedAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
+        return h.response(updatedAccessRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
     }
 }
 
@@ -950,6 +1089,8 @@ module.exports = {
     getSingleJob,
     getAllJobs,
     getRecruiterJobs,
+    shareJob,
+    updateSharedJob,
     updateJob,
     createJobQuesResponses,
     getJobQuesResponses,
