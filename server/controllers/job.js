@@ -438,7 +438,7 @@ const getRecruiterJobs = async (request, h) => {
                         left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                         left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                         left join hris.joblocation jl on jl.job_location_id=j.job_location_id
-                    where j.active=true and j.is_private=false 
+                    where j.active=true 
                         and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
                         and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
 
