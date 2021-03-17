@@ -1079,7 +1079,6 @@ const shareApplication = async (request, h) => {
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
-
                 
         const { jobId } = await Jobapplication.findOne({where: { applicationId, isWithdrawn: false }});
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
@@ -1087,6 +1086,13 @@ const shareApplication = async (request, h) => {
         if(recruiterCompanyId !== creatorCompanyId){
             return h.response({error: true, message: `You are not authorized`}).code(403);
         }
+
+        // can he share this application?
+        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
+
+        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // sharing job with fellow recruiter
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -1155,6 +1161,14 @@ const updateSharedApplication = async (request, h) => {
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
         
+        // can he share this application?
+        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
+
+        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+
+        // update the shared application access
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
         const validAccessLevel = ['reader', 'administrator'];
