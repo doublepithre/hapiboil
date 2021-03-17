@@ -418,66 +418,66 @@ const getRecruiterJobs = async (request, h) => {
         
         const db1 = request.getDb('xpaxr');
 
-            // get sql statement for getting jobs or jobs count
-            const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
-            function getSqlStmt(queryType, obj = filters){
-                const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
-                let sqlStmt;
-                const type = queryType && queryType.toLowerCase();
-                if(type === 'count'){
-                    sqlStmt = `select count(*)`;
-                } else {
-                    sqlStmt = `select
-                    j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
-                }
-
-                sqlStmt += `                    
-                    from hris.jobs j
-                        left join hris.company c on c.company_id=j.company_id
-                        left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                        left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                        left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                        left join hris.joblocation jl on jl.job_location_id=j.job_location_id
-                    where j.active=true 
-                        and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
-                        and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
-
-                // filters
-                if(jobTypeId){
-                    sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
-                } 
-                if(jobFunctionId){
-                    sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
-                } 
-                if(jobIndustryId){
-                    sqlStmt += isArray(jobIndustryId) ? ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
-                }         
-                if(jobLocationId){
-                    sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
-                }
-                if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
-
-                // search
-                if(search) {
-                    sqlStmt += ` and (
-                        j.job_name ilike :searchVal
-                        or j.job_description ilike :searchVal
-                        or jt.job_type_name ilike :searchVal
-                        or jf.job_function_name ilike :searchVal
-                        or ji.job_industry_name ilike :searchVal
-                        or jl.job_location_name ilike :searchVal
-                    )`;
-                };
-                
-                if(type !== 'count') {
-                    // sorts
-                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
-                    // limit and offset
-                    sqlStmt += ` limit :limitNum  offset :offsetNum`
-                };
-                
-                return sqlStmt;                
+        // get sql statement for getting jobs or jobs count
+        const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        function getSqlStmt(queryType, obj = filters){
+            const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select
+                j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
             }
+
+            sqlStmt += `                    
+                from hris.jobs j
+                    left join hris.company c on c.company_id=j.company_id
+                    left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                    left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                    left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                    left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                where j.active=true 
+                    and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
+                    and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
+
+            // filters
+            if(jobTypeId){
+                sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
+            } 
+            if(jobFunctionId){
+                sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
+            } 
+            if(jobIndustryId){
+                sqlStmt += isArray(jobIndustryId) ? ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
+            }         
+            if(jobLocationId){
+                sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
+            }
+            if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    j.job_name ilike :searchVal
+                    or j.job_description ilike :searchVal
+                    or jt.job_type_name ilike :searchVal
+                    or jf.job_function_name ilike :searchVal
+                    or ji.job_industry_name ilike :searchVal
+                    or jl.job_location_name ilike :searchVal
+                )`;
+            };
+            
+            if(type !== 'count') {
+                // sorts
+                sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+            
+            return sqlStmt;                
+        }
         
         const sequelize = db1.sequelize;
       	const allSQLJobs = await sequelize.query(getSqlStmt(), {
@@ -978,7 +978,8 @@ const getApplicantProfile = async (request, h) => {
       return h.response({ error: true, message: 'Bad Request!' }).code(500);
     }
 }
-const getAllApplicantsSelectiveProfile = async (request, h) => {
+
+const OLDgetAllApplicantsSelectiveProfile = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
@@ -1017,6 +1018,86 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const paginatedResponse = { count: totalJobApplications, applications: allApplicantions };
       
       return h.response(paginatedResponse).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
+// get all applicants (SQL)
+const getAllApplicantsSelectiveProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { credentials } = request.auth || {};
+      const { id: userId } = credentials || {}; 
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+      }
+
+      // pagination
+      const { limit, offset } = request.query;            
+      const limitNum = limit ? Number(limit) : 10;
+      const offsetNum = offset ? Number(offset) : 0;
+       if(isNaN(limitNum) || isNaN(offsetNum)){
+        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      }       
+      if(limitNum>100){
+        return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+      }
+
+      const { jobId } = request.params || {};
+      const db1 = request.getDb('xpaxr');
+
+        // get sql statement for getting all applications or all applications' count        
+        function getSqlStmt(queryType){            
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select ja.*, ui.*`;
+            }
+
+            sqlStmt += `
+                from hris.jobapplications ja
+                    inner join hris.applicationhiremember ahm on ahm.application_id=ja.application_id
+                    inner join hris.userinfo ui on ui.user_id=ja.user_id                    
+                where ja.is_withdrawn=false 
+                    and ahm.access_level in ('employer', 'reader', 'administrator')
+                    and ja.job_id=:jobId and ahm.user_id=:userId`;
+            
+            if(type !== 'count') {
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+            
+            return sqlStmt;                
+        }
+        
+        const sequelize = db1.sequelize;
+      	const allSQLApplications = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId, userId,
+                limitNum, offsetNum,
+            },
+        });
+      	const allSQLApplicationsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId, userId,
+                limitNum, offsetNum,
+            },
+        });
+        const allApplicantions = camelizeKeys(allSQLApplications);
+
+        const paginatedResponse = { count: allSQLApplicationsCount[0].count, applications: allApplicantions };
+        return h.response(paginatedResponse).code(200);
     }
     catch(error) {
       console.error(error.stack);
