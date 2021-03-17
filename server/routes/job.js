@@ -14,6 +14,8 @@ import {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    shareApplication, 
+    updateSharedApplication,
     getRecommendedTalents,
     getJobRecommendations,
 } from "../controllers/job";
@@ -178,6 +180,26 @@ const xjob = {
             mode: 'try',
           },
           handler: getApplicantProfile,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: shareApplication,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateSharedApplication,
         },
       });
       server.route({

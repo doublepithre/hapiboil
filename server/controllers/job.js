@@ -979,52 +979,6 @@ const getApplicantProfile = async (request, h) => {
     }
 }
 
-const OLDgetAllApplicantsSelectiveProfile = async (request, h) => {
-    try{
-      if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Forbidden' }).code(403);
-      }
-      // Checking user type from jwt
-      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-      if(luserTypeName !== 'employer'){
-        return h.response({error:true, message:'You are not authorized!'}).code(403);
-      }
-
-      // pagination
-      const { limit, offset } = request.query;            
-      const limitNum = limit ? Number(limit) : 10;
-      const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum)){
-        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      }       
-      if(limitNum>100){
-        return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-      }
-
-      const { jobId } = request.params || {};
-      const { Jobapplication, Userinfo } = request.getModels('xpaxr');
-
-      const allApplicantions = await Jobapplication.findAll({ 
-          where: { jobId, isWithdrawn: false }, 
-          include: [{
-            model: Userinfo,
-            as: "user",
-            required: true,
-          }],
-          offset: offsetNum,
-          limit: limitNum        
-      });
-      const totalJobApplications = await Jobapplication.count({ where: { jobId, isWithdrawn: false }});
-      const paginatedResponse = { count: totalJobApplications, applications: allApplicantions };
-      
-      return h.response(paginatedResponse).code(200);
-    }
-    catch(error) {
-      console.error(error.stack);
-      return h.response({ error: true, message: 'Bad Request!' }).code(500);
-    }
-}
-
 // get all applicants (SQL)
 const getAllApplicantsSelectiveProfile = async (request, h) => {
     try{
@@ -1105,6 +1059,144 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
     }
 }
 
+const shareApplication = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { applicationId } = request.params || {};
+        const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
+                
+        const { jobId } = await Jobapplication.findOne({where: { applicationId, isWithdrawn: false }});
+        const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
+
+        if(recruiterCompanyId !== creatorCompanyId){
+            return h.response({error: true, message: `You are not authorized`}).code(403);
+        }
+
+        // sharing job with fellow recruiter
+        const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
+        if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+
+        const validAccessLevel = ['reader', 'administrator'];
+        const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
+
+        if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+
+        // is he really a fellow recruiter
+        const fellowUserRecord = await Userinfo.findOne({ 
+            where: { userId: fellowRecruiterId }, 
+            include: [{
+                model: Usertype,
+                as: "userType",
+                required: true,
+            }]
+        });
+        const fellowUserProfileInfo = fellowUserRecord && fellowUserRecord.toJSON();
+        const { userType: fuserType, companyId: fuserCompanyId } = fellowUserProfileInfo || {};
+        const { userTypeName: fuserTypeName } = fuserType || {};
+
+        if(fuserTypeName !== 'employer') return h.response({error: true, message: 'The fellow user is not a recruiter.'}).code(400);
+        if(recruiterCompanyId !== fuserCompanyId) return h.response({error: true, message: 'The fellow recruiter is not from the same company.'}).code(400);
+              
+        // is already shared with this fellow recruiter
+        const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
+        const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
+        const { applicationHireMemberId } = alreadySharedInfo || {};
+
+        if(applicationHireMemberId) return h.response({ error: true, message: 'Already shared with this user!'}).code(400);
+
+        const accessRecord = await Applicationhiremember.create({ accessLevel, userId: fellowRecruiterId, applicationId, })
+        return h.response(accessRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const updateSharedApplication = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { applicationId } = request.params || {};
+        const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
+        const { jobId } = await Jobapplication.findOne({where: { applicationId, isWithdrawn: false }});
+        const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
+        
+        const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
+        if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+        const validAccessLevel = ['reader', 'administrator'];
+        const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
+        
+        if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+
+        // is he really a fellow recruiter
+        const fellowUserRecord = await Userinfo.findOne({ 
+            where: { userId: fellowRecruiterId }, 
+            include: [{
+                model: Usertype,
+                as: "userType",
+                required: true,
+            }]
+        });
+        const fellowUserProfileInfo = fellowUserRecord && fellowUserRecord.toJSON();
+        const { userType: fuserType } = fellowUserProfileInfo || {};
+        const { userTypeName: fuserTypeName } = fuserType || {};
+
+        if(fuserTypeName !== 'employer') return h.response({error: true, message: 'The fellow user is not a recruiter.'}).code(400);
+
+        // is already shared with this fellow recruiter
+        const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
+        const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
+        const { applicationHireMemberId } = alreadySharedInfo || {};
+
+        if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+
+        // update the shared job          
+        await Applicationhiremember.update({ accessLevel }, { where: { applicationId, userId: fellowRecruiterId }});
+        await Applicationhiremember.update({ accessLevel }, { where: { applicationId, userId: fellowRecruiterId }});
+        const updatedAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
+        return h.response(updatedAccessRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const getRecommendedTalents = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
@@ -1180,6 +1272,8 @@ module.exports = {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    shareApplication, 
+    updateSharedApplication,
     getRecommendedTalents,
     getJobRecommendations
 }
