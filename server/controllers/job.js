@@ -199,8 +199,9 @@ const getAllJobs = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'candidate') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const { recommended, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+        const recommendedVal = recommended ? Number(recommended) : 1;
 
         // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
@@ -209,12 +210,15 @@ const getAllJobs = async (request, h) => {
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
+        const validRecommendedVal = [ 0, 1];
+        const isRecommendedValReqValid = validRecommendedVal.includes(recommendedVal);
+
         // pagination query
         const limitNum = limit ? Number(limit) : 10;
-        const offsetNum = offset ? Number(offset) : 0;
+        const offsetNum = offset ? Number(offset) : 0;        
 
         // query validation
-        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(recommendedVal) || !sortBy || !isSortReqValid || !isRecommendedValReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
         // custom date search query
@@ -240,12 +244,40 @@ const getAllJobs = async (request, h) => {
             upperDateRange = new Date('2999-12-31');
         }
 
+        let recommendations;
+        const jobIdArray = [];
+        // GET RECOMMENDED JOBS FROM DATA SCIENCE SERVER
+        if(recommendedVal === 1){
+            /* UNCOMMENT THESE FOLLOWING LINES when going for staging
+
+            let model = request.getModels('xpaxr');
+            if (!await isQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+            recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
+            recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+            
+            */
+
+            // FAKE RECOMMENDED DATA (delete it when going for staging)
+            const recommendations = [
+                { job_id: '19', score: '5' },
+                { job_id: '18', score: '4' },
+                { job_id: '45', score: '3' },
+                { job_id: '52', score: '2' },
+                { job_id: '10', score: '1' },
+            ]
+        
+            // storing all the jobIds in the given order            
+            recommendations.forEach(item =>{
+                jobIdArray.push(item.job_id);
+            });
+        }
+
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
-            const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -266,6 +298,7 @@ const getAllJobs = async (request, h) => {
                 and j.is_private=false 
                 and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
             
+            if(recommendedVal === 1) sqlStmt += ` and j.job_id in (:jobIdArray)`
             // filters
             if(jobTypeId){
                 sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
@@ -306,11 +339,11 @@ const getAllJobs = async (request, h) => {
         const sequelize = db1.sequelize;
       	const allSQLJobs = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
-            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+            replacements: { jobIdArray, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });
       	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
-            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+            replacements: { jobIdArray, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });           
         const allJobs = camelizeKeys(allSQLJobs);
 
@@ -366,7 +399,7 @@ const getRecruiterJobs = async (request, h) => {
         
         const { ownJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-        const ownJobsVal = ownJobs ? ownJobs.toLowerCase() : 'false';
+        const ownJobsVal = ownJobs ? Number(ownJobs) : 0;
 
         // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
@@ -375,7 +408,7 @@ const getRecruiterJobs = async (request, h) => {
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
         
-        const validOwnJobsVal = [ 'true', 'false'];
+        const validOwnJobsVal = [ 0, 1 ];
         const isOwnJobsReqValid = validOwnJobsVal.includes(ownJobsVal);
 
         // pagination query
@@ -383,7 +416,7 @@ const getRecruiterJobs = async (request, h) => {
         const offsetNum = offset ? Number(offset) : 0;
 
         // query validation
-        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid || !isOwnJobsReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(ownJobsVal) || !sortBy || !isSortReqValid || !isOwnJobsReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
         // custom date search query
