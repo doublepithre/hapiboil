@@ -207,18 +207,20 @@ const getAllJobs = async (request, h) => {
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
         if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
         if (!sortType && sortBy === 'created_at') sortType = 'DESC';
-        const validSorts = [ 'created_at', 'job_name'];
-        const isSortReqValid = validSorts.includes(sortBy);
+        const validSorts = [ 'score', 'created_at', 'job_name'];
+        const isSortReqValid = validSorts.includes(sortBy);               
 
         const validRecommendedVal = [ 0, 1];
         const isRecommendedValReqValid = validRecommendedVal.includes(recommendedVal);
+
+        const isSortByValid = (recommendedVal !== 1 && sortBy === 'score') ? false : true;
 
         // pagination query
         const limitNum = limit ? Number(limit) : 10;
         const offsetNum = offset ? Number(offset) : 0;        
 
         // query validation
-        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(recommendedVal) || !sortBy || !isSortReqValid || !isRecommendedValReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(recommendedVal) || !sortBy || !isSortReqValid || !isSortByValid || !isRecommendedValReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
         // custom date search query
@@ -275,9 +277,9 @@ const getAllJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
-            const { recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -328,7 +330,17 @@ const getAllJobs = async (request, h) => {
 
             if(type !== 'count') {
                 // sorts
-                sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                if(recommendedVal === 1){
+                    sqlStmt += ` order by case`
+                    for( let i=0; i<jobIdArray.length; i++){
+                        sqlStmt += ` WHEN j.job_id=${ jobIdArray[i] } THEN ${ i }`;
+                    }
+                    sqlStmt += ` end`;
+                    if(sortBy === 'score' && sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
+
+                } else {
+                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                };
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
             };
