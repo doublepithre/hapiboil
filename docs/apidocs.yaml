@@ -19,6 +19,9 @@ tags:
   - name: Job
     description: Information about jobs
 
+  - name: Admin
+    description: Empauwer super Admin routes
+
   - name: User Model
     x-displayName: The User Model
     description: |
@@ -923,6 +926,349 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/jobDetailed"
+
+  /admin/questions/empauwer-me:
+    get: 
+      summary: Get all empauwer me questions
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Question" 
+                    - properties:
+                        isActive:
+                            type: boolean
+  /admin/questions/empauwer-all:
+    get: 
+      summary: Get all empauwer all questions
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  allOf:
+                    - $ref: "#/components/schemas/Question" 
+                    - properties:
+                        isActive:
+                            type: boolean
+  /admin/questions:
+    post:
+      summary: Create Question
+      tags:
+        - Admin
+      security:
+        - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: array
+              items:
+                allOf:
+                  - $ref: "#/components/schemas/Question" 
+                  - properties:
+                      isActive:
+                          type: boolean
+                      target:
+                        type: string
+                        enum: ["empauwer_me","empauwer_all"]
+
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Question"
+    delete:
+      summary: Delete question
+      tags: 
+        -Admin
+      security:
+        - beaereAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema: 
+              type: object
+              properties:
+                questionId:
+                  type: number
+      responses:
+        '200':
+          description: OK
+
+  /admin/questions/active:
+    patch: 
+      summary: Update active question
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema: 
+              type: object
+              properties:
+                questionId:
+                  type: number
+                isActive:
+                    type: boolean
+      responses:
+        '200':
+          description: OK
+
+  /admin/question/{id}:
+    get: 
+      summary: Get a question by id
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      parameters:
+        - in: path
+          name: questionId
+          schema:
+            type: integer
+          required: true
+          description: Numeric ID of the question to get
+      responses:
+        '200':
+          description: Includes attributes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref : "#/components/schemas/Question"
+                  - type: object
+                    properties:
+                      questionnaireanswers:
+                        type: object
+  /admin/questions/categories:
+    get: 
+      summary: Get all question categories
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  type: string
+
+  /admin/questions/types:
+    get: 
+      summary: Get all question types
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  type: string
+
+  /admin/questions/attributes:
+    get: 
+      summary: Get all question attributes
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items: 
+                  type: object
+                  properties:
+                    attributeId:
+                      type: number
+                    attributeName:
+                      type: string
+    post: 
+      summary: Add question attribute
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                attributeName:
+                  type: string
+      responses:
+        '201':
+          description: OK
+    delete: 
+      summary: Add question attribute
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                attributeId:
+                  type: number
+      responses:
+        '200':
+          description: OK
+
+    patch: 
+      summary: Edit question attribute
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                attributeId:
+                  type: number
+                attributeName:
+                  type: string
+      responses:
+        '200':
+          description: OK
+
+  /admin/questions/question/attributes:
+    post: 
+      summary: create question attributes
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  answerId:
+                    type: number
+                  attributeId:
+                    type: number
+                  attributeValue:
+                    type: number
+      responses:
+        '200':
+          description: OK
+
+  /admin/questions/mapping:
+    post: 
+      summary: create question mapping
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  empauwerAllQid:
+                    type: number
+                  empauwerMeQid:
+                    type: number
+                  mappingValue:
+                    type: number
+      responses:
+        '200':
+          description: OK
+    delete: 
+      summary: delete question mapping
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  empauwerAllQid:
+                    type: number
+                  empauwerMeQid:
+                    type: number
+      responses:
+        '200':
+          description: OK
+    get: 
+      summary: get question mapping
+      tags:
+        - Admin
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json: 
+              schema:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    qmId:
+                      type: number
+                    empauwerAllQid:
+                      type: number
+                    empauwerMeQid:
+                      type: number
+                    empauwerMeQ:
+                      $ref : "#/components/schemas/Question"
+                    empauwerAllQ:
+                      $ref : "#/components/schemas/Question"
 
 components:
   securitySchemes:
