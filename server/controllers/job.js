@@ -364,9 +364,9 @@ const getRecruiterJobs = async (request, h) => {
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: recruiterCompanyId } = luserProfileInfo || {};
         
-        const { getJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const { ownJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-        const getJobsVal = getJobs ? getJobs.toLowerCase() : 'all';
+        const ownJobsVal = ownJobs ? ownJobs.toLowerCase() : 'false';
 
         // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
@@ -374,13 +374,16 @@ const getRecruiterJobs = async (request, h) => {
         if (!sortType && sortBy === 'created_at') sortType = 'DESC';
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
+        
+        const validOwnJobsVal = [ 'true', 'false'];
+        const isOwnJobsReqValid = validOwnJobsVal.includes(ownJobsVal);
 
         // pagination query
         const limitNum = limit ? Number(limit) : 10;
         const offsetNum = offset ? Number(offset) : 0;
 
         // query validation
-        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid || !isOwnJobsReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
         // custom date search query
@@ -409,9 +412,9 @@ const getRecruiterJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { getJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
-            const { getJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -436,7 +439,7 @@ const getRecruiterJobs = async (request, h) => {
                     and jhm.user_id=:userId`;
 
             // filters
-            if(getJobsVal === 'own'){
+            if(ownJobsVal === 'true'){
                 sqlStmt += ` and j.user_id=:userId`;
             }
             if(jobTypeId){
