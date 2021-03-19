@@ -204,11 +204,11 @@ const getAllJobs = async (request, h) => {
         const recommendedVal = recommended ? Number(recommended) : 1;
 
         // sort query
-        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
+        let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'DESC'];
         if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
         if (!sortType && sortBy === 'created_at') sortType = 'DESC';
         const validSorts = [ 'score', 'created_at', 'job_name'];
-        const isSortReqValid = validSorts.includes(sortBy);               
+        const isSortReqValid = validSorts.includes(sortBy);
 
         const validRecommendedVal = [ 0, 1];
         const isRecommendedValReqValid = validRecommendedVal.includes(recommendedVal);
@@ -329,15 +329,18 @@ const getAllJobs = async (request, h) => {
             }
 
             if(type !== 'count') {
-                // sorts
+                // sorts (order)
                 if(recommendedVal === 1){
-                    sqlStmt += ` order by case`
-                    for( let i=0; i<jobIdArray.length; i++){
-                        sqlStmt += ` WHEN j.job_id=${ jobIdArray[i] } THEN ${ i }`;
+                    if(sortBy === 'score'){
+                        sqlStmt += ` order by case`
+                        for( let i=0; i<jobIdArray.length; i++){
+                            sqlStmt += ` WHEN j.job_id=${ jobIdArray[i] } THEN ${ i }`;
+                        }
+                        sqlStmt += ` end`;
+                        if(sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
+                    } else {
+                        sqlStmt += ` order by j.${sortBy} ${sortType}`;
                     }
-                    sqlStmt += ` end`;
-                    if(sortBy === 'score' && sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
-
                 } else {
                     sqlStmt += ` order by j.${sortBy} ${sortType}`;
                 };
