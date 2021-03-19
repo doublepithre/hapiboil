@@ -195,13 +195,9 @@ const getAllJobs = async (request, h) => {
         
         const { Jobapplication, Userinfo } = request.getModels('xpaxr');
 
-        // get the company of the luser (using it only if he is a recruiter)
-        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-        const luserProfileInfo = luserRecord && luserRecord.toJSON();
-        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
-        
         // Checking user type from jwt
-        let luserTypeName = request.auth.artifacts.decoded.userTypeName;             
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'candidate') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
         const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
@@ -247,9 +243,9 @@ const getAllJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { luserTypeName, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
-            const { luserTypeName, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -265,16 +261,11 @@ const getAllJobs = async (request, h) => {
                 left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                 left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
-
-            // if he is an employer
-            if(luserTypeName === 'employer') sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id `;        
-
-
-            sqlStmt += `where j.active=true and j.is_private=false and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
-            // if he is an employer
-            if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId and jhm.access_level in ('owner', 'administrator', 'reader') and jhm.user_id=:userId`;        
-
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where j.active=true 
+                and j.is_private=false 
+                and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
+            
             // filters
             if(jobTypeId){
                 sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
@@ -315,35 +306,33 @@ const getAllJobs = async (request, h) => {
         const sequelize = db1.sequelize;
       	const allSQLJobs = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
-            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId, userId },
+            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });
       	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
-            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange, recruiterCompanyId, userId },
+            replacements: { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });           
         const allJobs = camelizeKeys(allSQLJobs);
 
         // check if already applied
-        if(luserTypeName === 'candidate'){
-            const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
-            const appliedJobIds = [];
-            rawAllAppliedJobs.forEach(aj => {
-                const { jobId } = aj || {};
-                if(jobId) {
-                    appliedJobIds.push(Number(jobId));
-                }
-            });
+        const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+        const appliedJobIds = [];
+        rawAllAppliedJobs.forEach(aj => {
+            const { jobId } = aj || {};
+            if(jobId) {
+                appliedJobIds.push(Number(jobId));
+            }
+        });
 
-            allJobs.forEach(j => {
-                const { jobId } = j || {};
-                if(appliedJobIds.includes(Number(jobId))) {
-                    j.isApplied = true;
-                } else {
-                    j.isApplied = false;
-                }
-            });      
-    
-        }
+        allJobs.forEach(j => {
+            const { jobId } = j || {};
+            if(appliedJobIds.includes(Number(jobId))) {
+                j.isApplied = true;
+            } else {
+                j.isApplied = false;
+            }
+        });      
+
         const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };                          
         return h.response(responses).code(200);
 
@@ -370,13 +359,14 @@ const getRecruiterJobs = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }           
         
-        // get the company of the luser (using it only if he is a recruiter)
+        // get the company of the luser recruiter
         const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: recruiterCompanyId } = luserProfileInfo || {};
         
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const { getJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+        const getJobsVal = getJobs ? getJobs.toLowerCase() : 'all';
 
         // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
@@ -419,9 +409,9 @@ const getRecruiterJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { getJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
-            const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { getJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -438,11 +428,17 @@ const getRecruiterJobs = async (request, h) => {
                     left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                     left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                     left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                    inner join hris.jobhiremember jhm on jhm.job_id=j.job_id 
                 where j.active=true 
                     and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
-                    and j.company_id=:recruiterCompanyId and j.user_id=:userId`;
+                    and j.company_id=:recruiterCompanyId 
+                    and jhm.access_level in ('owner', 'administrator', 'reader') 
+                    and jhm.user_id=:userId`;
 
             // filters
+            if(getJobsVal === 'own'){
+                sqlStmt += ` and j.user_id=:userId`;
+            }
             if(jobTypeId){
                 sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
             } 
@@ -492,7 +488,7 @@ const getRecruiterJobs = async (request, h) => {
       	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: { 
-                userId, recruiterCompanyId, 
+                userId, recruiterCompanyId,
                 jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp,
                 sortBy, sortType, limitNum, offsetNum, 
                 searchVal, lowerDateRange, upperDateRange 
