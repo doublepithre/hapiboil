@@ -1043,10 +1043,18 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const { limit, offset, sort, createDate, search } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
+      // sort query
+      let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'DESC'];
+      if (!sortType && sortBy !== 'application_date') sortType = 'ASC';
+      if (!sortType && sortBy === 'application_date') sortType = 'DESC';      
+      const validSorts = ['first_name', 'last_name', 'application_date', 'status'];
+      const isSortReqValid = validSorts.includes(sortBy);
+
+
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum)){
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
         return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       }       
       if(limitNum>100){
@@ -1057,15 +1065,15 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting all applications or all applications' count        
-        const filters = { search }
+        const filters = { search, sortBy, sortType }
         function getSqlStmt(queryType, obj = filters){            
-            const { search } = obj;
+            const { search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
                 sqlStmt = `select count(*)`;
             } else {
-                sqlStmt = `select ja.*, ja.created_at as application_created_at, ui.*`;
+                sqlStmt = `select ja.*, ja.created_at as application_date, ui.*`;
             }
 
             sqlStmt += `
@@ -1085,6 +1093,8 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
             }
 
             if(type !== 'count') {
+                // sorts
+                sqlStmt += ` order by ${ sortBy } ${ sortType}`
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
             };
