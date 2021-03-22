@@ -252,21 +252,21 @@ const getAllJobs = async (request, h) => {
         if(recommendedVal === 1){
             /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
 
-            let model = request.getModels('xpaxr');
-            if (!await isQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-            recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
-            recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+            // let model = request.getModels('xpaxr');
+            // if (!await isQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+            // recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
+            // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
             
             
 
-            // // FAKE RECOMMENDED DATA (delete it when going for staging)
-            // const recommendations = [
-            //     { job_id: '19', score: '5' },
-            //     { job_id: '18', score: '4' },
-            //     { job_id: '45', score: '3' },
-            //     { job_id: '52', score: '2' },
-            //     { job_id: '10', score: '1' },
-            // ]
+            // FAKE RECOMMENDED DATA (delete it when going for staging)
+            const recommendations = [
+                { job_id: '19', score: '5' },
+                { job_id: '18', score: '4' },
+                { job_id: '45', score: '3' },
+                { job_id: '52', score: '2' },
+                { job_id: '10', score: '1' },
+            ]
         
             // storing all the jobIds in the given order            
             recommendations.forEach(item =>{
@@ -1327,17 +1327,18 @@ const getRecommendedTalents = async (request, h) => {
       const { jobHireMemberId } = accessInfo || {};
       if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
-        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
-        recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+        /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
+        // let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+        // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
         
         // FAKE RECOMMENDED DATA (delete it when going for staging)
-        // const recommendations = [
-        //     { user_id: '181', score: '5' },
-        //     { user_id: '180', score: '4' },
-        //     { user_id: '197', score: '3' },
-        //     { user_id: '187', score: '2' },
-        //     { user_id: '193', score: '1' },
-        // ]
+        const recommendations = [
+            { user_id: '181', score: '5' },
+            { user_id: '180', score: '4' },
+            { user_id: '197', score: '3' },
+            { user_id: '187', score: '2' },
+            { user_id: '193', score: '1' },
+        ]
     
         // storing all the jobIds in the given order   
         const userIdArray = [];
