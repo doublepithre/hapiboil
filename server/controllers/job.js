@@ -1040,8 +1040,10 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
+      const { limit, offset, sort, createDate, search } = request.query;            
+      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
       // pagination
-      const { limit, offset } = request.query;            
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
        if(isNaN(limitNum) || isNaN(offsetNum)){
@@ -1051,17 +1053,19 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
         return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       }
 
-      const { jobId } = request.params || {};
+      const { jobId } = request.params || {};      
       const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting all applications or all applications' count        
-        function getSqlStmt(queryType){            
+        const filters = { search }
+        function getSqlStmt(queryType, obj = filters){            
+            const { search } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
                 sqlStmt = `select count(*)`;
             } else {
-                sqlStmt = `select ja.*, ui.*`;
+                sqlStmt = `select ja.*, ja.created_at as application_created_at, ui.*`;
             }
 
             sqlStmt += `
@@ -1072,6 +1076,14 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                     and ahm.access_level in ('employer', 'reader', 'administrator')
                     and ja.job_id=:jobId and ahm.user_id=:userId`;
             
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    ui.first_name ilike :searchVal
+                    or ui.last_name ilike :searchVal                    
+                )`;
+            }
+
             if(type !== 'count') {
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
@@ -1086,6 +1098,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
             replacements: { 
                 jobId, userId,
                 limitNum, offsetNum,
+                searchVal,
             },
         });
       	const allSQLApplicationsCount = await sequelize.query(getSqlStmt('count'), {
@@ -1093,6 +1106,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
             replacements: { 
                 jobId, userId,
                 limitNum, offsetNum,
+                searchVal,
             },
         });
         const allApplicantions = camelizeKeys(allSQLApplications);
