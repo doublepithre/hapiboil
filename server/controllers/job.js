@@ -254,7 +254,7 @@ const getAllJobs = async (request, h) => {
 
             let model = request.getModels('xpaxr');
             if (!await isQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-            recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
+            recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
             recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
             
             */
@@ -1341,7 +1341,7 @@ const getJobRecommendations = async (request,h) => {
     if (!await isQuestionnaireDone(userId,model)){
       return h.response({error:"Questionnaire Not Done"}).code(409)
     }
-    let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recommendation`,{ params: { user_id: userId } })
+    let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
     recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
     return h.response().code(200);
 }
