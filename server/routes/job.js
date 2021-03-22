@@ -204,7 +204,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/j/recommended-talents',
+        path: '/j/talents/{jobId}',
         options: {
           auth: {
             mode: 'try',

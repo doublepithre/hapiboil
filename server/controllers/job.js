@@ -1314,43 +1314,122 @@ const getRecommendedTalents = async (request, h) => {
       if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
       }
+      const { credentials } = request.auth || {};
+      const { id: userId } = credentials || {}; 
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
       if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
       
+      const { jobId } = request.params || {};
+      const { Jobhiremember } = request.getModels('xpaxr');
+      const accessRecord = await Jobhiremember.findOne({ where: { userId, jobId }});
+      const accessInfo = accessRecord && accessRecord.toJSON();
+      const { jobHireMemberId } = accessInfo || {};
+      if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
-        /* UNCOMMENT THESE FOLLOWING LINES when going for staging
-
-        
-        recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
         recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
         
-        */
-
         // FAKE RECOMMENDED DATA (delete it when going for staging)
-        const recommendations = [
-            { user_id: '181', score: '5' },
-            { user_id: '180', score: '4' },
-            { user_id: '197', score: '3' },
-            { user_id: '187', score: '2' },
-            { user_id: '193', score: '1' },
-        ]
+        // const recommendations = [
+        //     { user_id: '181', score: '5' },
+        //     { user_id: '180', score: '4' },
+        //     { user_id: '197', score: '3' },
+        //     { user_id: '187', score: '2' },
+        //     { user_id: '193', score: '1' },
+        // ]
     
         // storing all the jobIds in the given order   
         const userIdArray = [];
         recommendations.forEach(item =>{
-            userIdArray.push(item.job_id);
+            userIdArray.push(item.user_id);
         });
-
-
-
-            
       
-      
-      const { Userinfo } = request.getModels('xpaxr');
-      const talents = await Userinfo.findAll({ offset: 0, limit: 20 });      
-      const paginatedResponse = { count: talents.length, users: talents }
+      const { limit, offset, sort, search } = request.query;            
+      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
+      // sort query
+      let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'ASC'];
+      const validSorts = ['score', 'first_name', 'last_name', 'status'];
+      const isSortReqValid = validSorts.includes(sortBy);
+
+      // pagination
+      const limitNum = limit ? Number(limit) : 10;
+      const offsetNum = offset ? Number(offset) : 0;
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      }       
+      if(limitNum>100){
+        return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+      }
+
+        const db1 = request.getDb('xpaxr');
+        // get sql statement for getting jobs or jobs count
+        const filters = { search, sortBy, sortType };
+        function getSqlStmt(queryType, obj = filters){
+            const { search, sortBy, sortType } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select ui.*, ut.user_type_name, ur.role_name `;
+            }
+
+            sqlStmt += `            
+                from hris.userinfo ui
+                    inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+                    inner join hris.userrole ur on ur.role_id=ui.role_id
+                where ui.user_id in (:userIdArray)`;            
+                
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    ui.first_name ilike :searchVal
+                    or ui.last_name ilike :searchVal                    
+                )`;
+            }
+
+            if(type !== 'count') {
+                // sorts (order)
+                if(sortBy === 'score'){
+                    sqlStmt += ` order by case`
+                    for( let i=0; i<userIdArray.length; i++){
+                        sqlStmt += ` WHEN ui.user_id=${ userIdArray[i] } THEN ${ i }`;
+                    }
+                    sqlStmt += ` end`;
+                    if(sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
+                } else {
+                    sqlStmt += ` order by ${sortBy} ${sortType}`;
+                }
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+
+            return sqlStmt;
+        };
+
+        const sequelize = db1.sequelize;
+      	const allSQLTalents = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                limitNum, offsetNum,
+                userIdArray,
+                searchVal
+            },
+        });
+      	const allSQLTalentsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                limitNum, offsetNum,
+                userIdArray,
+                searchVal
+            },
+        });           
+        const allTalents = camelizeKeys(allSQLTalents);
+
+
+       const paginatedResponse = { count: allSQLTalentsCount[0].count, users: allTalents }
        return h.response(paginatedResponse).code(200);
     }
     catch(error) {
@@ -1373,7 +1452,6 @@ const getJobRecommendations = async (request,h) => {
     recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
     return h.response().code(200);
 }
-
 
 const isQuestionnaireDone = async(userId,model)=>{
     const { Userquesresponse,Questionnaire,Questiontarget } = model
