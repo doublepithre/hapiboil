@@ -1040,7 +1040,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
-      const { limit, offset, sort, createDate, search } = request.query;            
+      const { limit, offset, sort, applicationDate, search } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
@@ -1060,6 +1060,30 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       if(limitNum>100){
         return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       }
+
+      // custom date search query
+      let lowerDateRange;
+      let upperDateRange;
+      if(applicationDate){
+          if(!isArray(applicationDate)) {
+              lowerDateRange = new Date(applicationDate);
+              upperDateRange = new Date('2999-12-31');
+          } else {
+              if(!applicationDate[0]) lowerDateRange = new Date('2000-01-01');
+              if(!applicationDate[1]) upperDateRange = new Date('2999-12-31');
+              
+              lowerDateRange = new Date(applicationDate[0]);
+              upperDateRange = new Date(applicationDate[1]);
+          }    
+          const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+          if(!isValidDate) return h.response({error: true, message: 'Unvalid applicationDate query!'}).code(400);
+          const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+          if(!isValidDateRange) return h.response({error: true, message: 'Unvalid applicationDate range!'}).code(400);                        
+      } else {
+          lowerDateRange = new Date('2000-01-01');
+          upperDateRange = new Date('2999-12-31');
+      }
+
 
       const { jobId } = request.params || {};      
       const db1 = request.getDb('xpaxr');
@@ -1082,7 +1106,8 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                     inner join hris.userinfo ui on ui.user_id=ja.user_id                    
                 where ja.is_withdrawn=false 
                     and ahm.access_level in ('employer', 'reader', 'administrator')
-                    and ja.job_id=:jobId and ahm.user_id=:userId`;
+                    and ja.job_id=:jobId and ahm.user_id=:userId
+                    and ja.created_at > :lowerDateRange and ja.created_at < :upperDateRange`;
             
             // search
             if(search) {
@@ -1109,6 +1134,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                 jobId, userId,
                 limitNum, offsetNum,
                 searchVal,
+                lowerDateRange, upperDateRange,
             },
         });
       	const allSQLApplicationsCount = await sequelize.query(getSqlStmt('count'), {
@@ -1117,6 +1143,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                 jobId, userId,
                 limitNum, offsetNum,
                 searchVal,
+                lowerDateRange, upperDateRange,
             },
         });
         const allApplicantions = camelizeKeys(allSQLApplications);
