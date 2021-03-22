@@ -9,8 +9,8 @@
   },
   "jwtSecret": "A?D(G+KbPeShVmYq3t6w9z$B&E)H@McQ",
   "replication": {
-    "read": [{ "host": "118.200.108.134", "username": "postgres", "password": "$ilven1eaf" }],
-    "write": { "host": "118.200.108.134", "username": "postgres", "password": "$ilven1eaf" }
+    "read": [{ "host": "localhost", "username": "postgres", "password": "$ilven1eaf" }],
+    "write": { "host": "localhost", "username": "postgres", "password": "$ilven1eaf" }
   },
   "redis": {
     "host": "xpastagingnode.redis.cache.windows.net",
@@ -29,7 +29,7 @@
     }
   },
   "dsServer":{
-    "host":"118.200.108.134",
+    "host":"localhost",
     "port":8000
   }
 }

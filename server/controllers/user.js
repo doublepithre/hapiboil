@@ -335,6 +335,46 @@ const updateUser = async (request, h) => {
   }
 }
 
+const updatePassword = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+    const { oldPassword, password } = request.payload || {};
+    const { User } = request.getModels('xpaxr');
+    
+    const userRecord = await User.findOne({ where: { userId } });
+    const luser = userRecord && userRecord.toJSON();
+    const { userId: luserId, userUuid, password: oldDBPassword } = luser || {};
+    if(!luserId) h.response({ error: true, message: 'No user found!'}).code(400);
+
+    if (password.length < 8) {
+      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
+    } else if (password.length > 100) {
+      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
+    }
+
+    const isPasswordMatching = bcrypt.compareSync(oldPassword, oldDBPassword);
+    if (!isPasswordMatching) return h.response({ error: true, message: 'Please check your credentials'}).code(400);
+
+    const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
+    await User.update({ password: hashedPassword }, { where: { userId }} );
+    const updatedUser = await User.findOne({
+        where:{ userUuid: userUuid },
+        attributes: { exclude: ['createdAt', 'updatedAt']
+      }
+    });
+    const userData = updatedUser && updatedUser.toJSON();
+    return h.response(userData).code(200);
+  }
+  catch(error) {
+    console.log(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+  }
+}
+
 const sendVerificationEmail = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -675,6 +715,7 @@ const getUserMetaData = async (request, h) => {
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
+
 const updateMetaData = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -720,6 +761,7 @@ module.exports = {
   createCompanyStaff,
   getUser,
   updateUser,
+  updatePassword,
   sendVerificationEmail,
   verifyEmail,
   forgotPassword,

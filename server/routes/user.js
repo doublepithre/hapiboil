@@ -4,6 +4,7 @@ import {
   createCompanyStaff,
   getUser, 
   updateUser, 
+  updatePassword,
   sendVerificationEmail,
   verifyEmail,
   forgotPassword, 
@@ -86,6 +87,16 @@ const xuser = {
             mode: 'try',
           },
           handler: updateUser,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/update-password',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updatePassword,
         },
       });
       server.route({
