@@ -88,8 +88,8 @@ const createUser = async (request, h) => {
     resetLink += `/u/verify-email?token=${token}`;
 
     const emailData = {
-      emails: [email],
-      email: email,
+      emails: [udata.email],
+      email: udata.email,
       ccEmails: [],
       templateName: 'email-verification',
       resetLink,      
@@ -105,7 +105,7 @@ const createUser = async (request, h) => {
     };
     sendEmailAsync(emailData, additionalEData);
     // ----------------end of verification email sending
-    
+
     return h.response(udata).code(201);
   } catch (error) {
     console.error(error.stack);
@@ -206,8 +206,8 @@ const createCompanySuperAdmin = async (request, h) => {
     resetLink += `/u/verify-email?token=${token}`;
 
     const emailData = {
-      emails: [email],
-      email: email,
+      emails: [udata.email],
+      email: udata.email,
       ccEmails: [],
       templateName: 'email-verification',
       resetLink,      
@@ -331,8 +331,8 @@ const createCompanyStaff = async (request, h) => {
     resetLink += `/u/verify-email?token=${token}`;
 
     const emailData = {
-      emails: [email],
-      email: email,
+      emails: [udata.email],
+      email: udata.email,
       ccEmails: [],
       templateName: 'email-verification',
       resetLink,      
