@@ -11,8 +11,8 @@ const createUser = async (request, h) => {
   try {
     if (request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
-    }
-    const { User, Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+    }    
+    const { User, Userinfo, Usertype, Userrole, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType, } = request.payload || {};
 
     if ( !(email && password && accountType)) {
@@ -80,18 +80,18 @@ const createUser = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user', 
-      actionType: 'email-verification' 
+      actionType: 'reset-password' 
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/u/verify-email?token=${token}`;
+    resetLink += `/reset-password?token=${token}`;
 
     const emailData = {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'email-verification',
+      templateName: 'reset-password',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -126,7 +126,7 @@ const createCompanySuperAdmin = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
     }
 
-    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo } = request.getModels('xpaxr');
+    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo, Emailtemplate, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, companyName, } = request.payload || {};
     const accountType = 'companysuperadmin';
 
@@ -198,18 +198,18 @@ const createCompanySuperAdmin = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user', 
-      actionType: 'email-verification' 
+      actionType: 'reset-password' 
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/u/verify-email?token=${token}`;
+    resetLink += `/reset-password?token=${token}`;
 
     const emailData = {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'email-verification',
+      templateName: 'reset-password',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -323,18 +323,18 @@ const createCompanyStaff = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user', 
-      actionType: 'email-verification' 
+      actionType: 'reset-password' 
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/u/verify-email?token=${token}`;
+    resetLink += `/reset-password?token=${token}`;
 
     const emailData = {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'email-verification',
+      templateName: 'reset-password',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -664,7 +664,7 @@ const resetPassword = async (request, h) => {
       return h.response({ error: true, message: 'Passwords are not matching!'}).code(400);
     }
     
-    const { User, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Requesttoken } = request.getModels('xpaxr');
     
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
@@ -686,7 +686,10 @@ const resetPassword = async (request, h) => {
       return h.response({ error: true, message: 'Invalid URL!'}).code(400);
     };
     const hashedPassword = bcrypt.hashSync(password1, 12);        // Setting salt to 12.
-    await User.update({ password: hashedPassword }, { where: { userId }});
+    await Promise.all([
+      User.update({ password: hashedPassword }, { where: { userId }}),
+      Userinfo.update({ isEmailVerified: true }, { where: { userId }}),
+    ]);
 
     return h.response({message: 'Password updation successful'}).code(200);
   }
