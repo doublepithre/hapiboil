@@ -17,7 +17,6 @@ import {
     shareApplication, 
     updateSharedApplication,
     getRecommendedTalents,
-    getJobRecommendations,
 } from "../controllers/job";
 
 const xjob = {
@@ -211,25 +210,7 @@ const xjob = {
           },
           handler: getRecommendedTalents,
         },
-      });
-      server.route({
-        method: 'GET',
-        path: '/j/recommendations',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: async(request,h)=>{
-            try{
-              return await getJobRecommendations(request,h)
-            }catch(err){
-              console.error(err.stack)
-              return h.response({"message":"Internal Server Error"}).code(500)
-            }
-            
-          }
-        },
-      });
+      });      
     } 
     catch(err) {
       console.log(err);

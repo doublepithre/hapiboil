@@ -252,21 +252,21 @@ const getAllJobs = async (request, h) => {
         if(recommendedVal === 1){
             /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
 
-            let model = request.getModels('xpaxr');
-            if (!await isUserQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-            recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
-            recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+            // let model = request.getModels('xpaxr');
+            // if (!await isUserQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+            // recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
+            // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
             
             
 
             // FAKE RECOMMENDED DATA (delete it when going for staging)
-            // const recommendations = [
-            //     { job_id: '5', score: '5' },
-            //     { job_id: '7', score: '4' },
-            //     { job_id: '9', score: '3' },
-            //     { job_id: '6', score: '2' },
-            //     { job_id: '8', score: '1' },
-            // ]
+            const recommendations = [
+                { job_id: '5', score: '5' },
+                { job_id: '7', score: '4' },
+                { job_id: '9', score: '3' },
+                { job_id: '6', score: '2' },
+                { job_id: '8', score: '1' },
+            ]
         
             // storing all the jobIds in the given order            
             recommendations.forEach(item =>{
@@ -1328,19 +1328,19 @@ const getRecommendedTalents = async (request, h) => {
       if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
-        let model = request.getModels('xpaxr');
-        if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
-        recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+        // let model = request.getModels('xpaxr');
+        // if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+        // let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+        // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
         
         // FAKE RECOMMENDED DATA (delete it when going for staging)
-        // const recommendations = [
-        //     { user_id: '135', score: '5' },
-        //     { user_id: '139', score: '4' },
-        //     { user_id: '137', score: '3' },
-        //     { user_id: '136', score: '2' },
-        //     { user_id: '140', score: '1' },
-        // ]
+        const recommendations = [
+            { user_id: '135', score: '5' },
+            { user_id: '139', score: '4' },
+            { user_id: '137', score: '3' },
+            { user_id: '136', score: '2' },
+            { user_id: '140', score: '1' },
+        ]
     
         // storing all the jobIds in the given order   
         const userIdArray = [];
@@ -1441,24 +1441,9 @@ const getRecommendedTalents = async (request, h) => {
     }
 }
 
-const getJobRecommendations = async (request,h) => {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    let model = request.getModels('xpaxr');
-    if (!await isQuestionnaireDone(userId,model)){
-      return h.response({error:"Questionnaire Not Done"}).code(409)
-    }
-    let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
-    recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
-    return h.response().code(200);
-}
-
 const isJobQuestionnaireDone = async(jobId,model)=>{
     const { Jobsquesresponse,Questionnaire,Questiontarget } = model
-    let questionnaireCount = await Questionnaire.count({
+    let questionnaireCount = Questionnaire.count({
       include:[{
           model:Questiontarget,
           as:"questionTarget",
@@ -1473,7 +1458,7 @@ const isJobQuestionnaireDone = async(jobId,model)=>{
       required:true
     })
   
-    let responsesCount = await Jobsquesresponse.count({
+    let responsesCount = Jobsquesresponse.count({
         required:true,
         include:[
             {
@@ -1490,7 +1475,7 @@ const isJobQuestionnaireDone = async(jobId,model)=>{
       }
     });
     //   return await questionnaireCount === await responsesCount;
-      return  questionnaireCount ===  responsesCount;
+      return await questionnaireCount === await responsesCount;
 }
 
 const isUserQuestionnaireDone = async(userId,model)=>{
@@ -1529,7 +1514,6 @@ const isUserQuestionnaireDone = async(userId,model)=>{
       return await questionnaireCount === await responsesCount;
 }
 
-
 module.exports = {
     createJob,
     getJobDetailsOptions,
@@ -1549,5 +1533,4 @@ module.exports = {
     shareApplication, 
     updateSharedApplication,
     getRecommendedTalents,
-    getJobRecommendations
 }
