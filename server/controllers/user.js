@@ -68,6 +68,44 @@ const createUser = async (request, h) => {
       companyUuid: null
     });
     delete udata.dataValues.password;//remove hasedpassword when returning
+
+    // SENDING THE VERIFICATION EMAIL (confirmation email)
+    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+    const expiresInHrs = 1;                             // Specifying expiry time in hrs
+    let expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
+    const reqTokenRecord = await Requesttoken.create({ 
+      requestKey: token, 
+      userId,
+      expiresAt,
+      resourceType: 'user', 
+      actionType: 'email-verification' 
+    });
+    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
+
+    let resetLink = getDomainURL();
+    resetLink += `/u/verify-email?token=${token}`;
+
+    const emailData = {
+      emails: [email],
+      email: email,
+      ccEmails: [],
+      templateName: 'email-verification',
+      resetLink,      
+      isX0PATemplate: true,
+    };
+
+    const additionalEData = {
+      userId,
+      Emailtemplate,
+      Userinfo,
+      Companyinfo,
+      Emaillog,
+    };
+    sendEmailAsync(emailData, additionalEData);
+    // ----------------end of verification email sending
+    
     return h.response(udata).code(201);
   } catch (error) {
     console.error(error.stack);
@@ -148,6 +186,44 @@ const createCompanySuperAdmin = async (request, h) => {
       companyUuid,
     });
     delete udata.dataValues.password; //remove hasedpassword when returning
+
+    // SENDING THE VERIFICATION EMAIL (confirmation email)
+    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+    const expiresInHrs = 1;                             // Specifying expiry time in hrs
+    let expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
+    const reqTokenRecord = await Requesttoken.create({ 
+      requestKey: token, 
+      userId,
+      expiresAt,
+      resourceType: 'user', 
+      actionType: 'email-verification' 
+    });
+    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
+
+    let resetLink = getDomainURL();
+    resetLink += `/u/verify-email?token=${token}`;
+
+    const emailData = {
+      emails: [email],
+      email: email,
+      ccEmails: [],
+      templateName: 'email-verification',
+      resetLink,      
+      isX0PATemplate: true,
+    };
+
+    const additionalEData = {
+      userId,
+      Emailtemplate,
+      Userinfo,
+      Companyinfo,
+      Emaillog,
+    };
+    sendEmailAsync(emailData, additionalEData);
+    // ----------------end of verification email sending
+
     return h.response(udata).code(201);
   } catch (error) {
     console.error(error.stack);

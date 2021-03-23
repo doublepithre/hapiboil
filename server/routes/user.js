@@ -113,9 +113,7 @@ const xuser = {
         method: 'PATCH',
         path: '/verify/{requestKey}',
         options: {
-          auth: {
-            mode: 'try',
-          },
+          auth: false,
           handler: verifyEmail,
         },
       });
