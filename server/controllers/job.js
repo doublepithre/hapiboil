@@ -1458,7 +1458,7 @@ const getJobRecommendations = async (request,h) => {
 
 const isJobQuestionnaireDone = async(jobId,model)=>{
     const { Jobsquesresponse,Questionnaire,Questiontarget } = model
-    let questionnaireCount = Questionnaire.count({
+    let questionnaireCount = await Questionnaire.count({
       include:[{
           model:Questiontarget,
           as:"questionTarget",
@@ -1473,7 +1473,7 @@ const isJobQuestionnaireDone = async(jobId,model)=>{
       required:true
     })
   
-    let responsesCount = Jobsquesresponse.count({
+    let responsesCount = await Jobsquesresponse.count({
         required:true,
         include:[
             {
@@ -1489,7 +1489,8 @@ const isJobQuestionnaireDone = async(jobId,model)=>{
         jobId
       }
     });
-      return await questionnaireCount === await responsesCount;
+    //   return await questionnaireCount === await responsesCount;
+      return  questionnaireCount ===  responsesCount;
 }
 
 const isUserQuestionnaireDone = async(userId,model)=>{
