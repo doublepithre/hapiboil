@@ -252,21 +252,21 @@ const getAllJobs = async (request, h) => {
         if(recommendedVal === 1){
             /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
 
-            // let model = request.getModels('xpaxr');
-            // if (!await isQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-            // recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
-            // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+            let model = request.getModels('xpaxr');
+            if (!await isUserQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+            recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
+            recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
             
             
 
             // FAKE RECOMMENDED DATA (delete it when going for staging)
-            const recommendations = [
-                { job_id: '19', score: '5' },
-                { job_id: '18', score: '4' },
-                { job_id: '45', score: '3' },
-                { job_id: '52', score: '2' },
-                { job_id: '10', score: '1' },
-            ]
+            // const recommendations = [
+            //     { job_id: '5', score: '5' },
+            //     { job_id: '7', score: '4' },
+            //     { job_id: '9', score: '3' },
+            //     { job_id: '6', score: '2' },
+            //     { job_id: '8', score: '1' },
+            // ]
         
             // storing all the jobIds in the given order            
             recommendations.forEach(item =>{
@@ -1328,17 +1328,19 @@ const getRecommendedTalents = async (request, h) => {
       if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
-        // let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
-        // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+        let model = request.getModels('xpaxr');
+        if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+        recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
         
         // FAKE RECOMMENDED DATA (delete it when going for staging)
-        const recommendations = [
-            { user_id: '181', score: '5' },
-            { user_id: '180', score: '4' },
-            { user_id: '197', score: '3' },
-            { user_id: '187', score: '2' },
-            { user_id: '193', score: '1' },
-        ]
+        // const recommendations = [
+        //     { user_id: '135', score: '5' },
+        //     { user_id: '139', score: '4' },
+        //     { user_id: '137', score: '3' },
+        //     { user_id: '136', score: '2' },
+        //     { user_id: '140', score: '1' },
+        // ]
     
         // storing all the jobIds in the given order   
         const userIdArray = [];
@@ -1454,9 +1456,45 @@ const getJobRecommendations = async (request,h) => {
     return h.response().code(200);
 }
 
-const isQuestionnaireDone = async(userId,model)=>{
+const isJobQuestionnaireDone = async(jobId,model)=>{
+    const { Jobsquesresponse,Questionnaire,Questiontarget } = model
+    let questionnaireCount = Questionnaire.count({
+      include:[{
+          model:Questiontarget,
+          as:"questionTarget",
+          where:{
+            targetName:"empauwer_all"
+          },
+          required:true
+      }],
+      where:{
+        isActive:true
+      },
+      required:true
+    })
+  
+    let responsesCount = Jobsquesresponse.count({
+        required:true,
+        include:[
+            {
+                model:Questionnaire,
+                as:"question",
+                where:{
+                    isActive:true
+                },
+                required:true
+            }
+        ],
+      where:{
+        jobId
+      }
+    });
+      return await questionnaireCount === await responsesCount;
+}
+
+const isUserQuestionnaireDone = async(userId,model)=>{
     const { Userquesresponse,Questionnaire,Questiontarget } = model
-    let questionnaireCount = await Questionnaire.count({
+    let questionnaireCount = Questionnaire.count({
       include:[{
           model:Questiontarget,
           as:"questionTarget",
@@ -1471,7 +1509,7 @@ const isQuestionnaireDone = async(userId,model)=>{
       required:true
     })
   
-    let responsesCount = await Userquesresponse.count({
+    let responsesCount = Userquesresponse.count({
         required:true,
         include:[
             {
@@ -1485,9 +1523,10 @@ const isQuestionnaireDone = async(userId,model)=>{
         ],
       where:{
         userId
-      }});
-      return questionnaireCount === responsesCount;
-  }
+      }
+    });
+      return await questionnaireCount === await responsesCount;
+}
 
 
 module.exports = {
