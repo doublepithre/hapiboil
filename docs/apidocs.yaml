@@ -825,6 +825,28 @@ paths:
         - Job
       security:
       - bearerAuth: []
+      parameters:
+        - name: ownJobs
+          in: query          
+          required: false
+          schema:
+            type: number
+            enum: [1, 0]
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [score:asc, score:desc, created_at:asc, created_at:desc, job_name:asc, job_name:desc]
+        
+        - name: createDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
       responses:
         '200':
           description: OK
