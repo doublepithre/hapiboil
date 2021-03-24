@@ -1353,7 +1353,7 @@ const getRecommendedTalents = async (request, h) => {
 
       // sort query
       let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'ASC'];
-      const validSorts = ['score', 'first_name', 'last_name', 'status'];
+      const validSorts = ['score', 'first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       // pagination
