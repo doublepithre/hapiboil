@@ -1115,38 +1115,7 @@ paths:
               schema:
                 type: object                
                 $ref: "#/components/schemas/paginatedUsers" 
-
-  /job/j/recommendations:
-    get: 
-      summary: Get recommended jobs for user
-      description: | 
-        Note this route requires data science server to be running.
-
-        Returns list of recommended jobs in sorted order. i.e. First element is the most recommended.
-      tags:
-        - Job
-      security:
-      - bearerAuth: []
-      responses:
-        '409':
-          description: Questionnaire is not completed yet
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  error:
-                    type: string
-                    example: Questionnaire Not Done
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/jobDetailed"
-
+  
 components:
   securitySchemes:
     bearerAuth:            # arbitrary name for the security scheme
