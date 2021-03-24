@@ -592,7 +592,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job?limit={limit}&offset={skip}&recommended={1}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&createDate={lowerDate}&createDate={upperDate}:
+  /job?limit={limit}&offset={skip}&recommended={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&createDate={lowerDate}&createDate={upperDate}:
     post: 
       summary: Create Job
       tags:
@@ -818,7 +818,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobShared" 
 
-  /job/j/recruiter?limit={limit}&offset={skip}&ownJobs={1}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
+  /job/j/recruiter?limit={limit}&offset={skip}&ownJobs={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
       summary: Get recruiter jobs
       tags:
@@ -976,13 +976,27 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplicationDetailed"                      
       
-  /job/j/applications/{jobId}?limit={limit}&&offset={skip}:
+  /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&applicationDate={lowerDate}&applicationDate={upperDate}:
     get: 
       summary: Get all Applicants
       tags:
         - Job
       security:
       - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, application_date:asc, application_date:desc, status:asc, status:desc]
+        
+        - name: applicationDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
       responses:
         '200':
           description: OK
