@@ -479,9 +479,8 @@ const updatePassword = async (request, h) => {
         where:{ userUuid: userUuid },
         attributes: { exclude: ['createdAt', 'updatedAt']
       }
-    });
-    const userData = updatedUser && updatedUser.toJSON();
-    return h.response(userData).code(200);
+    });    
+    return h.response({message: 'Password updation successful'}).code(200);
   }
   catch(error) {
     console.log(error.stack);
