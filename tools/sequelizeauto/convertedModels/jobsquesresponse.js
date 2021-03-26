@@ -29,13 +29,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      references: {
-        model: {
-          tableName: 'jobs',
-          schema: 'hris'
-        },
-        key: 'job_id'
-      },
       field: 'job_id'
     },
     createdAt: {
@@ -71,11 +64,9 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Jobsquesresponse = model.Jobsquesresponse;
-  const Job = model.Job;
   const Questionnaire = model.Questionnaire;
 
 
-  Jobsquesresponse.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Jobsquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
 
 }

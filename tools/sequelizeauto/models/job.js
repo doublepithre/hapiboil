@@ -30,7 +30,7 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       references: {
         model: {
-          tableName: 'userinfo',
+          tableName: 'user',
           schema: 'hris'
         },
         key: 'user_id'

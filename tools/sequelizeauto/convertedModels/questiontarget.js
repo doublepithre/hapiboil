@@ -42,9 +42,7 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Questiontarget = model.Questiontarget;
-  const Questionnaire = model.Questionnaire;
 
 
-  Questiontarget.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionTargetId"});
 
 }

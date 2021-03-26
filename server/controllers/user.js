@@ -410,7 +410,7 @@ const updateUser = async (request, h) => {
       'active',      'firstName',
       'lastName',    'isAdmin',
       'tzid',        'primaryMobile',
-      'roleId'
+      'roleId', 'privacyClause',
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));

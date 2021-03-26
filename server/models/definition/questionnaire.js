@@ -75,14 +75,7 @@ module.exports = (sequelize, DataTypes) => {
     },
     questionTargetId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: {
-          tableName: 'questiontarget',
-          schema: 'hris'
-        },
-        key: 'target_id'
-      },
+      allowNull: false,
       field: 'question_target_id'
     },
     isActive: {
@@ -125,27 +118,24 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Questionnaire = model.Questionnaire;
-  const Job = model.Job;
+  const Userinfo = model.Userinfo;
   const Questioncategory = model.Questioncategory;
   const Jobsquesresponse = model.Jobsquesresponse;
   const Questionmapping = model.Questionmapping;
   const Questionnaireanswer = model.Questionnaireanswer;
   const Userquesresponse = model.Userquesresponse;
-  const Questiontarget = model.Questiontarget;
   const Questiontype = model.Questiontype;
-  const Userinfo = model.Userinfo;
 
 
-  Questionnaire.belongsToMany(Job, { through: Jobsquesresponse, foreignKey: "questionId", otherKey: "jobId" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid", as:"ea2em" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid", as:"em2ea" });
+  Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questionnaire.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "questionId"});
   Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});
   Questionnaire.hasMany(Questionmapping, { as: "empauwerMeQQuestionmappings", foreignKey: "empauwerMeQid"});
   Questionnaire.hasMany(Questionnaireanswer, { as: "questionnaireanswers", foreignKey: "questionId"});
   Questionnaire.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "questionId"});
-  Questionnaire.belongsTo(Questiontarget, { as: "questionTarget", foreignKey: "questionTargetId"});
   Questionnaire.belongsTo(Questiontype, { as: "questionType", foreignKey: "questionTypeId"});
   Questionnaire.belongsTo(Userinfo, { as: "createdByUserinfo", foreignKey: "createdBy"});
 

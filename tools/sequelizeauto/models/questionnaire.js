@@ -75,14 +75,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     questionTargetId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
-      references: {
-        model: {
-          tableName: 'questiontarget',
-          schema: 'hris'
-        },
-        key: 'target_id'
-      },
+      allowNull: false,
       field: 'question_target_id'
     },
     isActive: {

@@ -34,13 +34,6 @@ module.exports = (sequelize, DataTypes) => {
     roleId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: {
-          tableName: 'userrole',
-          schema: 'hris'
-        },
-        key: 'role_id'
-      },
       field: 'role_id'
     },
     userTypeId: {
@@ -129,6 +122,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: false,
       field: 'is_email_verified'
+    },
+    privacyClause: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'privacy_clause'
     }
   }, {
     sequelize,
@@ -160,20 +159,20 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Userinfo = model.Userinfo;
-  const Jobapplication = model.Jobapplication;
   const Job = model.Job;
+  const Questionnaire = model.Questionnaire;
   const Company = model.Company;
   const User = model.User;
   const Applicationhiremember = model.Applicationhiremember;
+  const Jobapplication = model.Jobapplication;
   const Jobhiremember = model.Jobhiremember;
-  const Questionnaire = model.Questionnaire;
   const Usermeta = model.Usermeta;
-  const Userrole = model.Userrole;
+  const Userquesresponse = model.Userquesresponse;
   const Usertype = model.Usertype;
 
 
-  Userinfo.belongsToMany(Jobapplication, { through: Applicationhiremember, foreignKey: "userId", otherKey: "applicationId" });
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
@@ -181,10 +180,9 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
-  Userinfo.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
-  Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
+  Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
 
 }

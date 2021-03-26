@@ -90,13 +90,10 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Jobapplication = model.Jobapplication;
-  const Userinfo = model.Userinfo;
-  const Applicationhiremember = model.Applicationhiremember;
   const Job = model.Job;
+  const Userinfo = model.Userinfo;
 
 
-  Jobapplication.belongsToMany(Userinfo, { through: Applicationhiremember, foreignKey: "applicationId", otherKey: "userId" });
-  Jobapplication.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "applicationId"});
   Jobapplication.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Jobapplication.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 

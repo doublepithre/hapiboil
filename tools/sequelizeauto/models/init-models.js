@@ -60,14 +60,12 @@ function initModels(sequelize) {
   var Userrole = _Userrole(sequelize, DataTypes);
   var Usertype = _Usertype(sequelize, DataTypes);
 
-  Jobapplication.belongsToMany(Userinfo, { through: Applicationhiremember, foreignKey: "applicationId", otherKey: "userId" });
-  Job.belongsToMany(Questionnaire, { through: Jobsquesresponse, foreignKey: "jobId", otherKey: "questionId" });
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
-  Questionnaire.belongsToMany(Job, { through: Jobsquesresponse, foreignKey: "questionId", otherKey: "jobId" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
-  Userinfo.belongsToMany(Jobapplication, { through: Applicationhiremember, foreignKey: "userId", otherKey: "applicationId" });
+  Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
@@ -76,8 +74,6 @@ function initModels(sequelize) {
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
-  Applicationhiremember.belongsTo(Jobapplication, { as: "application", foreignKey: "applicationId"});
-  Jobapplication.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "applicationId"});
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
   Jobfunction.hasMany(Job, { as: "jobs", foreignKey: "jobFunctionId"});
   Job.belongsTo(Jobindustry, { as: "jobIndustry", foreignKey: "jobIndustryId"});
@@ -88,8 +84,6 @@ function initModels(sequelize) {
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
   Jobhiremember.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
-  Jobsquesresponse.belongsTo(Job, { as: "job", foreignKey: "jobId"});
-  Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
   Jobtype.hasMany(Job, { as: "jobs", foreignKey: "jobTypeId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
@@ -106,10 +100,10 @@ function initModels(sequelize) {
   Questionnaire.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "questionId"});
   Qaattribute.belongsTo(Questionnaireanswer, { as: "answer", foreignKey: "answerId"});
   Questionnaireanswer.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "answerId"});
-  Questionnaire.belongsTo(Questiontarget, { as: "questionTarget", foreignKey: "questionTargetId"});
-  Questiontarget.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionTargetId"});
   Questionnaire.belongsTo(Questiontype, { as: "questionType", foreignKey: "questionTypeId"});
   Questiontype.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionTypeId"});
+  Job.belongsTo(User, { as: "user", foreignKey: "userId"});
+  User.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
   User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
@@ -120,14 +114,12 @@ function initModels(sequelize) {
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
-  Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
-  Userinfo.hasMany(Job, { as: "jobs", foreignKey: "userId"});
   Questionnaire.belongsTo(Userinfo, { as: "createdByUserinfo", foreignKey: "createdBy"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Usermetum, { as: "usermeta", foreignKey: "userId"});
-  Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
-  Userrole.hasMany(Userinfo, { as: "userinfos", foreignKey: "roleId"});
+  Userquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
   Usertype.hasMany(Userinfo, { as: "userinfos", foreignKey: "userTypeId"});
 

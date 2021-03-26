@@ -34,13 +34,6 @@ module.exports = function(sequelize, DataTypes) {
     roleId: {
       type: DataTypes.INTEGER,
       allowNull: false,
-      references: {
-        model: {
-          tableName: 'userrole',
-          schema: 'hris'
-        },
-        key: 'role_id'
-      },
       field: 'role_id'
     },
     userTypeId: {
@@ -129,6 +122,12 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: false,
       field: 'is_email_verified'
+    },
+    privacyClause: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'privacy_clause'
     }
   }, {
     sequelize,

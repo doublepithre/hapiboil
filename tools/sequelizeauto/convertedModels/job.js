@@ -30,7 +30,7 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       references: {
         model: {
-          tableName: 'userinfo',
+          tableName: 'user',
           schema: 'hris'
         },
         key: 'user_id'
@@ -146,26 +146,23 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Job = model.Job;
-  const Questionnaire = model.Questionnaire;
   const Userinfo = model.Userinfo;
   const Jobfunction = model.Jobfunction;
   const Jobindustry = model.Jobindustry;
   const Joblocation = model.Joblocation;
   const Jobapplication = model.Jobapplication;
   const Jobhiremember = model.Jobhiremember;
-  const Jobsquesresponse = model.Jobsquesresponse;
   const Jobtype = model.Jobtype;
+  const User = model.User;
 
 
-  Job.belongsToMany(Questionnaire, { through: Jobsquesresponse, foreignKey: "jobId", otherKey: "questionId" });
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
   Job.belongsTo(Jobindustry, { as: "jobIndustry", foreignKey: "jobIndustryId"});
   Job.belongsTo(Joblocation, { as: "jobLocation", foreignKey: "jobLocationId"});
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
-  Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
-  Job.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Job.belongsTo(User, { as: "user", foreignKey: "userId"});
 
 }
