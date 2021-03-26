@@ -116,6 +116,10 @@ module.exports = function(sequelize, DataTypes) {
         key: 'job_location_id'
       },
       field: 'job_location_id'
+    },
+    duration: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     }
   }, {
     sequelize,

@@ -17,7 +17,7 @@ const createJob = async (request, h) => {
         }
 
         const jobDetails = request.payload || {};
-        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, } = jobDetails;
+        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration } = jobDetails;
         if(!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp)){
             return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
         }
@@ -25,11 +25,25 @@ const createJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
         
-        const { Job, Jobhiremember, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Userinfo, Jobtype } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId } = userProfileInfo || {};
+
+        const jobTypeRecord = await Jobtype.findOne({ where: { jobTypeId }});
+        const jobTypeInfo = jobTypeRecord && jobTypeRecord.toJSON();
+        const { jobTypeName } = jobTypeInfo || {};
+
+        const jobsWithDuration = [ 'Internship', 'Full-time Contract', 'Part-time Contract'];
+        const isJobWithDuration = jobsWithDuration.includes(jobTypeName);
+
+        if(isJobWithDuration && !duration){
+            return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+        }
+        if(!isJobWithDuration){
+            jobDetails.duration = null;
+        }
 
         const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });        
         await Jobhiremember.create({ accessLevel: 'owner', userId, jobId: resRecord.jobId, })
@@ -706,7 +720,7 @@ const updateJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { jobUuid } = request.params || {};
-        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate } = request.payload || {};
+        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
         
         const { Job, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
@@ -719,7 +733,7 @@ const updateJob = async (request, h) => {
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
             return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
         }
-        await Job.update({jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate}, { where: { jobUuid }});
+        await Job.update({ jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration }, { where: { jobUuid }});
         
         const record = await Job.findOne({where: {jobUuid}});
         return h.response(record).code(201);
