@@ -722,7 +722,7 @@ const updateJob = async (request, h) => {
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
         
-        const { Job, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -733,7 +733,40 @@ const updateJob = async (request, h) => {
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
             return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
         }
-        await Job.update({ jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration }, { where: { jobUuid }});
+
+        let typeIdOfThisUpdatedJob;
+        let durationVal = duration;
+        if(!durationVal){
+            const jobRecord = await Job.findOne({ where: { jobUuid }});
+            const jobInfo = jobRecord && jobRecord.toJSON();
+            const { jobTypeId: thisJobTypeId, duration: thisJobDuration } = jobInfo || {};    
+            durationVal = thisJobDuration;
+        }
+
+        if(jobTypeId){            
+            typeIdOfThisUpdatedJob = jobTypeId;
+        } else {
+            const jobRecord = await Job.findOne({ where: { jobUuid }});
+            const jobInfo = jobRecord && jobRecord.toJSON();
+            const { jobTypeId: thisJobTypeId } = jobInfo || {};    
+            typeIdOfThisUpdatedJob = thisJobTypeId;            
+        }
+
+        const jobTypeRecord = await Jobtype.findOne({ where: { jobTypeId: typeIdOfThisUpdatedJob }});
+        const jobTypeInfo = jobTypeRecord && jobTypeRecord.toJSON();
+        const { jobTypeName } = jobTypeInfo || {};
+
+        const jobsWithDuration = [ 'Internship', 'Full-time Contract', 'Part-time Contract'];
+        const isJobWithDuration = jobsWithDuration.includes(jobTypeName);
+
+        if(isJobWithDuration && !durationVal){
+            return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+        }
+        if(!isJobWithDuration){
+            durationVal = null;
+        }
+
+        await Job.update({ jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});
         
         const record = await Job.findOne({where: {jobUuid}});
         return h.response(record).code(201);
