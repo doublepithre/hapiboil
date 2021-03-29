@@ -766,9 +766,10 @@ const createProfile = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { responses } = request.payload || {};
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    const { Userquesresponse } = request.getModels('xpaxr');
+    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
     // Checking user type from jwt
     const db1 = request.getDb('xpaxr');
     let data = []
@@ -795,6 +796,21 @@ const createProfile = async (request, h) => {
       // For Employer profile creation
     } else if ( userTypeName  === 'mentor') {
       // For Mentor profile creation
+      for (const response of responses) {
+        const { questionId, answer, timeTaken } = response || {};
+        const record = { questionId, responseVal:{answer}, userId, timeTaken }
+        data.push(record);
+      }
+      await Mentorquesresponse.bulkCreate(data, {updateOnDuplicate:["responseVal", "timeTaken"]});
+      const quesResponses = await Mentorquesresponse.findAll({ where: { userId }});      
+      const resRecord = [];
+      for (let response of quesResponses) {
+        response = response && response.toJSON();
+        const { questionId, responseVal } = response;
+        const res = { questionId, answer:responseVal.answer };
+        resRecord.push(res);
+      }
+      createProfileResponse = { responses: resRecord };
     } else {
       return h.response({ error: true, message: 'Invalid Request!'}).code(400);
     }    

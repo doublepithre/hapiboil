@@ -166,12 +166,14 @@ const initRelations = (model) =>{
   const Applicationhiremember = model.Applicationhiremember;
   const Jobapplication = model.Jobapplication;
   const Jobhiremember = model.Jobhiremember;
+  const Mentorquesresponse = model.Mentorquesresponse;
   const Usermeta = model.Usermeta;
   const Userquesresponse = model.Userquesresponse;
   const Usertype = model.Usertype;
 
 
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Mentorquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
@@ -180,6 +182,7 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
   Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});

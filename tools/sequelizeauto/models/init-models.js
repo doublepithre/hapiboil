@@ -14,6 +14,7 @@ var _Joblocation = require("./joblocation");
 var _Job = require("./job");
 var _Jobsquesresponse = require("./jobsquesresponse");
 var _Jobtype = require("./jobtype");
+var _Mentorquesresponse = require("./mentorquesresponse");
 var _Qaattribute = require("./qaattribute");
 var _Questioncategory = require("./questioncategory");
 var _Questionmapping = require("./questionmapping");
@@ -45,6 +46,7 @@ function initModels(sequelize) {
   var Job = _Job(sequelize, DataTypes);
   var Jobsquesresponse = _Jobsquesresponse(sequelize, DataTypes);
   var Jobtype = _Jobtype(sequelize, DataTypes);
+  var Mentorquesresponse = _Mentorquesresponse(sequelize, DataTypes);
   var Qaattribute = _Qaattribute(sequelize, DataTypes);
   var Questioncategory = _Questioncategory(sequelize, DataTypes);
   var Questionmapping = _Questionmapping(sequelize, DataTypes);
@@ -63,8 +65,10 @@ function initModels(sequelize) {
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
+  Questionnaire.belongsToMany(Userinfo, { through: Mentorquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Mentorquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
@@ -90,6 +94,8 @@ function initModels(sequelize) {
   Questioncategory.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionCategoryId"});
   Jobsquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Questionnaire.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "questionId"});
+  Mentorquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
+  Questionnaire.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "questionId"});
   Questionmapping.belongsTo(Questionnaire, { as: "empauwerAllQ", foreignKey: "empauwerAllQid"});
   Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});
   Questionmapping.belongsTo(Questionnaire, { as: "empauwerMeQ", foreignKey: "empauwerMeQid"});
@@ -100,6 +106,8 @@ function initModels(sequelize) {
   Questionnaire.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "questionId"});
   Qaattribute.belongsTo(Questionnaireanswer, { as: "answer", foreignKey: "answerId"});
   Questionnaireanswer.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "answerId"});
+  Questionnaire.belongsTo(Questiontarget, { as: "questionTarget", foreignKey: "questionTargetId"});
+  Questiontarget.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionTargetId"});
   Questionnaire.belongsTo(Questiontype, { as: "questionType", foreignKey: "questionTypeId"});
   Questiontype.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionTypeId"});
   Job.belongsTo(User, { as: "user", foreignKey: "userId"});
@@ -114,6 +122,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Mentorquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
   Questionnaire.belongsTo(Userinfo, { as: "createdByUserinfo", foreignKey: "createdBy"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
@@ -139,6 +149,7 @@ function initModels(sequelize) {
     Job,
     Jobsquesresponse,
     Jobtype,
+    Mentorquesresponse,
     Qaattribute,
     Questioncategory,
     Questionmapping,
