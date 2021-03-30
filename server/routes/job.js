@@ -19,6 +19,7 @@ import {
     getApplicationAccessRecords,
     shareApplication, 
     updateSharedApplication,
+    deleteApplicationAccessRecord,
     getRecommendedTalents,
 } from "../controllers/job";
 
@@ -232,6 +233,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateSharedApplication,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteApplicationAccessRecord,
         },
       });
       server.route({

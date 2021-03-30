@@ -1473,6 +1473,64 @@ const updateSharedApplication = async (request, h) => {
     }
 }
 
+const deleteApplicationAccessRecord = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { applicationId: rParamsApplicationId } = request.params || {};
+        const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
+        const applicationRecord = await Jobapplication.findOne({where: { applicationId: rParamsApplicationId, isWithdrawn: false }});
+        const applicationRecordInfo = applicationRecord && applicationRecord.toJSON();
+        const { applicationId, jobId } = applicationRecordInfo || {};  
+        if(!applicationId) return h.response({ error: true, message: 'No application found'}).code(400);
+
+        const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
+        
+        // can he share this application?
+        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
+
+        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        
+        const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
+        if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+
+        // is already shared with this fellow recruiter
+        const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
+        const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
+        const { applicationHireMemberId } = alreadySharedInfo || {};
+
+        if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+        if(accessLevel === 'employer') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+
+        // delete the shared job record
+        await Applicationhiremember.destroy({ where: { applicationId, userId: fellowRecruiterId }});        
+        return h.response({message: 'Access record deleted'}).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+
 const getRecommendedTalents = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
@@ -1699,5 +1757,6 @@ module.exports = {
     getApplicationAccessRecords,
     shareApplication, 
     updateSharedApplication,
+    deleteApplicationAccessRecord,
     getRecommendedTalents,
 }
