@@ -570,6 +570,35 @@ const getRecruiterJobs = async (request, h) => {
     }
 }
 
+const getJobAccessRecords = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+        const { jobId } = request.params || {};
+        const { Jobhiremember } = request.getModels('xpaxr');
+
+        const luserAccessRecord = await Jobhiremember.findOne({ where: {jobId, userId}});
+        const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
+        const { accessLevel } = luserAccessInfo || {};
+        if(accessLevel !== 'owner') return h.response({error:true, message:'You are not authorized!'}).code(403);
+
+        const accessRecords = await Jobhiremember.findAll({ where: {jobId}});
+        return h.response({ accessRecords: accessRecords }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const shareJob = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -707,6 +736,7 @@ const updateSharedJob = async (request, h) => {
         return h.response({error: true, message: 'Bad Request'}).code(400);
     }
 }
+
 const deleteJobAccessRecord = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -732,7 +762,7 @@ const deleteJobAccessRecord = async (request, h) => {
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
         const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
-        
+
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
         
         const { userId: fellowRecruiterId } = request.payload || {};
@@ -1618,6 +1648,7 @@ module.exports = {
     getSingleJob,
     getAllJobs,
     getRecruiterJobs,
+    getJobAccessRecords,
     shareJob,
     updateSharedJob,
     deleteJobAccessRecord,

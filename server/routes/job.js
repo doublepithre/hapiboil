@@ -4,6 +4,7 @@ import {
     getSingleJob,
     getAllJobs,
     getRecruiterJobs,
+    getJobAccessRecords,
     shareJob,
     updateSharedJob,
     deleteJobAccessRecord,
@@ -80,6 +81,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/share-job/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobAccessRecords,
         },
       });
       server.route({

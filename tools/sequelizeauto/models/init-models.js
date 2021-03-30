@@ -130,6 +130,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Usermetum, { as: "usermeta", foreignKey: "userId"});
   Userquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
+  Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
+  Userrole.hasMany(Userinfo, { as: "userinfos", foreignKey: "roleId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
   Usertype.hasMany(Userinfo, { as: "userinfos", foreignKey: "userTypeId"});
 
