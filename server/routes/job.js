@@ -95,7 +95,7 @@ const xjob = {
       });
       server.route({
         method: 'POST',
-        path: '/j/share-job/{jobUuid}',
+        path: '/j/share-job/{jobId}',
         options: {
           auth: {
             mode: 'try',
@@ -105,7 +105,7 @@ const xjob = {
       });
       server.route({
         method: 'PATCH',
-        path: '/j/share-job/{jobUuid}',
+        path: '/j/share-job/{jobId}',
         options: {
           auth: {
             mode: 'try',
@@ -115,7 +115,7 @@ const xjob = {
       });
       server.route({
         method: 'DELETE',
-        path: '/j/share-job/{jobUuid}',
+        path: '/j/share-job/{jobId}',
         options: {
           auth: {
             mode: 'try',

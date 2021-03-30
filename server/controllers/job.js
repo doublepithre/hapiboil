@@ -612,7 +612,7 @@ const shareJob = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { jobUuid } = request.params || {};
+        const { jobId: rParamsJobId } = request.params || {};
         const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -620,7 +620,7 @@ const shareJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
         
-        const jobRecord = await Job.findOne({where: {jobUuid}});
+        const jobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
         const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
@@ -684,7 +684,7 @@ const updateSharedJob = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { jobUuid } = request.params || {};
+        const { jobId: rParamsJobId } = request.params || {};
         const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -692,7 +692,7 @@ const updateSharedJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobUuid}});
+        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {rParamsJobId}});
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
         
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -750,15 +750,15 @@ const deleteJobAccessRecord = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { jobUuid } = request.params || {};
-        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { jobId: rParamsJobId } = request.params || {};
+        const { Job, Jobhiremember, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const jobRecord = await Job.findOne({where: {jobUuid}});
+        const jobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
         const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
