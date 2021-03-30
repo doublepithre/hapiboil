@@ -6,6 +6,7 @@ import {
     getRecruiterJobs,
     shareJob,
     updateSharedJob,
+    deleteJobAccessRecord,
     updateJob,
     createJobQuesResponses,
     getJobQuesResponses,
@@ -99,6 +100,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateSharedJob,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/j/share-job/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteJobAccessRecord,
         },
       });
       server.route({

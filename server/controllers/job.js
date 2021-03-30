@@ -590,8 +590,11 @@ const shareJob = async (request, h) => {
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
-
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobUuid}});
+        
+        const jobRecord = await Job.findOne({where: {jobUuid}});
+        const jobRecordInfo = jobRecord && jobRecord.toJSON();
+        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
+        if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
 
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
             return h.response({error: true, message: `You are not authorized`}).code(403);
@@ -698,6 +701,54 @@ const updateSharedJob = async (request, h) => {
         await Jobhiremember.update({ accessLevel, userId: fellowRecruiterId, jobId }, { where: { jobId, userId: fellowRecruiterId }});
         const updatedAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
         return h.response(updatedAccessRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+const deleteJobAccessRecord = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { jobUuid } = request.params || {};
+        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+
+        const jobRecord = await Job.findOne({where: {jobUuid}});
+        const jobRecordInfo = jobRecord && jobRecord.toJSON();
+        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
+        if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
+        
+        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
+        
+        const { userId: fellowRecruiterId } = request.payload || {};
+        if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+       
+        // is already shared with this fellow recruiter
+        const alreadySharedRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
+        const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
+        const { jobHireMemberId, accessLevel } = alreadySharedInfo || {};
+
+        if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+        if(accessLevel === 'owner') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+
+        // delete the shared job record
+        await Jobhiremember.destroy({ where: { jobId, userId: fellowRecruiterId }});        
+        return h.response({message: 'Access record deleted'}).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -1569,6 +1620,7 @@ module.exports = {
     getRecruiterJobs,
     shareJob,
     updateSharedJob,
+    deleteJobAccessRecord,
     updateJob,
     createJobQuesResponses,
     getJobQuesResponses,
