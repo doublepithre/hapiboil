@@ -1254,6 +1254,8 @@ components:
           type: string
         isEmailVerified:
           type: boolean        
+        privacyClause:
+          type: boolean        
         userTypeId:
           type: number
         roleId:
@@ -1342,6 +1344,8 @@ components:
         jobLocationId:
           type: number
         minExp:
+          type: number
+        duration:
           type: number
         isPrivate:
           type: boolean
