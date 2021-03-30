@@ -1327,7 +1327,7 @@ const shareApplication = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { applicationId } = request.params || {};
+        const { applicationId: rParamsApplicationId } = request.params || {};
         const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -1335,9 +1335,12 @@ const shareApplication = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
                 
-        const { jobId } = await Jobapplication.findOne({where: { applicationId, isWithdrawn: false }});
+        const applicationRecord = await Jobapplication.findOne({where: { applicationId: rParamsApplicationId, isWithdrawn: false }});
+        const applicationRecordInfo = applicationRecord && applicationRecord.toJSON();
+        const { applicationId, jobId } = applicationRecordInfo || {};  
+        if(!applicationId) return h.response({ error: true, message: 'No application found'}).code(400);
+        
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
-
         if(recruiterCompanyId !== creatorCompanyId){
             return h.response({error: true, message: `You are not authorized`}).code(403);
         }
@@ -1404,7 +1407,7 @@ const updateSharedApplication = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
 
-        const { applicationId } = request.params || {};
+        const { applicationId: rParamsApplicationId } = request.params || {};
         const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -1412,7 +1415,11 @@ const updateSharedApplication = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { jobId } = await Jobapplication.findOne({where: { applicationId, isWithdrawn: false }});
+        const applicationRecord = await Jobapplication.findOne({where: { applicationId: rParamsApplicationId, isWithdrawn: false }});
+        const applicationRecordInfo = applicationRecord && applicationRecord.toJSON();
+        const { applicationId, jobId } = applicationRecordInfo || {};  
+        if(!applicationId) return h.response({ error: true, message: 'No application found'}).code(400);
+
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
         
