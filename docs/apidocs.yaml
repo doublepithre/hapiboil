@@ -754,7 +754,32 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
-  /job/j/share-job/{jobUuid}:
+  /job/j/share-job/{jobId}:
+    get: 
+      summary: Get Job Access Records
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          description: jobId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessRecords:
+                    type: array  
+                    items:
+                      $ref: "#/components/schemas/jobShared" 
     post: 
       summary: Share Job
       tags:
@@ -790,9 +815,9 @@ paths:
       security:
       - bearerAuth: []
       parameters:
-        - name: jobUuid
+        - name: jobId
           in: path
-          description: UUID of job
+          description: jobId
           required: true
           schema:
             type: string
@@ -817,6 +842,41 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/jobShared" 
+    
+    delete: 
+      summary: Delete Job Access Record
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path
+          description: jobId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: string
+                  example: "182"
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Access record deleted
 
   /job/j/recruiter?limit={limit}&offset={skip}&ownJobs={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
@@ -1029,6 +1089,31 @@ paths:
                 $ref: "#/components/schemas/User" 
 
   /job/j/share-application/{applicationId}:
+    get: 
+      summary: Get Application Access Records
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: applicationId
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  accessRecords:
+                    type: array  
+                    items:
+                      $ref: "#/components/schemas/applicationShared"
     post: 
       summary: Share Application
       tags:
@@ -1091,6 +1176,41 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/applicationShared" 
+    
+    delete: 
+      summary: Delete Application Access Records
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: applicationId
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:          
+                userId:
+                  type: string
+                  example: "182"
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Access record deleted
 
   /job/j/talents?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
