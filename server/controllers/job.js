@@ -1285,6 +1285,35 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
     }
 }
 
+const getApplicationAccessRecords = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+        const { applicationId } = request.params || {};
+        const { Applicationhiremember } = request.getModels('xpaxr');
+
+        const luserAccessRecord = await Applicationhiremember.findOne({ where: {applicationId, userId}});
+        const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
+        const { accessLevel } = luserAccessInfo || {};
+        if(accessLevel !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+
+        const accessRecords = await Applicationhiremember.findAll({ where: {applicationId}});
+        return h.response({ accessRecords }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const shareApplication = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -1660,6 +1689,7 @@ module.exports = {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    getApplicationAccessRecords,
     shareApplication, 
     updateSharedApplication,
     getRecommendedTalents,

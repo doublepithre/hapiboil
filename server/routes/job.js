@@ -16,6 +16,7 @@ import {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    getApplicationAccessRecords,
     shareApplication, 
     updateSharedApplication,
     getRecommendedTalents,
@@ -201,6 +202,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getApplicantProfile,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getApplicationAccessRecords,
         },
       });
       server.route({
