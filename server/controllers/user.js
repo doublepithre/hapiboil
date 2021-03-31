@@ -91,7 +91,7 @@ const createUser = async (request, h) => {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'reset-password',
+      templateName: 'account-creation',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -209,7 +209,7 @@ const createCompanySuperAdmin = async (request, h) => {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'reset-password',
+      templateName: 'account-creation',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -334,7 +334,7 @@ const createCompanyStaff = async (request, h) => {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'reset-password',
+      templateName: 'company-account-creation',
       resetLink,      
       isX0PATemplate: true,
     };
