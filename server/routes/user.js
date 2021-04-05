@@ -8,6 +8,7 @@ import {
   updateUser, 
   updatePassword,
   sendVerificationEmail,
+  resendCompanyVerificationEmail,
   verifyEmail,
   forgotPassword, 
   resetPassword, 
@@ -129,6 +130,16 @@ const xuser = {
             mode: 'try',
           },
           handler: sendVerificationEmail,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/resend-verify',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: resendCompanyVerificationEmail,
         },
       });
       server.route({

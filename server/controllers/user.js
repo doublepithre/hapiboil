@@ -646,6 +646,77 @@ const updatePassword = async (request, h) => {
   }
 }
 
+const resendCompanyVerificationEmail = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    
+    const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    
+    const { credentials } = request.auth || {};
+    const luserId = credentials.id;
+    
+    const luserRecord = await Userinfo.findOne({ where: { userId: luserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const { companyId } = luserRecord && luserRecord.toJSON();
+
+    const { userId } = request.payload || {};
+    if(!userId) return h.response({error:true, message:'Please provide necessary details!'}).code(400);
+
+    const userRecord = await Userinfo.findOne({ where: { userId, companyId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userInfo = userRecord && userRecord.toJSON();
+    const { email, active } = userInfo || {};
+    if(!email) return h.response({error:true, message:'No staff found!'}).code(400);
+    if(active) return h.response({error:true, message:'Already verified!'}).code(400);
+
+    // SENDING THE VERIFICATION EMAIL (confirmation email)
+    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+    const expiresInHrs = 1;                             // Specifying expiry time in hrs
+    let expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
+    const reqTokenRecord = await Requesttoken.create({ 
+      requestKey: token, 
+      userId,
+      expiresAt,
+      resourceType: 'user', 
+      actionType: 'reset-password' 
+    });
+    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
+
+    let resetLink = getDomainURL();
+    resetLink += `/reset-password?token=${token}`;
+
+    const emailData = {
+      emails: [email],
+      email: email,
+      ccEmails: [],
+      templateName: 'company-account-creation',
+      resetLink,      
+      isX0PATemplate: true,
+    };
+
+    const additionalEData = {
+      userId,
+      Emailtemplate,
+      Userinfo,
+      Companyinfo,
+      Emaillog,
+    };
+    sendEmailAsync(emailData, additionalEData);
+    // ----------------end of verification email sending
+
+    return h.response(reqToken).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
+  }
+}
+
 const sendVerificationEmail = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -845,7 +916,7 @@ const resetPassword = async (request, h) => {
     const hashedPassword = bcrypt.hashSync(password1, 12);        // Setting salt to 12.
     await Promise.all([
       User.update({ password: hashedPassword }, { where: { userId }}),
-      Userinfo.update({ isEmailVerified: true }, { where: { userId }}),
+      Userinfo.update({ isEmailVerified: true, active: true }, { where: { userId }}),
     ]);
 
     return h.response({message: 'Password updation successful'}).code(200);
@@ -1055,6 +1126,7 @@ module.exports = {
   updateUser,
   updatePassword,
   sendVerificationEmail,
+  resendCompanyVerificationEmail,
   verifyEmail,
   forgotPassword,
   resetPassword,
