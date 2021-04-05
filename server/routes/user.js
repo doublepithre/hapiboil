@@ -2,6 +2,7 @@ import {
   createUser, 
   createCompanySuperAdmin,
   createCompanyStaff,
+  updateCompanyStaff,
   getCompanyStaff,
   getUser, 
   updateUser, 
@@ -42,12 +43,22 @@ const xuser = {
       });
       server.route({
         method: 'POST',
-        path: '/create-staff',
+        path: '/company-staff',
         options: {
           auth: {
             mode: 'try',
           },
           handler: createCompanyStaff,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/company-staff/{userUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateCompanyStaff,
         },
       });
       server.route({

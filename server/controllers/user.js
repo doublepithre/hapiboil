@@ -467,6 +467,55 @@ const getCompanyStaff = async (request, h) => {
   }
 }
 
+const updateCompanyStaff = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    
+    const validUpdateRequests = [
+      'active',    'isAdmin',     'userTypeId',
+    ];
+    const requestedUpdateOperations = Object.keys(request.payload) || [];
+    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+    if (!isAllReqsValid) {
+      return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    }
+    const { Userinfo } = request.getModels('xpaxr');
+    
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+
+    const userRecord = await Userinfo.findOne({ where: { userId } });
+    const luser = userRecord && userRecord.toJSON();
+    const { userId: luserId, isAdmin, companyId: luserCompanyId } = luser || {};
+    
+    const { userUuid } = request.params || {};
+    const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
+    const { companyId: ruserCompanyId } = requestedForUser && requestedForUser.toJSON();
+
+    if (luserCompanyId !== ruserCompanyId) {
+      return h.response({ error: true, message: 'Bad Request! You are not authorized.'}).code(403);
+    }
+    
+    await Userinfo.update({ ...request.payload, roleId: request.payload.userTypeId }, { where: { userUuid: userUuid }} );
+    const updatedUinfo = await Userinfo.findOne({
+        where:{ userUuid: userUuid },
+        attributes: { exclude: ['createdAt', 'updatedAt']
+      }
+    });
+    const uinfo = updatedUinfo && updatedUinfo.toJSON();
+    return h.response(uinfo).code(200);
+  }
+  catch(error) {
+    console.log(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+  }
+}
+
 const getUser = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -1001,6 +1050,7 @@ module.exports = {
   createCompanySuperAdmin,
   createCompanyStaff,
   getCompanyStaff,
+  updateCompanyStaff,
   getUser,
   updateUser,
   updatePassword,
