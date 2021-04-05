@@ -241,7 +241,7 @@ const createCompanyStaff = async (request, h) => {
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
     if(luserTypeName !== 'companysuperadmin'){
-        return h.response({error:true, message:'You are not authorized!'}).code(403);
+      return h.response({error:true, message:'You are not authorized!'}).code(403);
     }
 
     const { User, Userinfo, Usertype, Userrole, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
@@ -357,6 +357,115 @@ const createCompanyStaff = async (request, h) => {
     }).code(400);
   }
 };
+
+const getCompanyStaff = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+
+    const { Userinfo } = request.getModels('xpaxr');
+    // get the company of the recruiter
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userProfileInfo = userRecord && userRecord.toJSON();
+    const { companyId } = userProfileInfo || {};
+
+    const { limit, offset, sort, search, userType } = request.query;            
+      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+      // sort query
+      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'ASC'];
+      if (!sortType) sortType = 'ASC';
+      const validSorts = ['first_name', 'last_name'];
+      const isSortReqValid = validSorts.includes(sortBy);
+
+
+      // pagination
+      const limitNum = limit ? Number(limit) : 10;
+      const offsetNum = offset ? Number(offset) : 0;
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      }       
+      if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+      
+
+      const db1 = request.getDb('xpaxr');
+
+      // get sql statement for getting all company staff or its count        
+      const filters = { search, sortBy, sortType, userType }
+      function getSqlStmt(queryType, obj = filters){            
+          const { search, sortBy, sortType, userType } = obj;
+          let sqlStmt;
+          const type = queryType && queryType.toLowerCase();
+          if(type === 'count'){
+              sqlStmt = `select count(*)`;
+          } else {
+              sqlStmt = `select
+                c.display_name as company_name, ui.*, ur.role_name, ut.user_type_name`;
+          }
+
+          sqlStmt += `
+              from hris.userinfo ui
+                inner join hris.company c on c.company_id=ui.company_id
+                inner join hris.userrole ur on ur.role_id=ui.role_id
+                inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+              where ui.company_id=:companyId`;
+           
+          // filters
+          if(userType){
+            sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
+          }
+          // search
+          if(search) {
+              sqlStmt += ` and (
+                  ui.first_name ilike :searchVal
+                  or ui.last_name ilike :searchVal                    
+              )`;
+          }
+
+          if(type !== 'count') {
+              // sorts
+              sqlStmt += ` order by ${ sortBy } ${ sortType}`
+              // limit and offset
+              sqlStmt += ` limit :limitNum  offset :offsetNum`
+          };
+          
+          return sqlStmt;                
+        }
+        
+        const sequelize = db1.sequelize;
+      	const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                companyId,
+                limitNum, offsetNum,
+                searchVal,                
+            },
+        });
+      	const allSQLCompanyStaffCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                companyId,
+                limitNum, offsetNum,
+                searchVal,                
+            },
+        });
+        const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
+
+        const paginatedResponse = { count: allSQLCompanyStaffCount[0].count, staff: allCompanyStaff };
+        return h.response(paginatedResponse).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
 
 const getUser = async (request, h) => {
   try{
@@ -891,6 +1000,7 @@ module.exports = {
   createUser,
   createCompanySuperAdmin,
   createCompanyStaff,
+  getCompanyStaff,
   getUser,
   updateUser,
   updatePassword,

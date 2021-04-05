@@ -2,6 +2,7 @@ import {
   createUser, 
   createCompanySuperAdmin,
   createCompanyStaff,
+  getCompanyStaff,
   getUser, 
   updateUser, 
   updatePassword,
@@ -47,6 +48,16 @@ const xuser = {
             mode: 'try',
           },
           handler: createCompanyStaff,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company-staff',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getCompanyStaff,
         },
       });
       server.route({

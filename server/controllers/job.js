@@ -1530,7 +1530,6 @@ const deleteApplicationAccessRecord = async (request, h) => {
     }
 }
 
-
 const getRecommendedTalents = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
