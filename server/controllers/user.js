@@ -333,6 +333,7 @@ const createCompanyStaff = async (request, h) => {
     const emailData = {
       emails: [udata.email],
       email: udata.email,
+      password,
       ccEmails: [],
       templateName: 'company-account-creation',
       resetLink,      
