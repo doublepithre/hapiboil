@@ -778,12 +778,12 @@ const sendVerificationEmail = async (request, h) => {
 const verifyEmail = async (request, h) => {
   try {
     const { requestKey } = request.params || {};
-    const { isEmailVerified } = request.payload || {};
+    const { active } = request.payload || {};
     
     if (requestKey.length !== 16) {     // Token length is 16.
       return h.response({ error: true, message: 'Invalid URL!'}).code(400);
     }  
-    if (!isEmailVerified) {     
+    if (!active) {     
       return h.response({ error: true, message: 'Not a valid request!'}).code(400);
     }  
         
@@ -810,11 +810,11 @@ const verifyEmail = async (request, h) => {
     };
     
     const luserInfo = await Userinfo.findOne( { where: { userId }});
-    if (luserInfo.isEmailVerified) { 
+    if (luserInfo.active) { 
       return h.response({ error: true, message: 'Bad request! Email is already verified!'}).code(400);
     };
 
-    await Userinfo.update({ isEmailVerified: isEmailVerified }, { where: { userId }});
+    await Userinfo.update({ active }, { where: { userId }});
     return h.response({message: 'Email Verification successful'}).code(200);
   }
   catch (error) {
@@ -916,7 +916,7 @@ const resetPassword = async (request, h) => {
     const hashedPassword = bcrypt.hashSync(password1, 12);        // Setting salt to 12.
     await Promise.all([
       User.update({ password: hashedPassword }, { where: { userId }}),
-      Userinfo.update({ isEmailVerified: true, active: true }, { where: { userId }}),
+      Userinfo.update({ active: true }, { where: { userId }}),
     ]);
 
     return h.response({message: 'Password updation successful'}).code(200);

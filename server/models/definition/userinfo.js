@@ -124,12 +124,6 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
     },
-    isEmailVerified: {
-      type: DataTypes.BOOLEAN,
-      allowNull: true,
-      defaultValue: false,
-      field: 'is_email_verified'
-    },
     privacyClause: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
