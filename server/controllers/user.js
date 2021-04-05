@@ -208,6 +208,7 @@ const createCompanySuperAdmin = async (request, h) => {
     const emailData = {
       emails: [udata.email],
       email: udata.email,
+      password,
       ccEmails: [],
       templateName: 'account-creation',
       resetLink,      
