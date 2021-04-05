@@ -7,7 +7,7 @@ import {
   getUser, 
   updateUser, 
   updatePassword,
-  sendVerificationEmail,
+  resendVerificationEmail,
   resendCompanyVerificationEmail,
   verifyEmail,
   forgotPassword, 
@@ -124,17 +124,15 @@ const xuser = {
       });
       server.route({
         method: 'POST',
-        path: '/send-verify',
+        path: '/resend-verify/{requestKey}',
         options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: sendVerificationEmail,
+          auth: false,
+          handler: resendVerificationEmail,
         },
       });
       server.route({
         method: 'POST',
-        path: '/resend-verify',
+        path: '/resend-company-verify',
         options: {
           auth: {
             mode: 'try',

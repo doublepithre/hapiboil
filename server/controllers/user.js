@@ -80,18 +80,18 @@ const createUser = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user', 
-      actionType: 'reset-password' 
+      actionType: 'email-verification' 
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/reset-password?token=${token}`;
+    resetLink += `/u/verify-email?token=${token}`;
 
     const emailData = {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'account-creation',
+      templateName: 'email-verification',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -719,15 +719,42 @@ const resendCompanyVerificationEmail = async (request, h) => {
   }
 }
 
-const sendVerificationEmail = async (request, h) => {
+const resendVerificationEmail = async (request, h) => {
   try{
-    if (!request.auth.isAuthenticated) {
+    if (request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { User, Emailtemplate, Userinfo, Usertype, Userrole, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     
-    const { credentials } = request.auth || {};
-    const userId = credentials.id;
+    const { requestKey } = request.params || {};
+    if (!requestKey) return h.response({ error: true, message: `Bad Request! Request Key not provided!!` }).code(400);
+
+    const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
+    const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
+    if (!requestToken) return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
+    
+    const { userId } = requestToken || {};
+    const tokenUserRecord = await Userinfo.findOne({ 
+      where: { userId },      
+      include: [
+        {
+          model: Usertype,
+          as: "userType",
+          required: true,
+        },
+        {
+          model: Userrole,
+          as: "role",
+          required: true,
+        },
+      ],
+      attributes: { exclude: ['createdAt', 'updatedAt'] },
+    });
+    const tokenUserInfo = tokenUserRecord && tokenUserRecord.toJSON();
+    const { userTypeName } = tokenUserInfo?.userType || {};
+    const { roleName } = tokenUserInfo?.role || {};
+    if(!(userTypeName === 'candidate' && roleName === 'candidate')) return h.response({error:true, message:'You are not authorized!'}).code(403);
+
     const userRecord = await User.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const { email } = userRecord && userRecord.toJSON();
    
@@ -1127,7 +1154,7 @@ module.exports = {
   getUser,
   updateUser,
   updatePassword,
-  sendVerificationEmail,
+  resendVerificationEmail,
   resendCompanyVerificationEmail,
   verifyEmail,
   forgotPassword,
