@@ -45,8 +45,6 @@ const createJob = async (request, h) => {
             jobDetails.duration = null;
         }
 
-
-
         // check if job name already exists
         const jobNameRecord = await Jobname.findOne({ where: { jobNameLower: jobName.toLowerCase() }});
         const jobNameInfo = jobNameRecord && jobNameRecord.toJSON();
@@ -835,7 +833,7 @@ const updateJob = async (request, h) => {
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
         
-        const { Job, Jobtype, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -879,7 +877,28 @@ const updateJob = async (request, h) => {
             durationVal = null;
         }
 
-        await Job.update({ jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});
+        // check if job name already exists
+
+        let jobNameIdToSave;
+        if(jobName){
+            const jobNameRecord = await Jobname.findOne({ where: { jobNameLower: jobName.toLowerCase() }});
+            const jobNameInfo = jobNameRecord && jobNameRecord.toJSON();
+            const { jobNameId: oldJobNameId } = jobNameInfo || {};
+
+            if(!oldJobNameId){
+                const newJobNameRecord = await Jobname.create({
+                    jobName,
+                    jobNameLower: jobName.toLowerCase().trim(),
+                });
+                const newJobNameInfo = newJobNameRecord && newJobNameRecord.toJSON();
+                const { jobNameId: newJobNameId } = newJobNameInfo || {};
+                jobNameIdToSave = newJobNameId;
+            } else {
+                jobNameIdToSave = oldJobNameId;
+            }
+        }
+        
+        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});
         
         const record = await Job.findOne({where: {jobUuid}});
         return h.response(record).code(201);
