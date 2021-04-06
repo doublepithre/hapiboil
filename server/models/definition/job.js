@@ -15,11 +15,6 @@ module.exports = (sequelize, DataTypes) => {
       unique: "job_uuid_key",
       field: 'job_uuid'
     },
-    jobName: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      field: 'job_name'
-    },
     jobDescription: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -120,6 +115,18 @@ module.exports = (sequelize, DataTypes) => {
     duration: {
       type: DataTypes.INTEGER,
       allowNull: true
+    },
+    jobNameId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'jobname',
+          schema: 'hris'
+        },
+        key: 'job_name_id'
+      },
+      field: 'job_name_id'
     }
   }, {
     sequelize,
@@ -154,6 +161,7 @@ const initRelations = (model) =>{
   const Jobfunction = model.Jobfunction;
   const Jobindustry = model.Jobindustry;
   const Joblocation = model.Joblocation;
+  const Jobname = model.Jobname;
   const Jobapplication = model.Jobapplication;
   const Jobhiremember = model.Jobhiremember;
   const Jobtype = model.Jobtype;
@@ -164,6 +172,7 @@ const initRelations = (model) =>{
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
   Job.belongsTo(Jobindustry, { as: "jobIndustry", foreignKey: "jobIndustryId"});
   Job.belongsTo(Joblocation, { as: "jobLocation", foreignKey: "jobLocationId"});
+  Job.belongsTo(Jobname, { as: "jobName", foreignKey: "jobNameId"});
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});

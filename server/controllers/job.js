@@ -111,11 +111,12 @@ const getSingleJob = async (request, h) => {
                 sqlStmt = `select count(*)`;
             } else {
                 sqlStmt = `select
-                j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
+                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
             }
 
             sqlStmt += `
             from hris.jobs j
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
                 left join hris.company c on c.company_id=j.company_id
                 left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
@@ -300,12 +301,13 @@ const getAllJobs = async (request, h) => {
                 sqlStmt = `select count(*)`;
             } else {
                 sqlStmt = `select
-                    j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+                    jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
             }
 
             sqlStmt += `
             from hris.jobs j
-                left join hris.company c on c.company_id=j.company_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.company c on c.company_id=j.company_id
                 left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                 left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
@@ -333,7 +335,7 @@ const getAllJobs = async (request, h) => {
             // search
             if(search) {
                 sqlStmt += ` and (
-                    j.job_name ilike :searchVal
+                    jn.job_name ilike :searchVal
                     or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
@@ -353,7 +355,11 @@ const getAllJobs = async (request, h) => {
                         sqlStmt += ` end`;
                         if(sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
                     } else {
-                        sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                        if(sortBy === 'job_name') {
+                            sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                        } else {
+                            sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                        }
                     }
                 } else {
                     sqlStmt += ` order by j.${sortBy} ${sortType}`;
@@ -483,12 +489,13 @@ const getRecruiterJobs = async (request, h) => {
                 sqlStmt = `select count(*)`;
             } else {
                 sqlStmt = `select
-                j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
             }
 
             sqlStmt += `                    
                 from hris.jobs j
-                    left join hris.company c on c.company_id=j.company_id
+                    inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                    inner join hris.company c on c.company_id=j.company_id
                     left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                     left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                     left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
@@ -521,7 +528,7 @@ const getRecruiterJobs = async (request, h) => {
             // search
             if(search) {
                 sqlStmt += ` and (
-                    j.job_name ilike :searchVal
+                    jn.job_name ilike :searchVal
                     or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
@@ -532,7 +539,11 @@ const getRecruiterJobs = async (request, h) => {
             
             if(type !== 'count') {
                 // sorts
-                sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                if(sortBy === 'job_name'){
+                    sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else {
+                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                }
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
             };
@@ -999,7 +1010,7 @@ const getAppliedJobs = async (request, h) => {
         if(jobLocationId) filters.jobLocationId = jobLocationId;
         if(minExp) filters.minExp = minExp;
 
-        const { Jobapplication, Job, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');
+        const { Jobapplication, Job, Jobname, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');
         const jobs = await Jobapplication.findAll({ 
             where: { userId },
             include: [{
@@ -1013,6 +1024,11 @@ const getAppliedJobs = async (request, h) => {
                 ],
                 required: true,
                 include: [{
+                    model: Jobname,
+                    as: "jobName",
+                    attributes: ['jobName'],
+                },
+                {
                     model: Jobtype,
                     as: "jobType",
                 },
@@ -1073,7 +1089,7 @@ const withdrawFromAppliedJob = async (request, h) => {
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);      
       }
 
-      const { Job, Jobapplication, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
+      const { Job, Jobname, Jobapplication, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
@@ -1092,9 +1108,14 @@ const withdrawFromAppliedJob = async (request, h) => {
             as: "job",                      
             required: true,
             include: [{
+                model: Jobname,
+                as: "jobName",
+                attributes: ['jobName'],
+            },            
+            {
                 model: Jobtype,
                 as: "jobType",
-            },
+            },            
             {
                 model: Jobindustry,
                 as: "jobIndustry",

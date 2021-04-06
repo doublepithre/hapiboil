@@ -15,11 +15,6 @@ module.exports = function(sequelize, DataTypes) {
       unique: "job_uuid_key",
       field: 'job_uuid'
     },
-    jobName: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      field: 'job_name'
-    },
     jobDescription: {
       type: DataTypes.STRING,
       allowNull: true,
@@ -120,6 +115,18 @@ module.exports = function(sequelize, DataTypes) {
     duration: {
       type: DataTypes.INTEGER,
       allowNull: true
+    },
+    jobNameId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'jobname',
+          schema: 'hris'
+        },
+        key: 'job_name_id'
+      },
+      field: 'job_name_id'
     }
   }, {
     sequelize,
