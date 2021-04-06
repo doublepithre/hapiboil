@@ -25,7 +25,7 @@ const createJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
         
-        const { Job, Jobhiremember, Userinfo, Jobtype } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobhiremember, Userinfo, Jobtype } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -45,7 +45,28 @@ const createJob = async (request, h) => {
             jobDetails.duration = null;
         }
 
-        const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });        
+
+
+        // check if job name already exists
+        const jobNameRecord = await Jobname.findOne({ where: { jobNameLower: jobName.toLowerCase() }});
+        const jobNameInfo = jobNameRecord && jobNameRecord.toJSON();
+        const { jobNameId: oldJobNameId } = jobNameInfo || {};
+
+        let jobNameIdToSave;
+        if(!oldJobNameId){
+            const newJobNameRecord = await Jobname.create({
+                jobName,
+                jobNameLower: jobName.toLowerCase().trim(),
+            });
+            const newJobNameInfo = newJobNameRecord && newJobNameRecord.toJSON();
+            const { jobNameId: newJobNameId } = newJobNameInfo || {};
+            jobNameIdToSave = newJobNameId;
+        } else {
+            jobNameIdToSave = oldJobNameId;
+        }
+        
+        // create job
+        const resRecord = await Job.create({ ...jobDetails, jobNameId: jobNameIdToSave, active: true, userId, companyId });        
         await Jobhiremember.create({ accessLevel: 'owner', userId, jobId: resRecord.jobId, })
         return h.response(resRecord).code(201);        
     }
