@@ -733,6 +733,13 @@ const resendVerificationEmail = async (request, h) => {
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
     if (!requestToken) return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
     
+    const { expiresAt: oldExpiresAt } = requestToken || {};
+    var now = new Date();
+    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);       // Checking for token expiration of 1hr
+    if (oldExpiresAt - utcNow < 0) {         // Token expired!
+      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
+    }
+
     const { userId } = requestToken || {};
     const tokenUserRecord = await Userinfo.findOne({ 
       where: { userId },      
