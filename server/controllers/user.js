@@ -198,7 +198,7 @@ const createCompanySuperAdmin = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user', 
-      actionType: 'reset-password' 
+      actionType: 'account-creation-reset-password' 
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
@@ -324,7 +324,7 @@ const createCompanyStaff = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user', 
-      actionType: 'reset-password' 
+      actionType: 'account-creation-reset-password' 
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
@@ -935,7 +935,7 @@ const resetPassword = async (request, h) => {
     if (expiresAt - utcNow < 0) {         // Token expired!
       return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
     }
-    const { userId } = requestToken || {};
+    const { userId, actionType } = requestToken || {};
 
     const userRecord = await User.findOne({ where: { userId }});
     const user = userRecord && userRecord.toJSON();
@@ -943,10 +943,11 @@ const resetPassword = async (request, h) => {
       return h.response({ error: true, message: 'Invalid URL!'}).code(400);
     };
     const hashedPassword = bcrypt.hashSync(password1, 12);        // Setting salt to 12.
-    await Promise.all([
-      User.update({ password: hashedPassword }, { where: { userId }}),
-      Userinfo.update({ active: true }, { where: { userId }}),
-    ]);
+    await User.update({ password: hashedPassword }, { where: { userId }});
+
+    if( actionType === 'account-creation-reset-password') {
+      await Userinfo.update({ active: true }, { where: { userId }});
+    }
 
     return h.response({message: 'Password updation successful'}).code(200);
   }
