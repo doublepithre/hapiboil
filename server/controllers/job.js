@@ -100,6 +100,58 @@ const getJobDetailsOptions = async (request, h) => {
     }
 }
 
+const getAutoComplete = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { search, type } = request.query;
+        if(!(search && type)) return h.response({error: true, message: 'Query Params missing (search and type)!'}).code(400);
+        const searchVal = `%${ search.toLowerCase() }%`;
+
+        const db1 = request.getDb('xpaxr');
+
+        // get sql statement for getting jobs or jobs count
+        const filters = { type };
+        function getSqlStmt(queryType, obj = filters){
+            const { type } = obj;
+            let sqlStmt;
+            const queryTypeLower = queryType && queryType.toLowerCase();
+            if(queryTypeLower === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select *`;
+            }
+                        
+            if(type === 'jobName') sqlStmt += ` from hris.jobname jn where jn.job_name ilike :searchVal`;
+            if(type === 'jobIndustry') sqlStmt += ` from hris.jobindustry ji where ji.job_industry_name ilike :searchVal`;
+            if(type === 'jobFunction') sqlStmt += ` from hris.jobfunction jf where jf.job_function_name ilike :searchVal`;
+            
+            if(queryTypeLower !== 'count') sqlStmt += ` limit 10`
+            return sqlStmt;
+        };
+
+        const sequelize = db1.sequelize;
+      	const allSQLAutoCompletes = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { searchVal },
+        });
+      	const allSQLAutoCompletesCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { searchVal },
+        });           
+        const allAutoCompletes = camelizeKeys(allSQLAutoCompletes);
+
+        
+        const responses = { count: allSQLAutoCompletesCount[0].count, jobs: allAutoCompletes };
+        return h.response(responses).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
 // getSingleJob (SQL)
 const getSingleJob = async (request, h) => {
     try{
@@ -1799,6 +1851,7 @@ const isUserQuestionnaireDone = async(userId,model)=>{
 module.exports = {
     createJob,
     getJobDetailsOptions,
+    getAutoComplete,
     getSingleJob,
     getAllJobs,
     getRecruiterJobs,
