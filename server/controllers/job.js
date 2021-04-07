@@ -106,8 +106,12 @@ const getAutoComplete = async (request, h) => {
             return h.response({ message: 'Forbidden'}).code(403);
         }
         const { search, type } = request.query;
-        if(!(search && type)) return h.response({error: true, message: 'Query Params missing (search and type)!'}).code(400);
+        if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
+        
+        const validTypes = [ 'score', 'created_at', 'job_name'];
+        const isTypeReqValid = validTypes.includes(type);
+        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
         const db1 = request.getDb('xpaxr');
 
@@ -141,9 +145,8 @@ const getAutoComplete = async (request, h) => {
             replacements: { searchVal },
         });           
         const allAutoCompletes = camelizeKeys(allSQLAutoCompletes);
-
         
-        const responses = { count: allSQLAutoCompletesCount[0].count, jobs: allAutoCompletes };
+        const responses = { count: allSQLAutoCompletesCount[0].count, autoCompletes: allAutoCompletes };
         return h.response(responses).code(200);
     }
     catch (error) {

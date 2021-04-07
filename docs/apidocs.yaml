@@ -649,6 +649,40 @@ paths:
                 type: object
                 $ref: "#/components/schemas/paginatedAllJobs"
 
+  /job/j/auto-complete?type={type}&search={searchTEXT}:
+    get: 
+      summary: Get job autocompletes
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: type
+          in: query          
+          required: true
+          schema:
+            type: string
+            enum: [jobName, jobIndustry, jobFunction]     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number        
+                  autoCompletes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        job?????Id:
+                          type: number
+                        job?????Name:
+                          type: string
+
   /job/j/job-details-options:
     get: 
       summary: Get job details options
