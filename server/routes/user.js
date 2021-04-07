@@ -16,7 +16,9 @@ import {
   getUserMetaData,
   updateMetaData,
   getProfile, 
-  getQuestionnaire } from "../controllers/user";
+  getQuestionnaire,
+  getWebchatToken 
+} from "../controllers/user";
 
 const xuser = {
   name: 'xuser',
@@ -206,6 +208,16 @@ const xuser = {
             mode: 'try',
           },
           handler: createProfile,
+        },
+      });
+      server.route({
+        method: 'get',
+        path: '/webchat/token',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getWebchatToken,
         },
       });
     } 

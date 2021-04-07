@@ -1,6 +1,8 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
+const axios = require('axios');
+const config = require('config');
 const { sendEmailAsync } = require('../utils/email');
 const randtoken = require('rand-token');
 import { formatQueryRes } from '../utils/index';
@@ -1153,6 +1155,26 @@ const updateMetaData = async (request, h) => {
   }
 }
 
+const getWebchatToken = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+
+    let res = await axios.post(config.webchat.endpoint,{},
+      {
+        "headers":{"Authorization":`Bearer ${config.webchat.secret}`}
+      }
+    )
+    return h.response(res.data).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
 module.exports = {
   createUser,
   createCompanySuperAdmin,
@@ -1172,5 +1194,6 @@ module.exports = {
   updateMetaData,
   createProfile,
   getQuestionnaire,
+  getWebchatToken
 };
 
