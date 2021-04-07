@@ -419,6 +419,46 @@ paths:
                     type: string
                     example: Password updation successful
   
+  /account/resend-company-verify: 
+    post: 
+      summary: Resend Verification Email to new Company Staff
+      security:
+      - bearerAuth: []      
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: number
+
+      responses:
+        '200':
+          description: Successfully resend verification email
+          content:
+            application/json:                 
+              schema: 
+                properties:
+                  requestId:
+                    type: number
+                  requestKey:
+                    type: string
+                  userId:
+                    type: number 
+                  expiresAt:
+                    type: string
+                  resourceType:
+                    type: string
+                  actionType:
+                    type: string
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string   
+  
   /account/resend-verify/{emailVerificationToken}: 
     post: 
       summary: Re-Get Verification Email
