@@ -6,6 +6,7 @@ const randtoken = require('rand-token');
 import { formatQueryRes } from '../utils/index';
 import { getDomainURL } from '../utils/toolbox';
 import {camelizeKeys} from '../utils/camelizeKeys';
+import { update } from 'lodash';
 
 const createUser = async (request, h) => {
   try {
@@ -474,23 +475,41 @@ const updateCompanyStaff = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
     if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
     
+    const updateDetails = request.payload;
+    const { userType } = updateDetails || {};
     const validUpdateRequests = [
-      'active',     'userTypeId',
+      'active',     'userType',
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid) {
-      return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
-    }
-    const { Userinfo } = request.getModels('xpaxr');
+    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
-    const { credentials } = request.auth || {};
-    const userId = credentials.id;
+    // Checking account type
+    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    if (userType && !validAccountTypes.includes(userType)) return h.response({ error: true, message: 'Invalid account type'}).code(400);
+    
+    const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
 
+    if(userType){
+      const userTypeRecord = await Usertype.findOne({ where: { userTypeName: userType } });
+      const userTypeInfo = userTypeRecord && userTypeRecord.toJSON();
+      const { userTypeId: nUserTypeId } = userTypeInfo || {};
+      
+      const userRoleRecord = await Userrole.findOne({ where: { roleName: userType } });
+      const userRoleInfo = userRoleRecord && userRoleRecord.toJSON();
+      const { roleId: nRoleId } = userRoleInfo || {};
+
+      updateDetails.userTypeId = nUserTypeId;
+      updateDetails.roleId = nRoleId
+    }
+            
     const userRecord = await Userinfo.findOne({ where: { userId } });
     const luser = userRecord && userRecord.toJSON();
     const { userId: luserId, isAdmin, companyId: luserCompanyId } = luser || {};
@@ -503,7 +522,7 @@ const updateCompanyStaff = async (request, h) => {
       return h.response({ error: true, message: 'Bad Request! You are not authorized.'}).code(403);
     }
     
-    await Userinfo.update({ ...request.payload, roleId: request.payload.userTypeId }, { where: { userUuid: userUuid }} );
+    await Userinfo.update(updateDetails, { where: { userUuid: userUuid }} );
     const updatedUinfo = await Userinfo.findOne({
         where:{ userUuid: userUuid },
         attributes: { exclude: ['createdAt', 'updatedAt']
