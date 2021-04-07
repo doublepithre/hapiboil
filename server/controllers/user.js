@@ -479,7 +479,7 @@ const updateCompanyStaff = async (request, h) => {
     if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
     
     const validUpdateRequests = [
-      'active',    'isAdmin',     'userTypeId',
+      'active',     'userTypeId',
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));

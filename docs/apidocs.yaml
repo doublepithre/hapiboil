@@ -149,7 +149,7 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/create-staff:
+  /account/company-staff:
     post:
       summary: Create Company Staff
       tags:
@@ -187,6 +187,52 @@ paths:
                     type: string
         '400':
           description: Failed to create user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+    
+    patch:
+      summary: Update Roles or Deactivate Company Staff
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+                isAdmin:
+                  type: boolean
+                userType:
+                  type: string
+                  enum: [employer, mentor, companysuperadmin]             
+      responses:
+        '201':
+          description: Company Staff successfully updated
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to update user
           content:
             application/json: 
               schema: 
