@@ -419,11 +419,18 @@ paths:
                     type: string
                     example: Password updation successful
   
-  /account/send-verify: 
+  /account/resend-verify/{emailVerificationToken}: 
     post: 
-      summary: Get Verification Email
+      summary: Re-Get Verification Email
       security:
       - bearerAuth: []
+      parameters:
+        - name: emailVerificationToken
+          in: path
+          description: The previous Email verification token from ?
+          required: true
+          schema:
+            type: string
       tags:
         - User
       responses:
