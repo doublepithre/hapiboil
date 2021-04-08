@@ -1089,13 +1089,21 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
+  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
         summary: Get applied jobs
         tags:
           - Job
         security:
         - bearerAuth: []
+        parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [created_at:asc, created_at:desc, job_name:asc, job_name:desc]        
+        
         responses:
           '200':
             description: OK
@@ -1536,7 +1544,7 @@ components:
       description: This extends detailed jobs to include applications
       allOf:        
         - $ref: "#/components/schemas/jobApplication"
-        - $ref: "#/components/schemas/jobDetailed"
+        - $ref: "#/components/schemas/jobFullDetailed"
       properties:
         applicantId:
           type: number         
