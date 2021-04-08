@@ -1070,7 +1070,7 @@ const applyToJob = async (request, h) => {
     }
 }
 
-const getAppliedJobs = async (request, h) => {
+const getAppliedJobsOLD = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
         return h.response({ message: 'Forbidden' }).code(403);
@@ -1155,6 +1155,135 @@ const getAppliedJobs = async (request, h) => {
             }],
         });
         const paginatedResponse = { count: totalAppliedJobs, appliedJobs: jobs }
+        return h.response(paginatedResponse).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
+// getAppliedJobs (SQL)
+const getAppliedJobs = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+        }
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
+        if(luserTypeName !== 'candidate'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, search } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
+        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+
+        const validSorts = [ 'created_at', 'job_name'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
+        // pagination
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
+
+        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+
+        const db1 = request.getDb('xpaxr');
+
+        // get sql statement for getting jobs or jobs count
+        const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        function getSqlStmt(queryType, obj = filters){
+            const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select  
+                    ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
+                    jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id,
+                    c.display_name as company_name`;
+            }
+
+            sqlStmt += `                    
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                left join hris.jobtype jt on jt.job_type_id=j.job_type_id
+                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id            
+            where ja.user_id=:userId`;
+
+            // filters
+            if(jobTypeId){
+                sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
+            } 
+            if(jobFunctionId){
+                sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
+            } 
+            if(jobIndustryId){
+                sqlStmt += isArray(jobIndustryId) ? ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
+            }         
+            if(jobLocationId){
+                sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
+            }
+            if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    jn.job_name ilike :searchVal
+                    or j.job_description ilike :searchVal
+                    or jt.job_type_name ilike :searchVal
+                    or jf.job_function_name ilike :searchVal
+                    or ji.job_industry_name ilike :searchVal
+                    or jl.job_location_name ilike :searchVal
+                )`;
+            };
+            
+            if(type !== 'count') {
+                // sorts
+                if(sortBy === 'job_name'){
+                    sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else {
+                    sqlStmt += ` order by ja.${sortBy} ${sortType}`;
+                }
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+            
+            return sqlStmt;                
+        }
+        
+        const sequelize = db1.sequelize;
+      	const allSQLAppliedJobs = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                userId, 
+                jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp,
+                sortBy, sortType, limitNum, offsetNum, 
+                searchVal,
+            },
+        });
+      	const allSQLAppliedJobsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                userId,
+                jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp,
+                sortBy, sortType, limitNum, offsetNum, 
+                searchVal,
+            },
+        });
+        const allAppliedJobs = camelizeKeys(allSQLAppliedJobs);
+       
+        const paginatedResponse = { count: allSQLAppliedJobsCount[0].count, appliedJobs: allAppliedJobs }
         return h.response(paginatedResponse).code(200);
     }
     catch (error) {
