@@ -1196,41 +1196,30 @@ const withdrawFromAppliedJob = async (request, h) => {
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
       await Jobapplication.update( { isWithdrawn: true, status: 'Withdrawn' }, { where: { applicationId: applicationId }} );
-      const updatedApplication = await Jobapplication.findOne({
-          where:{ applicationId: applicationId },
-          include: [{
-            model: Job,
-            as: "job",                      
-            required: true,
-            include: [{
-                model: Jobname,
-                as: "jobName",
-                attributes: ['jobName'],
-            },            
-            {
-                model: Jobtype,
-                as: "jobType",
-            },            
-            {
-                model: Jobindustry,
-                as: "jobIndustry",
-            },
-            {
-                model: Jobfunction,
-                as: "jobFunction",
-            },
-            {
-                model: Joblocation,
-                as: "jobLocation",
-            }]
-          }],
-          attributes: { exclude: ['createdAt', 'updatedAt', 'userId']
-        }
-      });      
-      const updatedApplicationData = updatedApplication && updatedApplication.toJSON();
 
-      
-      return h.response(updatedApplicationData).code(200);
+
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select  
+                ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
+                jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                
+                left join hris.jobtype jt on jt.job_type_id=j.job_type_id
+                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where ja.application_id=:applicationId`;
+        
+        const sequelize = db1.sequelize;
+        const ares = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { applicationId },
+        });
+        const updatedApplicationData = camelizeKeys(ares)[0];
+    
+        return h.response(updatedApplicationData).code(200);
     }
     catch(error) {
       console.log(error.stack);
