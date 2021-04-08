@@ -1536,11 +1536,12 @@ components:
       description: This extends detailed jobs to include applications
       allOf:        
         - $ref: "#/components/schemas/jobApplication"
+        - $ref: "#/components/schemas/jobDetailed"
       properties:
-        applicationId:
-          type: number 
-        job:
-          $ref: "#/components/schemas/jobDetailed"
+        applicantId:
+          type: number         
+        creatorId:
+          type: number         
       
     jobApplicationWithOnlyJobId:
       type: object
