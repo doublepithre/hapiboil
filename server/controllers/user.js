@@ -516,10 +516,24 @@ const updateCompanyStaff = async (request, h) => {
     
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
-    const { companyId: ruserCompanyId } = requestedForUser && requestedForUser.toJSON();
+    const { userId: staffUserId, companyId: ruserCompanyId } = requestedForUser && requestedForUser.toJSON();
 
     if (luserCompanyId !== ruserCompanyId) {
       return h.response({ error: true, message: 'Bad Request! You are not authorized.'}).code(403);
+    }
+
+    if(updateDetails.active === false){      
+      // return h.response({ error: true, message: 'ACTIVE is FALSE.'}).code(403);
+      const db1 = request.getDb('xpaxr');
+      const sqlStmt = `DELETE
+        from hris.accesstoken ato          
+        where ato.user_id= :staffUserId`;
+      
+      const sequelize = db1.sequelize;
+      const ares = await sequelize.query(sqlStmt, {
+        type: QueryTypes.SELECT,
+        replacements: { staffUserId },
+      });
     }
     
     await Userinfo.update(updateDetails, { where: { userUuid: userUuid }} );
