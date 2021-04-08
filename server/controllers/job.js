@@ -1038,7 +1038,7 @@ const applyToJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Under Review" }
+        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Applied" }
         const { Job, Jobapplication, Applicationhiremember } = request.getModels('xpaxr');
         
         const jobInDB = await Job.findOne({ where: { jobId }});
@@ -1195,7 +1195,7 @@ const withdrawFromAppliedJob = async (request, h) => {
       }
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
-      await Jobapplication.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
+      await Jobapplication.update( { isWithdrawn: true, status: 'Withdrawn' }, { where: { applicationId: applicationId }} );
       const updatedApplication = await Jobapplication.findOne({
           where:{ applicationId: applicationId },
           include: [{
@@ -1226,8 +1226,10 @@ const withdrawFromAppliedJob = async (request, h) => {
           }],
           attributes: { exclude: ['createdAt', 'updatedAt', 'userId']
         }
-      });
+      });      
       const updatedApplicationData = updatedApplication && updatedApplication.toJSON();
+
+      
       return h.response(updatedApplicationData).code(200);
     }
     catch(error) {
