@@ -523,7 +523,6 @@ const updateCompanyStaff = async (request, h) => {
     }
 
     if(updateDetails.active === false){      
-      // return h.response({ error: true, message: 'ACTIVE is FALSE.'}).code(403);
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `DELETE
         from hris.accesstoken ato          
