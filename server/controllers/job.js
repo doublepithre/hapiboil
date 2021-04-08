@@ -39,7 +39,7 @@ const createJob = async (request, h) => {
         const isJobWithDuration = jobsWithDuration.includes(jobTypeName);
 
         if(isJobWithDuration && !duration){
-            return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+            return h.response({ error: true, message: 'Please provide the duration'}).code(400);
         }
         if(!isJobWithDuration){
             jobDetails.duration = null;
@@ -192,11 +192,11 @@ const getSingleJob = async (request, h) => {
             from hris.jobs j
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
-                left join hris.company c on c.company_id=j.company_id
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where j.active=true and j.is_private=false and j.job_uuid=:jobUuid`;
 
             // if he is an employer
@@ -382,10 +382,10 @@ const getAllJobs = async (request, h) => {
             from hris.jobs j
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 inner join hris.company c on c.company_id=j.company_id
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where j.active=true 
                 and j.is_private=false 
                 and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
@@ -570,10 +570,10 @@ const getRecruiterJobs = async (request, h) => {
                 from hris.jobs j
                     inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                     inner join hris.company c on c.company_id=j.company_id
-                    left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                    left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                    left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                    left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                    inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                    inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                    inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                    inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
                     inner join hris.jobhiremember jhm on jhm.job_id=j.job_id 
                 where j.active=true 
                     and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
@@ -1070,99 +1070,6 @@ const applyToJob = async (request, h) => {
     }
 }
 
-const getAppliedJobsOLD = async (request, h) => {
-    try{
-        if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Forbidden' }).code(403);
-        }
-        let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
-        if(luserTypeName !== 'candidate'){
-            return h.response({error:true, message:'You are not authorized!'}).code(403);
-        }
-
-        const { credentials } = request.auth || {};
-        const { id: userId } = credentials || {};
-
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort } = request.query;
-        let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
-        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
-        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
-
-        const validSorts = [ 'createdAt', 'jobName'];
-        const isSortReqValid = validSorts.includes(sortBy);
-
-        // pagination
-        const limitNum = limit ? Number(limit) : 10;
-        const offsetNum = offset ? Number(offset) : 0;
-
-        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
-        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-
-        const filters = {}
-        if(jobTypeId) filters.jobTypeId = jobTypeId;
-        if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
-        if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
-        if(jobLocationId) filters.jobLocationId = jobLocationId;
-        if(minExp) filters.minExp = minExp;
-
-        const { Jobapplication, Job, Jobname, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');
-        const jobs = await Jobapplication.findAll({ 
-            where: { userId },
-            include: [{
-                model: Job,
-                as: "job",
-                where: {
-                    ...filters,
-                },
-                order: [
-                    [sortBy, sortType]
-                ],
-                required: true,
-                include: [{
-                    model: Jobname,
-                    as: "jobName",
-                    attributes: ['jobName'],
-                },
-                {
-                    model: Jobtype,
-                    as: "jobType",
-                },
-                {
-                    model: Jobindustry,
-                    as: "jobIndustry",
-                },
-                {
-                    model: Jobfunction,
-                    as: "jobFunction",
-                },
-                {
-                    model: Joblocation,
-                    as: "jobLocation",
-                }]
-            }],
-            offset: offsetNum,
-            limit: limitNum,
-        });
-        const totalAppliedJobs = await Jobapplication.count({ 
-            where: { userId },
-            include: [{
-                model: Job,
-                as: "job",
-                where: {
-                    ...filters,
-                },                
-                required: true,
-            }],
-        });
-        const paginatedResponse = { count: totalAppliedJobs, appliedJobs: jobs }
-        return h.response(paginatedResponse).code(200);
-    }
-    catch (error) {
-        console.error(error.stack);
-        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
-    }
-}
-
 // getAppliedJobs (SQL)
 const getAppliedJobs = async (request, h) => {
     try{
@@ -1215,10 +1122,10 @@ const getAppliedJobs = async (request, h) => {
                 inner join hris.jobs j on j.job_id=ja.job_id
                 inner join hris.company c on c.company_id=j.company_id
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id            
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id            
             where ja.user_id=:userId`;
 
             // filters
