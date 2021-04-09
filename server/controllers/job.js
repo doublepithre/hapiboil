@@ -678,7 +678,7 @@ const getJobAccessRecords = async (request, h) => {
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
-        const sqlStmt = `select ui.first_name, jhm.*
+        const sqlStmt = `select ui.first_name, ui.email, jhm.*
               from hris.jobhiremember jhm
                 inner join hris.userinfo ui on ui.user_id=jhm.user_id                
               where jhm.job_id=:jobId`;
@@ -1466,7 +1466,7 @@ const getApplicationAccessRecords = async (request, h) => {
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
-        const sqlStmt = `select ui.first_name, ahm.*
+        const sqlStmt = `select ui.first_name, ui.email, ahm.*
             from hris.applicationhiremember ahm
                 inner join hris.userinfo ui on ui.user_id=ahm.user_id                
             where ahm.application_id=:applicationId`;
