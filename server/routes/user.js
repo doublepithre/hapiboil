@@ -4,6 +4,7 @@ import {
   createCompanyStaff,
   updateCompanyStaff,
   getCompanyStaff,
+  getFellowCompanyStaff,
   getUser, 
   updateUser, 
   updatePassword,
@@ -70,6 +71,16 @@ const xuser = {
             mode: 'try',
           },
           handler: getCompanyStaff,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/fellow-staff',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getFellowCompanyStaff,
         },
       });
       server.route({
