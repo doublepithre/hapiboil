@@ -16,7 +16,7 @@ const createUser = async (request, h) => {
     const { User, Userinfo, Usertype, Userrole, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType, privacyClause } = request.payload || {};
 
-    if ( !(email && password && accountType)) {
+    if ( !(email && password && accountType && privacyClause)) {
       return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
     }
 
