@@ -491,7 +491,7 @@ const getFellowCompanyStaff = async (request, h) => {
     const userProfileInfo = userRecord && userRecord.toJSON();
     const { companyId } = userProfileInfo || {};
 
-    const { limit, offset, sort, search, userType } = request.query;            
+    const { sort, search, userType } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
@@ -504,12 +504,6 @@ const getFellowCompanyStaff = async (request, h) => {
       const isUserTypeReqValid = validUserTypeFilters.includes(userType);
 
 
-      // pagination
-      const limitNum = limit ? Number(limit) : 10;
-      const offsetNum = offset ? Number(offset) : 0;
-      
-      if(isNaN(limitNum) || isNaN(offsetNum)) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       if(!isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       if(userType && !isUserTypeReqValid) return h.response({error: true, message: 'Invalid userType query parameter!'}).code(400);
 
@@ -551,9 +545,7 @@ const getFellowCompanyStaff = async (request, h) => {
 
           if(type !== 'count') {
               // sorts
-              sqlStmt += ` order by ${ sortBy } ${ sortType}`
-              // limit and offset
-              sqlStmt += ` limit :limitNum  offset :offsetNum`
+              sqlStmt += ` order by ${ sortBy } ${ sortType}`              
           };
           
           return sqlStmt;                
@@ -564,24 +556,14 @@ const getFellowCompanyStaff = async (request, h) => {
             type: QueryTypes.SELECT,
             replacements: { 
                 companyId,
-                userType,
-                limitNum, offsetNum,
-                searchVal,                
-            },
-        });
-      	const allSQLCompanyStaffCount = await sequelize.query(getSqlStmt('count'), {
-            type: QueryTypes.SELECT,
-            replacements: { 
-                companyId,
-                userType,
-                limitNum, offsetNum,
+                userType,                
                 searchVal,                
             },
         });
         const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
 
-        const paginatedResponse = { count: allSQLCompanyStaffCount[0].count, staff: allCompanyStaff };
-        return h.response(paginatedResponse).code(200);
+        const responses = { staff: allCompanyStaff };
+        return h.response(responses).code(200);
   }
   catch(error) {
     console.error(error.stack);
