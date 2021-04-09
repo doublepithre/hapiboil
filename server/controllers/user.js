@@ -95,7 +95,7 @@ const createUser = async (request, h) => {
       emails: [udata.email],
       email: udata.email,
       ccEmails: [],
-      templateName: 'email-verification',
+      templateName: 'account-creation-verify-email',
       resetLink,      
       isX0PATemplate: true,
     };
@@ -214,7 +214,7 @@ const createCompanySuperAdmin = async (request, h) => {
       email: udata.email,
       password,
       ccEmails: [],
-      templateName: 'account-creation',
+      templateName: 'account-creation-reset-password',
       resetLink,      
       isX0PATemplate: true,
     };
