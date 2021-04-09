@@ -545,6 +545,7 @@ const getFellowCompanyStaff = async (request, h) => {
               sqlStmt += ` and (
                   ui.first_name ilike :searchVal
                   or ui.last_name ilike :searchVal                    
+                  or ui.email ilike :searchVal                    
               )`;
           }
 
