@@ -197,9 +197,10 @@ const getSingleJob = async (request, h) => {
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where j.active=true and j.is_private=false and j.job_uuid=:jobUuid`;
+            where j.active=true and j.job_uuid=:jobUuid`;
 
             // if he is an employer
+            if(luserTypeName === 'candidate') sqlStmt += ` and j.is_private=false `;        
             if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
             
             return sqlStmt;
