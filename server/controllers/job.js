@@ -676,7 +676,22 @@ const getJobAccessRecords = async (request, h) => {
         const { accessLevel } = luserAccessInfo || {};
         if(accessLevel !== 'owner') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
-        const accessRecords = await Jobhiremember.findAll({ where: {jobId}});
+        // find all access records (using SQL to avoid nested ugliness in the response)
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select ui.first_name, jhm.*
+              from hris.jobhiremember jhm
+                inner join hris.userinfo ui on ui.user_id=jhm.user_id                
+              where jhm.job_id=:jobId`;
+
+        const sequelize = db1.sequelize;
+      	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+        const accessRecords = camelizeKeys(allSQLAccessRecords);
+
         return h.response({ accessRecords: accessRecords }).code(200);
     }
     catch (error) {
@@ -1449,7 +1464,21 @@ const getApplicationAccessRecords = async (request, h) => {
         const { accessLevel } = luserAccessInfo || {};
         if(accessLevel !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
-        const accessRecords = await Applicationhiremember.findAll({ where: {applicationId}});
+        // find all access records (using SQL to avoid nested ugliness in the response)
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select ui.first_name, ahm.*
+            from hris.applicationhiremember ahm
+                inner join hris.userinfo ui on ui.user_id=ahm.user_id                
+            where ahm.application_id=:applicationId`;
+
+        const sequelize = db1.sequelize;
+      	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                applicationId
+            },
+        });
+        const accessRecords = camelizeKeys(allSQLAccessRecords);
         return h.response({ accessRecords }).code(200);
     }
     catch (error) {
