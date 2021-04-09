@@ -14,9 +14,9 @@ const createUser = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }    
     const { User, Userinfo, Usertype, Userrole, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
-    const { email, password, accountType, privacyClause } = request.payload || {};
+    const { email, password, accountType, tandc, privacyClause } = request.payload || {};
 
-    if ( !(email && password && accountType && privacyClause)) {
+    if ( !(email && password && accountType && privacyClause && tandc)) {
       return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
     }
 
@@ -68,6 +68,7 @@ const createUser = async (request, h) => {
       firstName: email.split('@')[0],
       companyUuid: null,
       privacyClause,
+      tandc
     });
     delete udata.dataValues.password;//remove hasedpassword when returning
 
@@ -603,7 +604,8 @@ const updateUser = async (request, h) => {
       'active',      'firstName',
       'lastName',    'isAdmin',
       'tzid',        'primaryMobile',
-      'roleId', 'privacyClause',
+      'roleId',      'privacyClause',
+      'tandc',
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));

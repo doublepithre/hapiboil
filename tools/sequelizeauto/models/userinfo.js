@@ -129,6 +129,11 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: false,
       field: 'privacy_clause'
+    },
+    tandc: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false
     }
   }, {
     sequelize,
