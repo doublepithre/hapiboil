@@ -14,7 +14,7 @@ const createUser = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }    
     const { User, Userinfo, Usertype, Userrole, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
-    const { email, password, accountType, } = request.payload || {};
+    const { email, password, accountType, privacyClause } = request.payload || {};
 
     if ( !(email && password && accountType)) {
       return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
@@ -66,7 +66,8 @@ const createUser = async (request, h) => {
       userTypeId,
       active: true,
       firstName: email.split('@')[0],
-      companyUuid: null
+      companyUuid: null,
+      privacyClause,
     });
     delete udata.dataValues.password;//remove hasedpassword when returning
 
