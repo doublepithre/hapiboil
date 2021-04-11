@@ -216,8 +216,6 @@ paths:
               properties:
                 active:
                   type: boolean
-                isAdmin:
-                  type: boolean
                 userType:
                   type: string
                   enum: [employer, mentor, companysuperadmin]             

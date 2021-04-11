@@ -432,6 +432,7 @@ const getCompanyStaff = async (request, h) => {
               sqlStmt += ` and (
                   ui.first_name ilike :searchVal
                   or ui.last_name ilike :searchVal                    
+                  or ui.email ilike :searchVal                    
               )`;
           }
 
@@ -450,6 +451,7 @@ const getCompanyStaff = async (request, h) => {
             type: QueryTypes.SELECT,
             replacements: { 
                 companyId,
+                userType,
                 limitNum, offsetNum,
                 searchVal,                
             },
@@ -458,6 +460,7 @@ const getCompanyStaff = async (request, h) => {
             type: QueryTypes.SELECT,
             replacements: { 
                 companyId,
+                userType,
                 limitNum, offsetNum,
                 searchVal,                
             },
