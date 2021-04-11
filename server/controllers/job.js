@@ -1072,7 +1072,7 @@ const applyToJob = async (request, h) => {
         
         await Promise.all([
             Applicationhiremember.create({ applicationId, userId, accessLevel: 'candidate', }),
-            Applicationhiremember.create({ applicationId, userId: employerId, accessLevel: 'employer', })
+            Applicationhiremember.create({ applicationId, userId: employerId, accessLevel: 'jobcreator', })
         ]);            
 
         delete recordResponse.createdAt;
@@ -1392,7 +1392,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                     inner join hris.applicationhiremember ahm on ahm.application_id=ja.application_id
                     inner join hris.userinfo ui on ui.user_id=ja.user_id                    
                 where ja.is_withdrawn=false 
-                    and ahm.access_level in ('employer', 'reader', 'administrator')
+                    and ahm.access_level in ('jobcreator', 'viewer', 'administrator')
                     and ja.job_id=:jobId and ahm.user_id=:userId
                     and ja.created_at > :lowerDateRange and ja.created_at < :upperDateRange`;
             
@@ -1462,7 +1462,7 @@ const getApplicationAccessRecords = async (request, h) => {
         const luserAccessRecord = await Applicationhiremember.findOne({ where: {applicationId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'jobcreator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -1523,13 +1523,13 @@ const shareApplication = async (request, h) => {
         const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
         const { accessLevel: luserAccessLevel } = canIshareInfo || {};
 
-        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // sharing job with fellow recruiter
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
 
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -1601,12 +1601,12 @@ const updateSharedApplication = async (request, h) => {
         const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
         const { accessLevel: luserAccessLevel } = canIshareInfo || {};
 
-        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // update the shared application access
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -1680,7 +1680,7 @@ const deleteApplicationAccessRecord = async (request, h) => {
         const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
         const { accessLevel: luserAccessLevel } = canIshareInfo || {};
 
-        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
         
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
@@ -1691,7 +1691,7 @@ const deleteApplicationAccessRecord = async (request, h) => {
         const { applicationHireMemberId } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
-        if(accessLevel === 'employer') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+        if(accessLevel === 'jobcreator') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
 
         // delete the shared job record
         await Applicationhiremember.destroy({ where: { applicationId, userId: fellowRecruiterId }});        
