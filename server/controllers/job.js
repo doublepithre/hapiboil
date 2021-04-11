@@ -65,7 +65,7 @@ const createJob = async (request, h) => {
         
         // create job
         const resRecord = await Job.create({ ...jobDetails, jobNameId: jobNameIdToSave, active: true, userId, companyId });        
-        await Jobhiremember.create({ accessLevel: 'owner', userId, jobId: resRecord.jobId, })
+        await Jobhiremember.create({ accessLevel: 'creator', userId, jobId: resRecord.jobId, })
         return h.response(resRecord).code(201);        
     }
     catch (error) {
@@ -579,7 +579,7 @@ const getRecruiterJobs = async (request, h) => {
                 where j.active=true 
                     and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
                     and j.company_id=:recruiterCompanyId 
-                    and jhm.access_level in ('owner', 'administrator', 'reader') 
+                    and jhm.access_level in ('creator', 'administrator', 'viewer') 
                     and jhm.user_id=:userId`;
 
             // filters
@@ -674,7 +674,7 @@ const getJobAccessRecords = async (request, h) => {
         const luserAccessRecord = await Jobhiremember.findOne({ where: {jobId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'owner') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'creator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -734,7 +734,7 @@ const shareJob = async (request, h) => {
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
 
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -798,7 +798,7 @@ const updateSharedJob = async (request, h) => {
         
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -875,7 +875,7 @@ const deleteJobAccessRecord = async (request, h) => {
         const { jobHireMemberId, accessLevel } = alreadySharedInfo || {};
 
         if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
-        if(accessLevel === 'owner') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+        if(accessLevel === 'creator') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
 
         // delete the shared job record
         await Jobhiremember.destroy({ where: { jobId, userId: fellowRecruiterId }});        

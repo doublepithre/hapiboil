@@ -998,7 +998,7 @@ paths:
               properties:
                 accessLevel:
                   type: string     
-                  enum: [reader, administrator]                             
+                  enum: [viewer, administrator]                             
                 userId:
                   type: string
                   example: "182"
@@ -1033,7 +1033,7 @@ paths:
               properties:
                 accessLevel:
                   type: string  
-                  enum: [reader, administrator]                
+                  enum: [viewer, administrator]                
                 userId:
                   type: string
                   example: "182"
@@ -1686,7 +1686,7 @@ components:
       properties:
         accessLevel:
           type: string  
-          enum: [reader, administrator]                      
+          enum: [viewer, administrator]                      
         userId:
           type: string
         jobId:
