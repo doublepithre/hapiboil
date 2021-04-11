@@ -74,6 +74,10 @@ paths:
                 accountType:
                   type: string
                   enum: [candidate, specialist]
+                privacyClause:
+                  type: boolean                  
+                tandc:
+                  type: boolean
       responses:
         '201':
           description: User successfully created
@@ -382,6 +386,10 @@ paths:
                 roleId:
                   type: number
                   nullable: true
+                privacyClause:
+                  type: boolean                  
+                tandc:
+                  type: boolean
       responses:
         '200':
           description: Successfully updated user info
@@ -1387,10 +1395,10 @@ components:
           type: number
         email:
           type: string
-        isEmailVerified:
-          type: boolean        
         privacyClause:
           type: boolean        
+        tandc:
+          type: boolean
         userTypeId:
           type: number
         roleId:
