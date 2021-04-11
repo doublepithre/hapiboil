@@ -383,7 +383,15 @@ const getCompanyStaff = async (request, h) => {
     const { companyId } = userProfileInfo || {};
 
     const { limit, offset, sort, search, userType } = request.query;            
-      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+    const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+    // Checking user type
+    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    const isUserTypeQueryValid = (userType && isArray(userType)) ? (
+      userType.every( req => validAccountTypes.includes(req))
+    ) : validAccountTypes.includes(userType);
+    if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
+    
 
       // sort query
       let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'ASC'];

@@ -153,7 +153,43 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/company-staff:
+  /account/company-staff?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
+    get: 
+        summary: Get all company staff
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: userType
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [employer, mentor, companysuperadmin]        
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    staff:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/companyUser"                      
+
     post:
       summary: Create Company Staff
       tags:
@@ -246,6 +282,41 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
+  /account/fellow-staff?search={searchTEXT}&userType={userType}&sort={sort}:
+    get: 
+        summary: Get all fellow company staff
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: userType
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [employer, mentor]        
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:                  
+                    staff:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/companyUser"                      
+
   /login:
     post:
       summary: Login user
@@ -1123,7 +1194,7 @@ paths:
                     appliedJobs:
                       type: array
                       items:
-                      $ref: "#/components/schemas/jobApplicationDetailed"                      
+                        $ref: "#/components/schemas/jobApplicationDetailed"                      
 
   /job/j/apply:
     post: 
@@ -1647,6 +1718,15 @@ components:
       allOf:        
         - $ref: "#/components/schemas/jobApplication"
         - $ref: "#/components/schemas/User"
+
+    companyUser:
+      type: object
+      description: This is the schema for company user
+      allOf:        
+        - $ref: "#/components/schemas/User"
+      properties:
+        companyName:
+          type: string
 
     meta:
       type: object
