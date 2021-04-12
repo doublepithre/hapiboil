@@ -793,7 +793,7 @@ const updateSharedJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {rParamsJobId}});
+        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobId: rParamsJobId}});
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
         
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
