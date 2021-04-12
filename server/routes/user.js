@@ -1,18 +1,24 @@
 import { 
   createUser, 
+
   createCompanySuperAdmin,
+  getAllUsersBySuperadmin,
+  updateUserBySuperadmin,
+  
   createCompanyStaff,
   updateCompanyStaff,
   getCompanyStaff,
   getFellowCompanyStaff,
+  
   getUser, 
   updateUser, 
   updatePassword,
-  resendVerificationEmail,
+  resendVerificationEmailBySuperadmin,
   resendCompanyVerificationEmail,
   verifyEmail,
   forgotPassword, 
   resetPassword, 
+  
   createProfile,
   getUserMetaData,
   updateMetaData,
@@ -41,6 +47,26 @@ const xuser = {
             mode: 'try',
           },
           handler: createCompanySuperAdmin,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/users',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllUsersBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/users/{userUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateUserBySuperadmin,
         },
       });
       server.route({
@@ -135,10 +161,12 @@ const xuser = {
       });
       server.route({
         method: 'POST',
-        path: '/resend-verify/{requestKey}',
+        path: '/resend-verify',
         options: {
-          auth: false,
-          handler: resendVerificationEmail,
+          auth: {
+            mode: 'try',
+          },
+          handler: resendVerificationEmailBySuperadmin,
         },
       });
       server.route({
