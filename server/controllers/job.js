@@ -1101,6 +1101,15 @@ const getAppliedJobs = async (request, h) => {
 
         const { limit, offset, sort, search, status, applicationDate } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+        // Checking if application status is valid
+        const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+        const isStatusReqValid = (status && isArray(status)) ? (
+        status.every( req => validStatus.includes(req))
+        ) : validStatus.includes(status);
+        if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
+
+        // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
         if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
         if (!sortType && sortBy === 'created_at') sortType = 'DESC';
@@ -1200,6 +1209,7 @@ const getAppliedJobs = async (request, h) => {
                 userId,                 
                 sortBy, sortType, limitNum, offsetNum, 
                 searchVal,
+                status,
                 lowerDateRange, upperDateRange,
             },
         });
@@ -1209,6 +1219,7 @@ const getAppliedJobs = async (request, h) => {
                 userId,                
                 sortBy, sortType, limitNum, offsetNum, 
                 searchVal,
+                status,
                 lowerDateRange, upperDateRange,
             },
         });
@@ -1339,14 +1350,12 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // Checking if application status is valid
-    //   applied > withdrawn > shortlisted > interview > offer > hired)
       const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
       const isStatusReqValid = (status && isArray(status)) ? (
       status.every( req => validStatus.includes(req))
       ) : validStatus.includes(status);
       if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
     
-
       // sort query
       let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'DESC'];
       if (!sortType && sortBy !== 'application_date') sortType = 'ASC';
