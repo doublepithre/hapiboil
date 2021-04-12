@@ -1106,7 +1106,7 @@ const getAppliedJobs = async (request, h) => {
         if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
         if (!sortType && sortBy === 'created_at') sortType = 'DESC';
 
-        const validSorts = [ 'created_at', 'job_name'];
+        const validSorts = ['status', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         // pagination
@@ -1145,29 +1145,14 @@ const getAppliedJobs = async (request, h) => {
             where ja.user_id=:userId`;
 
             // filters
-            if(jobTypeId){
-                sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
+            if(status){
+                sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
             } 
-            if(jobFunctionId){
-                sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
-            } 
-            if(jobIndustryId){
-                sqlStmt += isArray(jobIndustryId) ? ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
-            }         
-            if(jobLocationId){
-                sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
-            }
-            if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
-
             // search
             if(search) {
                 sqlStmt += ` and (
                     jn.job_name ilike :searchVal
-                    or j.job_description ilike :searchVal
-                    or jt.job_type_name ilike :searchVal
-                    or jf.job_function_name ilike :searchVal
-                    or ji.job_industry_name ilike :searchVal
-                    or jl.job_location_name ilike :searchVal
+                    or c.company_name ilike :searchVal
                 )`;
             };
             

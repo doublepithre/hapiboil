@@ -1166,7 +1166,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
+  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}:
     get: 
         summary: Get applied jobs
         tags:
@@ -1179,7 +1179,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [created_at:asc, created_at:desc, job_name:asc, job_name:desc]        
+            enum: [created_at:asc, created_at:desc, status:asc, status:desc, job_name:asc, job_name:desc]        
         
         responses:
           '200':
