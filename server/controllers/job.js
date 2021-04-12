@@ -1718,16 +1718,16 @@ const deleteApplicationAccessRecord = async (request, h) => {
 
         if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
         
-        const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
+        const { userId: fellowRecruiterId } = request.payload || {};
         if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { applicationHireMemberId } = alreadySharedInfo || {};
+        const { applicationHireMemberId, accessLevel } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
-        if(accessLevel === 'jobcreator') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+        if(accessLevel === 'jobcreator' || accessLevel === 'candidate') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);        
 
         // delete the shared job record
         await Applicationhiremember.destroy({ where: { applicationId, userId: fellowRecruiterId }});        
