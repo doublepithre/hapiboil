@@ -366,8 +366,7 @@ const getAllJobs = async (request, h) => {
 
         const db1 = request.getDb('xpaxr');
 
-        // get sql statement for getting jobs or jobs count
-        const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        // get sql statement for getting jobs or jobs count        const filters = { jobIdArray, recommendedVal,  search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
             const { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
@@ -1100,7 +1099,7 @@ const getAppliedJobs = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, search } = request.query;
+        const { limit, offset, sort, search, status, applicationDate } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
         if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
@@ -1116,12 +1115,35 @@ const getAppliedJobs = async (request, h) => {
         if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
+        // custom date search query
+        let lowerDateRange;
+        let upperDateRange;
+        if(applicationDate){
+            if(!isArray(applicationDate)) {
+                lowerDateRange = new Date(applicationDate);
+                upperDateRange = new Date('2999-12-31');
+            } else {
+                if(!applicationDate[0]) lowerDateRange = new Date('2000-01-01');
+                if(!applicationDate[1]) upperDateRange = new Date('2999-12-31');
+                
+                lowerDateRange = new Date(applicationDate[0]);
+                upperDateRange = new Date(applicationDate[1]);
+            }    
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Unvalid applicationDate query!'}).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid applicationDate range!'}).code(400);                        
+        } else {
+            lowerDateRange = new Date('2000-01-01');
+            upperDateRange = new Date('2999-12-31');
+        }
+
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { search, sortBy, sortType, status };
         function getSqlStmt(queryType, obj = filters){
-            const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { search, sortBy, sortType, status } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -1142,7 +1164,8 @@ const getAppliedJobs = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id            
-            where ja.user_id=:userId`;
+            where ja.user_id=:userId
+                and ja.created_at > :lowerDateRange and ja.created_at < :upperDateRange`;
 
             // filters
             if(status){
@@ -1174,19 +1197,19 @@ const getAppliedJobs = async (request, h) => {
       	const allSQLAppliedJobs = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: { 
-                userId, 
-                jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp,
+                userId,                 
                 sortBy, sortType, limitNum, offsetNum, 
                 searchVal,
+                lowerDateRange, upperDateRange,
             },
         });
       	const allSQLAppliedJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: { 
-                userId,
-                jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp,
+                userId,                
                 sortBy, sortType, limitNum, offsetNum, 
                 searchVal,
+                lowerDateRange, upperDateRange,
             },
         });
         const allAppliedJobs = camelizeKeys(allSQLAppliedJobs);
@@ -1312,8 +1335,17 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
-      const { limit, offset, sort, applicationDate, search } = request.query;            
+      const { limit, offset, sort, applicationDate, search, status } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+      // Checking if application status is valid
+    //   applied > withdrawn > shortlisted > interview > offer > hired)
+      const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+      const isStatusReqValid = (status && isArray(status)) ? (
+      status.every( req => validStatus.includes(req))
+      ) : validStatus.includes(status);
+      if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
+    
 
       // sort query
       let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'DESC'];
@@ -1321,7 +1353,6 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       if (!sortType && sortBy === 'application_date') sortType = 'DESC';      
       const validSorts = ['first_name', 'last_name', 'application_date', 'status'];
       const isSortReqValid = validSorts.includes(sortBy);
-
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
@@ -1356,14 +1387,13 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
           upperDateRange = new Date('2999-12-31');
       }
 
-
       const { jobId } = request.params || {};      
       const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting all applications or all applications' count        
-        const filters = { search, sortBy, sortType }
+        const filters = { status, search, sortBy, sortType }
         function getSqlStmt(queryType, obj = filters){            
-            const { search, sortBy, sortType } = obj;
+            const { status, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -1381,6 +1411,10 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                     and ja.job_id=:jobId and ahm.user_id=:userId
                     and ja.created_at > :lowerDateRange and ja.created_at < :upperDateRange`;
             
+            // filters
+            if(status){
+                sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
+            } 
             // search
             if(search) {
                 sqlStmt += ` and (
@@ -1391,7 +1425,12 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
 
             if(type !== 'count') {
                 // sorts
-                sqlStmt += ` order by ${ sortBy } ${ sortType}`
+                if(sortBy === 'application_date'){
+                    sqlStmt += ` order by ja.created_at ${sortType}`;
+                } else {
+                    sqlStmt += ` order by ${sortBy} ${sortType}`;
+                }
+                
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
             };
@@ -1406,6 +1445,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                 jobId, userId,
                 limitNum, offsetNum,
                 searchVal,
+                status,
                 lowerDateRange, upperDateRange,
             },
         });
@@ -1415,6 +1455,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                 jobId, userId,
                 limitNum, offsetNum,
                 searchVal,
+                status,
                 lowerDateRange, upperDateRange,
             },
         });
