@@ -155,7 +155,6 @@ const getAutoComplete = async (request, h) => {
     }
 }
 
-// getSingleJob (SQL)
 const getSingleJob = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -274,7 +273,7 @@ const getSingleJob = async (request, h) => {
         return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
-// getAllJobs (SQL)
+
 const getAllJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -485,7 +484,6 @@ const getAllJobs = async (request, h) => {
     }
 }
 
-// getAllRecruiterJobs (SQL)
 const getRecruiterJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -1086,7 +1084,6 @@ const applyToJob = async (request, h) => {
     }
 }
 
-// getAppliedJobs (SQL)
 const getAppliedJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -1333,7 +1330,6 @@ const getApplicantProfile = async (request, h) => {
     }
 }
 
-// get all applicants (SQL)
 const getAllApplicantsSelectiveProfile = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
