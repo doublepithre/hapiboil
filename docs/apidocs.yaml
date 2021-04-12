@@ -153,6 +153,84 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
+  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
+    get: 
+        summary: Get all users
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: userType
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [candidate, employer, mentor, companysuperadmin, 'superadmin']        
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    users:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/companyUser"                      
+
+    patch:
+      summary: Update/(Re/De)-activate Any User
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+      responses:
+        '201':
+          description: User successfully updated
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties: 
+                  userUuid:
+                    type: string
+                  userId:
+                    type: number
+                  email: 
+                    type: string
+        '400':
+          description: Failed to update user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+                
   /account/company-staff?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
     get: 
         summary: Get all company staff
@@ -496,6 +574,46 @@ paths:
                     type: string
                     example: Password updation successful
   
+  /account/resend-verify: 
+    post: 
+      summary: Resend Verification Email to a User by Superadmin
+      security:
+      - bearerAuth: []      
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: number
+
+      responses:
+        '200':
+          description: Successfully resend verification email
+          content:
+            application/json:                 
+              schema: 
+                properties:
+                  requestId:
+                    type: number
+                  requestKey:
+                    type: string
+                  userId:
+                    type: number 
+                  expiresAt:
+                    type: string
+                  resourceType:
+                    type: string
+                  actionType:
+                    type: string
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string   
+  
   /account/resend-company-verify: 
     post: 
       summary: Resend Verification Email to new Company Staff
@@ -535,45 +653,7 @@ paths:
                     type: string
                   updatedAt:
                     type: string   
-  
-  /account/resend-verify/{emailVerificationToken}: 
-    post: 
-      summary: Re-Get Verification Email
-      security:
-      - bearerAuth: []
-      parameters:
-        - name: emailVerificationToken
-          in: path
-          description: The previous Email verification token from ?
-          required: true
-          schema:
-            type: string
-      tags:
-        - User
-      responses:
-        '200':
-          description: Successfully get verification email
-          content:
-            application/json:                 
-              schema: 
-                properties:
-                  requestId:
-                    type: number
-                  requestKey:
-                    type: string
-                  userId:
-                    type: number 
-                  expiresAt:
-                    type: string
-                  resourceType:
-                    type: string
-                  actionType:
-                    type: string
-                  createdAt:
-                    type: string
-                  updatedAt:
-                    type: string   
-  
+ 
   /account/verify/{emailVerificationToken}:     
     patch: 
       summary: Verify Email
