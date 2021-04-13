@@ -1726,6 +1726,8 @@ components:
       properties:
         applicantId:
           type: number         
+        applicationDate:
+          type: string         
         creatorId:
           type: number         
       
