@@ -1158,6 +1158,7 @@ const getAppliedJobs = async (request, h) => {
             } else {
                 sqlStmt = `select  
                     ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
+                    ja.created_at as application_date,
                     jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id,
                     c.display_name as company_name`;
             }
