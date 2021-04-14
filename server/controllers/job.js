@@ -1053,7 +1053,7 @@ const applyToJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Applied" }
-        const { Job, Jobapplication, Applicationhiremember } = request.getModels('xpaxr');
+        const { Job, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
         
         const jobInDB = await Job.findOne({ where: { jobId }});
         const {jobId: jobInDbId} = jobInDB || {};
@@ -1070,7 +1070,14 @@ const applyToJob = async (request, h) => {
         
         await Promise.all([
             Applicationhiremember.create({ applicationId, userId, accessLevel: 'candidate', }),
-            Applicationhiremember.create({ applicationId, userId: employerId, accessLevel: 'jobcreator', })
+            Applicationhiremember.create({ applicationId, userId: employerId, accessLevel: 'jobcreator', }),
+            Applicationauditlog.create({ 
+                affectedApplicationId: applicationId,
+                performerUserId: userId,
+                actionName: 'Apply to a Job',
+                actionType: 'CREATE',
+                actionDescription: `The user of userId ${userId} has applied to the job of jobId ${jobId}`
+            })
         ]);            
 
         delete recordResponse.createdAt;
@@ -1239,23 +1246,20 @@ const withdrawFromAppliedJob = async (request, h) => {
         return h.response({ message: 'Forbidden' }).code(403);
       }   
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
-        if(luserTypeName !== 'candidate'){
-            return h.response({error:true, message:'You are not authorized!'}).code(403);
-        }
+      if(luserTypeName !== 'candidate'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+      }
 
-      const { jobId, userId } = request.payload || {};
-      if(!(jobId && userId)){
+      const { jobId } = request.payload || {};
+      if(!jobId){
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);    
       }
 
       const { credentials } = request.auth || {};
       const { id: luserId } = credentials || {};
-      if(luserId !== userId){
-        return h.response({ error: true, message: 'Not a valid request!' }).code(400);      
-      }
 
-      const { Job, Jobname, Jobapplication, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
-      const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
+      const { Job, Jobname, Jobapplication, Applicationauditlog, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
+      const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: luserId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
         return h.response({ error: true, message: 'Bad request! No applied job found!' }).code(400);    
@@ -1266,7 +1270,13 @@ const withdrawFromAppliedJob = async (request, h) => {
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
       await Jobapplication.update( { isWithdrawn: true, status: 'Withdrawn' }, { where: { applicationId: applicationId }} );
-
+      await Applicationauditlog.create({ 
+            affectedApplicationId: applicationId,
+            performerUserId: luserId,
+            actionName: 'Withdraw from a Job',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${luserId} has withdrawn from the job of jobId ${jobId}`
+        });
 
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select  
