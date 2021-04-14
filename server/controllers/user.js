@@ -133,7 +133,7 @@ const createCompanySuperAdmin = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { credentials } = request.auth || {};
-    const { userId: luserId } = credentials || {};
+    const { id: luserId } = credentials || {}; 
 
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
@@ -452,7 +452,7 @@ const createCompanyStaff = async (request, h) => {
       return h.response({error:true, message:'You are not authorized!'}).code(403);
     }
 
-    const { User, Userinfo, Usertype, Userrole, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType } = request.payload || {};
     
     if ( !(email && password && accountType)) {
@@ -1326,7 +1326,7 @@ const resetPassword = async (request, h) => {
     await Profileauditlog.create({ 
       affectedUserId: userId,
       performerUserId: userId,
-      actionName: 'Verify Email',
+      actionName: 'Reset Password',
       actionType: 'UPDATE',
       actionDescription: `The user of userId ${userId} has reset his password`
     });
