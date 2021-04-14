@@ -14,7 +14,7 @@ const createUser = async (request, h) => {
     if (request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }    
-    const { User, Userinfo, Usertype, Userrole, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType, tandc, privacyClause } = request.payload || {};
 
     if ( !(email && password && accountType && privacyClause && tandc)) {
@@ -73,6 +73,14 @@ const createUser = async (request, h) => {
     });
     delete udata.dataValues.password;//remove hasedpassword when returning
 
+    await Profileauditlog.create({ 
+      affectedUserId: userId,
+      performerUserId: userId,
+      actionName: 'Create a User',
+      actionType: 'CREATE',
+      actionDescription: `The user of userId ${userId} has created himself`
+    });
+
     // SENDING THE VERIFICATION EMAIL (confirmation email)
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
     const expiresInHrs = 1;                             // Specifying expiry time in hrs
@@ -124,13 +132,16 @@ const createCompanySuperAdmin = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    const { credentials } = request.auth || {};
+    const { userId: luserId } = credentials || {};
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
     if(luserTypeName !== 'superadmin'){
         return h.response({error:true, message:'You are not authorized!'}).code(403);
     }
 
-    const { User, Userinfo, Usertype, Userrole, Company, Companyinfo, Emailtemplate, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Company, Companyinfo, Emailtemplate, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, companyName, } = request.payload || {};
     const accountType = 'companysuperadmin';
 
@@ -190,6 +201,14 @@ const createCompanySuperAdmin = async (request, h) => {
       companyUuid,
     });
     delete udata.dataValues.password; //remove hasedpassword when returning
+
+    await Profileauditlog.create({ 
+      affectedUserId: userId,
+      performerUserId: luserId,
+      actionName: 'Create a User',
+      actionType: 'CREATE',
+      actionDescription: `The user of userId ${luserId} has created the user of userId ${userId}, with the accountType of ${accountType}`
+    });
 
     // SENDING THE VERIFICATION EMAIL (confirmation email)
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
@@ -375,7 +394,7 @@ const updateUserBySuperadmin = async (request, h) => {
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
     if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
-    const { Userinfo } = request.getModels('xpaxr');
+    const { Userinfo, Profileauditlog } = request.getModels('xpaxr');
 
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
@@ -404,6 +423,15 @@ const updateUserBySuperadmin = async (request, h) => {
       }
     });
     const uinfo = updatedUinfo && updatedUinfo.toJSON();
+
+    await Profileauditlog.create({ 
+      affectedUserId: ruserId,
+      performerUserId: userId,
+      actionName: 'Update a User',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${userId} has updated the user of userId ${ruserId}`
+    });
+
     return h.response(uinfo).code(200);
   }
   catch(error) {
@@ -417,6 +445,7 @@ const createCompanyStaff = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
     if(luserTypeName !== 'companysuperadmin'){
@@ -490,6 +519,14 @@ const createCompanyStaff = async (request, h) => {
       companyUuid,
     });
     delete udata.dataValues.password; //remove hasedpassword when returning
+
+    await Profileauditlog.create({ 
+      affectedUserId: userId,
+      performerUserId: csaUserId,
+      actionName: 'Create a User',
+      actionType: 'CREATE',
+      actionDescription: `The user of userId ${csaUserId} has created the user of userId ${userId}, with the accountType of ${accountType}`
+    });
 
     // SENDING THE VERIFICATION EMAIL (confirmation email)
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
@@ -781,7 +818,7 @@ const updateCompanyStaff = async (request, h) => {
     const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
     if (userType && !validAccountTypes.includes(userType)) return h.response({ error: true, message: 'Invalid account type'}).code(400);
     
-    const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+    const { Userinfo, Usertype, Profileauditlog, Userrole } = request.getModels('xpaxr');
 
     if(userType){
       const userTypeRecord = await Usertype.findOne({ where: { userTypeName: userType } });
@@ -828,6 +865,15 @@ const updateCompanyStaff = async (request, h) => {
       }
     });
     const uinfo = updatedUinfo && updatedUinfo.toJSON();
+
+    await Profileauditlog.create({ 
+      affectedUserId: staffUserId,
+      performerUserId: userId,
+      actionName: 'Update a User',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${userId} has updated the user of userId ${staffUserId}`
+    });
+
     return h.response(uinfo).code(200);
   }
   catch(error) {
@@ -897,7 +943,7 @@ const updateUser = async (request, h) => {
       return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     }
 
-    const { Userinfo } = request.getModels('xpaxr');
+    const { Userinfo, Profileauditlog } = request.getModels('xpaxr');
     
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -909,8 +955,8 @@ const updateUser = async (request, h) => {
     const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
     const { userId: rForUserId } = requestedForUser && requestedForUser.toJSON();
 
-    if (luserId !== rForUserId && !isAdmin) {    // when request is (not from self) and (if other -> not admin)
-      return h.response({ error: true, message: 'Bad Request!'}).code(400);
+    if (luserId !== rForUserId) {    // when request is (not from self)
+      return h.response({ error: true, message: 'Bad Request! You are not authorized!'}).code(403);
     }
     
     await Userinfo.update( request.payload, { where: { userUuid: userUuid }} );
@@ -918,8 +964,17 @@ const updateUser = async (request, h) => {
         where:{ userUuid: userUuid },
         attributes: { exclude: ['createdAt', 'updatedAt']
       }
-    });
+    });    
     const uinfo = updatedUinfo && updatedUinfo.toJSON();
+
+    await Profileauditlog.create({ 
+      affectedUserId: rForUserId,
+      performerUserId: luserId,
+      actionName: 'Update a User',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${luserId} has updated his own info`
+    });
+    
     return h.response(uinfo).code(200);
   }
   catch(error) {
@@ -936,7 +991,7 @@ const updatePassword = async (request, h) => {
     const { credentials } = request.auth || {};
     const userId = credentials.id;
     const { oldPassword, password } = request.payload || {};
-    const { User } = request.getModels('xpaxr');
+    const { User, Profileauditlog } = request.getModels('xpaxr');
     
     const userRecord = await User.findOne({ where: { userId } });
     const luser = userRecord && userRecord.toJSON();
@@ -958,7 +1013,16 @@ const updatePassword = async (request, h) => {
         where:{ userUuid: userUuid },
         attributes: { exclude: ['createdAt', 'updatedAt']
       }
-    });    
+    });
+    
+    await Profileauditlog.create({ 
+      affectedUserId: luserId,
+      performerUserId: luserId,
+      actionName: 'Update Password',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${luserId} has updated his own password`
+    });
+
     return h.response({message: 'Password updation successful'}).code(200);
   }
   catch(error) {
@@ -1114,11 +1178,11 @@ const verifyEmail = async (request, h) => {
     if (requestKey.length !== 16) {     // Token length is 16.
       return h.response({ error: true, message: 'Invalid URL!'}).code(400);
     }  
-    if (!active) {     
+    if (active !== true) {     
       return h.response({ error: true, message: 'Not a valid request!'}).code(400);
     }  
         
-    const { User, Userinfo, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Profileauditlog, Requesttoken } = request.getModels('xpaxr');
     
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
@@ -1146,6 +1210,14 @@ const verifyEmail = async (request, h) => {
     };
 
     await Userinfo.update({ active }, { where: { userId }});
+    await Profileauditlog.create({ 
+      affectedUserId: userId,
+      performerUserId: userId,
+      actionName: 'Verify Email',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${userId} has verified his email`
+    });
+
     return h.response({message: 'Email Verification successful'}).code(200);
   }
   catch (error) {
@@ -1223,7 +1295,7 @@ const resetPassword = async (request, h) => {
       return h.response({ error: true, message: 'Passwords are not matching!'}).code(400);
     }
     
-    const { User, Userinfo, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Profileauditlog, Requesttoken } = request.getModels('xpaxr');
     
     const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
     const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
@@ -1250,6 +1322,14 @@ const resetPassword = async (request, h) => {
     if( actionType === 'account-creation-reset-password') {
       await Userinfo.update({ active: true }, { where: { userId }});
     }
+
+    await Profileauditlog.create({ 
+      affectedUserId: userId,
+      performerUserId: userId,
+      actionName: 'Verify Email',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${userId} has reset his password`
+    });
 
     return h.response({message: 'Password updation successful'}).code(200);
   }
@@ -1422,16 +1502,31 @@ const updateMetaData = async (request, h) => {
       return h.response({ error: true, message: 'Not a valid request!'}).code(400);
     }  
 
-    const { Usermeta } = request.getModels('xpaxr');        
+    const { Usermeta, Profileauditlog } = request.getModels('xpaxr');        
 
     const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const userMetaData = userMetaRecord && userMetaRecord.toJSON();
-    const { umetaId } = userMetaData || {};
+    const { umetaId, metaValue: oldMetaValue } = userMetaData || {};
 
     if(!umetaId){      
       await Usermeta.create({ userId, metaKey, metaValue });
+      await Profileauditlog.create({ 
+        affectedUserId: userId,
+        performerUserId: userId,
+        actionName: 'Create User metadata',
+        actionType: 'CREATE',
+        actionDescription: `The user of userId ${userId} has created the metadata of metaKey ${metaKey} with the value of ${metaValue}`
+      });
     } else {
+      if(metaValue === oldMetaValue) h.response({ error: true, message: 'This metaKey already has this metaValue!' }).code(400);
       await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId, umetaId }} );
+      await Profileauditlog.create({ 
+        affectedUserId: userId,
+        performerUserId: userId,
+        actionName: 'Update User metadata',
+        actionType: 'UPDATE',
+        actionDescription: `The user of userId ${userId} has updated the metadata of metaKey ${metaKey}. Previous value was ${oldMetaValue}, Current value is ${metaValue}`
+      });
     }
 
     const updatedMetaData = await Usermeta.findOne({
