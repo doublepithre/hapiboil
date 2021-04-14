@@ -1329,9 +1329,6 @@ paths:
                   jobId:
                     type: string
                     example: "1"
-                  userId:
-                    type: string
-                    example: "182"
                     
       responses:
         '201':
