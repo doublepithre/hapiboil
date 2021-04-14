@@ -25,7 +25,7 @@ const createJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
         
-        const { Job, Jobname, Jobhiremember, Userinfo, Jobtype } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobhiremember, Jobauditlog, Userinfo, Jobtype } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -65,7 +65,15 @@ const createJob = async (request, h) => {
         
         // create job
         const resRecord = await Job.create({ ...jobDetails, jobNameId: jobNameIdToSave, active: true, userId, companyId });        
+        const { jobId } = resRecord;
         await Jobhiremember.create({ accessLevel: 'creator', userId, jobId: resRecord.jobId, })
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Create a Job',
+            actionType: 'CREATE',
+            actionDescription: `The user of userId ${userId} has created the job of jobId ${jobId}`
+        });
         return h.response(resRecord).code(201);        
     }
     catch (error) {
@@ -712,7 +720,7 @@ const shareJob = async (request, h) => {
         }
 
         const { jobId: rParamsJobId } = request.params || {};
-        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Jobauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -761,7 +769,15 @@ const shareJob = async (request, h) => {
 
         if(jobHireMemberId) return h.response({ error: true, message: 'Already shared with this user!'}).code(400);
 
-        const accessRecord = await Jobhiremember.create({ accessLevel, userId: fellowRecruiterId, jobId })
+        const accessRecord = await Jobhiremember.create({ accessLevel, userId: fellowRecruiterId, jobId });
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Share a Job',
+            actionType: 'CREATE',
+            actionDescription: `The user of userId ${userId} has shared the job of jobId ${jobId} with the user of userId ${fellowRecruiterId}. The given access is ${accessLevel}`
+        });
+
         return h.response(accessRecord).code(201);
     }
     catch (error) {
@@ -784,7 +800,7 @@ const updateSharedJob = async (request, h) => {
         }
 
         const { jobId: rParamsJobId } = request.params || {};
-        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Jobauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -820,13 +836,21 @@ const updateSharedJob = async (request, h) => {
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { jobHireMemberId } = alreadySharedInfo || {};
+        const { jobHireMemberId, accessLevel: oldAccessLevel } = alreadySharedInfo || {};
 
         if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+        if(oldAccessLevel === accessLevel) return h.response({ error: true, message: 'Already given this access to this user!'}).code(400);
 
         // update the shared job          
         await Jobhiremember.update({ accessLevel, userId: fellowRecruiterId, jobId }, { where: { jobId, userId: fellowRecruiterId }});
-        await Jobhiremember.update({ accessLevel, userId: fellowRecruiterId, jobId }, { where: { jobId, userId: fellowRecruiterId }});
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Update the Access of the Shared Job',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has updated the access of the shared job of jobId ${jobId} with the user of userId ${fellowRecruiterId}. Previous given access was ${oldAccessLevel}, Current given access is ${accessLevel}`
+        });
+
         const updatedAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
         return h.response(updatedAccessRecord).code(201);
     }
@@ -850,7 +874,7 @@ const deleteJobAccessRecord = async (request, h) => {
         }
 
         const { jobId: rParamsJobId } = request.params || {};
-        const { Job, Jobhiremember, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Jobauditlog, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -877,6 +901,14 @@ const deleteJobAccessRecord = async (request, h) => {
 
         // delete the shared job record
         await Jobhiremember.destroy({ where: { jobId, userId: fellowRecruiterId }});        
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Delete the Access of the Shared Job',
+            actionType: 'DELETE',
+            actionDescription: `The user of userId ${userId} has deleted the access of the shared job of jobId ${jobId} from the user of userId ${fellowRecruiterId}. Now it is unshared with that user`
+        });
+
         return h.response({message: 'Access record deleted'}).code(200);
     }
     catch (error) {
@@ -902,7 +934,7 @@ const updateJob = async (request, h) => {
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
         
-        const { Job, Jobname, Jobtype, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -967,9 +999,18 @@ const updateJob = async (request, h) => {
             }
         }
         
-        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});
-        
+        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});        
         const record = await Job.findOne({where: {jobUuid}});
+        const { jobId } = record;
+        
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Update a Job',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has updated the job of jobId ${jobId}`
+        });
+
         return h.response(record).code(201);
     }
     catch (error) {
@@ -1607,7 +1648,7 @@ const shareApplication = async (request, h) => {
             performerUserId: userId,
             actionName: 'Share an Application',
             actionType: 'CREATE',
-            actionDescription: `The user of userId ${userId} has shared the application of applicationId ${applicationId} with the user of userId ${fellowRecruiterId}`
+            actionDescription: `The user of userId ${userId} has shared the application of applicationId ${applicationId} with the user of userId ${fellowRecruiterId}. The given access is ${accessLevel}`
         });
 
         return h.response(accessRecord).code(201);
@@ -1759,7 +1800,7 @@ const deleteApplicationAccessRecord = async (request, h) => {
             performerUserId: userId,
             actionName: 'Delete the Access of the Shared Application',
             actionType: 'DELETE',
-            actionDescription: `The user of userId ${userId} has deleted the access of the shared application of applicationId ${applicationId} from the user of userId ${fellowRecruiterId}. Now it is unshared with that user.`
+            actionDescription: `The user of userId ${userId} has deleted the access of the shared application of applicationId ${applicationId} from the user of userId ${fellowRecruiterId}. Now it is unshared with that user`
         });
         return h.response({message: 'Access record deleted'}).code(200);
     }
