@@ -163,6 +163,7 @@ const initRelations = (model) =>{
   const Joblocation = model.Joblocation;
   const Jobname = model.Jobname;
   const Jobapplication = model.Jobapplication;
+  const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
   const Jobtype = model.Jobtype;
   const User = model.User;
@@ -174,6 +175,7 @@ const initRelations = (model) =>{
   Job.belongsTo(Joblocation, { as: "jobLocation", foreignKey: "jobLocationId"});
   Job.belongsTo(Jobname, { as: "jobName", foreignKey: "jobNameId"});
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
+  Job.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "affectedJobId"});
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
   Job.belongsTo(User, { as: "user", foreignKey: "userId"});

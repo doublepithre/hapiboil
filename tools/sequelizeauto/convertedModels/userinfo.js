@@ -169,10 +169,13 @@ const initRelations = (model) =>{
   const Questionnaire = model.Questionnaire;
   const Company = model.Company;
   const User = model.User;
+  const Applicationauditlog = model.Applicationauditlog;
   const Applicationhiremember = model.Applicationhiremember;
   const Jobapplication = model.Jobapplication;
+  const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
   const Mentorquesresponse = model.Mentorquesresponse;
+  const Profileauditlog = model.Profileauditlog;
   const Usermeta = model.Usermeta;
   const Userquesresponse = model.Userquesresponse;
   const Userrole = model.Userrole;
@@ -186,10 +189,14 @@ const initRelations = (model) =>{
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
+  Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
+  Userinfo.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
+  Userinfo.hasMany(Profileauditlog, { as: "profileauditlogs", foreignKey: "affectedUserId"});
+  Userinfo.hasMany(Profileauditlog, { as: "performerUserProfileauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
   Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
