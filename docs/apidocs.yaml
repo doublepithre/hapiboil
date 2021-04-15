@@ -427,6 +427,24 @@ paths:
                       type: string
                       description: JWT to be used for authorization 
 
+  /logout:
+    post:
+      summary: Logout user
+      tags:
+        - User
+  
+      responses:
+        '200':
+          description: Successful logout
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties: 
+                    message: 
+                      type: string
+                      example: Log out successful!
+
   /account/me:
     get: 
       summary: Get user info
