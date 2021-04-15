@@ -66,7 +66,7 @@ const createUser = async (request, h) => {
       email: emailLower,
       roleId,
       userTypeId,
-      active: true,
+      active: false,
       firstName: email.split('@')[0],
       companyUuid: null,
       privacyClause,
