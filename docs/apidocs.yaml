@@ -512,6 +512,8 @@ paths:
             schema:
               type: object
               properties:
+                picture:
+                  type: file
                 active:
                   type: boolean
                   nullable: true
