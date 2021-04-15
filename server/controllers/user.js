@@ -8,6 +8,7 @@ import { formatQueryRes } from '../utils/index';
 import { getDomainURL } from '../utils/toolbox';
 import {camelizeKeys} from '../utils/camelizeKeys';
 import { update } from 'lodash';
+const uploadFile = require('../utils/uploadFile');
 
 const createUser = async (request, h) => {
   try {
@@ -1543,7 +1544,35 @@ const updateMetaData = async (request, h) => {
   }
 }
 
+const DEMOuploadFileAPI = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const luserId = credentials.id;
+    const payload = request.payload;
+
+    const { logoImage, keyPrefix: kf } = payload || {};
+    const fileItems = isArray(logoImage) ? logoImage : [logoImage];
+
+    let linksArr = [];
+    for(let fileItem of fileItems){
+      const uploadRes = await uploadFile(h, fileItem, luserId, ['png', 'jpg', 'jpeg']);
+      linksArr.push(uploadRes.vurl)
+    }
+
+    return h.response(linksArr).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
+
 module.exports = {
+  DEMOuploadFileAPI,
   createUser,
 
   createCompanySuperAdmin,

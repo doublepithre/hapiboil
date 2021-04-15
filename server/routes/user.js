@@ -1,4 +1,5 @@
 import { 
+  DEMOuploadFileAPI,
   createUser, 
 
   createCompanySuperAdmin,
@@ -31,6 +32,22 @@ const xuser = {
   
   register: async (server, options) => {
     try {
+      server.route({
+        method: 'POST',
+        path: '/upload',
+        options: {
+          auth: {
+            mode: 'try',
+          },          
+          payload: {
+            maxBytes: 209715200,
+            output: 'stream',
+            parse: true,
+            multipart: true,
+          },
+          handler: DEMOuploadFileAPI,
+        },
+      });
       server.route({
         method: 'POST',
         path: '/',
