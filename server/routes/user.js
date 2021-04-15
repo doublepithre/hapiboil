@@ -40,7 +40,7 @@ const xuser = {
             mode: 'try',
           },          
           payload: {
-            maxBytes: 209715200,
+            maxBytes: 3000000,
             output: 'stream',
             parse: true,
             multipart: true,
@@ -162,6 +162,12 @@ const xuser = {
         options: {
           auth: {
             mode: 'try',
+          },
+          payload: {
+            maxBytes: 3000000,
+            output: 'stream',
+            parse: true,
+            multipart: true,
           },
           handler: updateUser,
         },

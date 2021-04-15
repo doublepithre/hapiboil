@@ -931,14 +931,15 @@ const updateUser = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    const updateDetails = request.payload;
     const validUpdateRequests = [
       'active',      'firstName',
       'lastName',    'isAdmin',
       'tzid',        'primaryMobile',
       'roleId',      'privacyClause',
-      'tandc',
+      'tandc',       'picture'
     ];
-    const requestedUpdateOperations = Object.keys(request.payload) || [];
+    const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
     if (!isAllReqsValid) {
       return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
@@ -960,7 +961,17 @@ const updateUser = async (request, h) => {
       return h.response({ error: true, message: 'Bad Request! You are not authorized!'}).code(403);
     }
     
-    await Userinfo.update( request.payload, { where: { userUuid: userUuid }} );
+    // upload picture to azure and use that generated link to save on db
+    if(updateDetails.picture){
+      const fileItem = updateDetails.picture;
+      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
+      const uploadRes = await uploadFile(fileItem, luserId, ['png', 'jpg', 'jpeg']);
+      if(uploadRes.error) return h.response(uploadRes).code(400);
+      
+      updateDetails.picture = uploadRes.vurl;
+    }
+    
+    await Userinfo.update( updateDetails, { where: { userUuid: userUuid }} );
     const updatedUinfo = await Userinfo.findOne({
         where:{ userUuid: userUuid },
         attributes: { exclude: ['createdAt', 'updatedAt']

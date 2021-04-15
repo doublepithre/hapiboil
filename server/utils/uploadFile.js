@@ -10,10 +10,10 @@ const AzureStorage = require('./azstorage');
   .               returns that azure url (to be saved on the db) also deletes the local file
   
   FUNCTION:
-  uploadFile(h: HapiJS h, fileItem: BufferStreamOfFileItem, blobContainerName: string, allowedFileTypes: [], keyPrefix)
+  uploadFile(fileItem: BufferStreamOfFileItem, blobContainerName: string, allowedFileTypes: [], keyPrefix)
 
   REQUIRED PARAMS: 
-  h, fileItem, blobContainerName
+  fileItem, blobContainerName
 
   blobContainerName: {
     if(candidate) blobContainerName = `${userId}`
@@ -34,7 +34,7 @@ const AzureStorage = require('./azstorage');
         mode: 'try',
       },          
       payload: {
-        maxBytes: 209715200,
+        maxBytes: 3000000,
         output: 'stream',
         parse: true,
         multipart: true,
@@ -47,10 +47,10 @@ const AzureStorage = require('./azstorage');
 
 
 const defaultAllowedFileTypes = ['jpg', 'jpeg', 'png', 'docx', 'odt', 'pdf', 'doc'];
-const uploadFile = async (h, fileItem, blobContainerName, allowedFileTypes = defaultAllowedFileTypes, kf) => {
+const uploadFile = async (fileItem, blobContainerName, allowedFileTypes = defaultAllowedFileTypes, kf) => {
   const keyPrefix = kf ? kf : 'default';
   const filetype = await FileType.fromBuffer(fileItem._data);
-  if (!allowedFileTypes.includes(filetype.ext)) return h.response({ message: `File format invalid(${filetype.ext}). Use one of the following: ${ allowedFileTypes.join(' ') }` }).code(400);
+  if (!allowedFileTypes.includes(filetype.ext)) return { error: true, message: `File format invalid(${filetype.ext}). Use one of the following: ${ allowedFileTypes.join(' ') }` }
   
   /* -----------------------------------
   .   UPLOAD TO THIS (LOCAL) SERVER
@@ -82,7 +82,7 @@ const uploadFile = async (h, fileItem, blobContainerName, allowedFileTypes = def
   if(azRes.vurl) {
     return { error: false, vurl: azRes.vurl };
   } else {
-    return h.response({ error: true, message: "Unable to upload the document" }).code(200);
+    return { error: true, message: "Unable to upload the document" };
   }
 
 }
