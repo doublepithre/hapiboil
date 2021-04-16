@@ -938,7 +938,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job?limit={limit}&offset={skip}&recommended={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&createDate={lowerDate}&createDate={upperDate}:
+  /job?limit={limit}&offset={skip}&recommended={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&startDate={lowerDate}&endDate={upperDate}:
     post: 
       summary: Create Job
       tags:
@@ -980,12 +980,20 @@ paths:
             type: string
             enum: [score:asc, score:desc, created_at:asc, created_at:desc, job_name:asc, job_name:desc]
         
-        - name: createDate
+        - name: startDate
           in: query          
           required: false
           schema:
             type: string
             example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
       responses:
         '200':
           description: OK
@@ -1258,7 +1266,7 @@ paths:
                     type: string
                     example: Access record deleted
 
-  /job/j/recruiter?limit={limit}&offset={skip}&ownJobs={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
+  /job/j/recruiter?limit={limit}&offset={skip}&ownJobs={1}&search={searchString}&startDate={lowerDate}&endDate={upperDate}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
       summary: Get recruiter jobs
       tags:
@@ -1280,12 +1288,19 @@ paths:
             type: string
             enum: [score:asc, score:desc, created_at:asc, created_at:desc, job_name:asc, job_name:desc]
         
-        - name: createDate
+        - name: startDate
           in: query          
           required: false
           schema:
             type: string
             example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
 
       responses:
         '200':
@@ -1342,7 +1357,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}:
+  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&startDate={lowerDate}&endDate={upperDate}:
     get: 
         summary: Get applied jobs
         tags:
@@ -1364,12 +1379,19 @@ paths:
             type: string
             enum: [created_at:asc, created_at:desc, status:asc, status:desc, job_name:asc, job_name:desc]        
          
-        - name: applicationDate
+        - name: startDate
           in: query          
           required: false
           schema:
             type: string
             example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
         
         responses:
           '200':
@@ -1435,7 +1457,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplicationDetailed"                      
       
-  /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&applicationDate={lowerDate}&applicationDate={upperDate}:
+  /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&startDate={lowerDate}&endDate={upperDate}:
     get: 
       summary: Get all Applicants
       tags:
@@ -1457,12 +1479,20 @@ paths:
             type: string
             enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, application_date:asc, application_date:desc, status:asc, status:desc]
         
-        - name: applicationDate
+        - name: startDate
           in: query          
           required: false
           schema:
             type: string
             example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+            
       responses:
         '200':
           description: OK
