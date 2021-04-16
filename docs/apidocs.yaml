@@ -230,7 +230,59 @@ paths:
                   message:
                     description: Describes reason for failure
                     type: string
-                
+
+  /account/company/{companyUuid}/: 
+    patch:
+      summary: Update Company info
+      parameters:
+        - name: companyUuid
+          in: path
+          description: UUID of Company
+          required: true
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                displayName:
+                  type: string
+                website:
+                  type: string
+                description:
+                  type: stirng
+                active:
+                  type: boolean
+                noOfEmployees:
+                  type: number          
+                foundedYear:
+                  type: number
+                companyIndustryId:
+                  type: number
+                logo:
+                  type: file
+                emailBg:
+                  type: file
+                banner:
+                  type: file
+
+      responses:
+        '200':
+          description: Successfully updated Company info
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/CompanyFullDetails"
+  
+      
   /account/company-staff?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
     get: 
         summary: Get all company staff
@@ -1612,6 +1664,50 @@ components:
           type: string
         userTypeName:
           type: string
+    
+    Company:
+      type: object
+      description: This is company information.      
+      properties:
+        companyId:
+          type: number
+        companyUuid:
+          type: number
+        companyName:
+          type: string
+        displayName:
+          type: string
+        website:
+          type: string
+        description:
+          type: stirng
+        active:
+          type: boolean
+        noOfEmployees:
+          type: number          
+        foundedYear:
+          type: number
+        companyIndustryId:
+          type: number
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    
+    CompanyFullDetails:
+      type: object
+      description: This extends the Company model and provides more information.
+      allOf:
+        - $ref: "#/components/schemas/Company"
+      properties:
+        logo:
+          type: string
+        emailBg:
+          type: string
+        banner:
+          type: string
+        
+    
     Question:
       type: object
       properties:

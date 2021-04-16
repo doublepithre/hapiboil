@@ -463,7 +463,7 @@ const updateCompanyProfile = async (request, h) => {
       'companyName',      'website',
       'description',    'companyIndustryId',
       'noOfEmployees',        'foundedYear',
-      'logo',      'banner',
+      'logo',      'banner',    'emailBg',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
@@ -488,7 +488,7 @@ const updateCompanyProfile = async (request, h) => {
     if(updateDetails.logo){
       const fileItem = updateDetails.logo;
       if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
-      const uploadRes = await uploadFile(fileItem, luserId, ['png', 'jpg', 'jpeg']);
+      const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
       if(uploadRes.error) return h.response(uploadRes).code(400);
       
       updateDetails.logo = uploadRes.vurl;
@@ -497,10 +497,19 @@ const updateCompanyProfile = async (request, h) => {
     if(updateDetails.banner){
       const fileItem = updateDetails.banner;
       if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
-      const uploadRes = await uploadFile(fileItem, luserId, ['png', 'jpg', 'jpeg']);
+      const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
       if(uploadRes.error) return h.response(uploadRes).code(400);
       
       updateDetails.banner = uploadRes.vurl;
+    }
+    
+    if(updateDetails.emailBg){
+      const fileItem = updateDetails.emailBg;
+      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
+      const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
+      if(uploadRes.error) return h.response(uploadRes).code(400);
+      
+      updateDetails.emailBg = uploadRes.vurl;
     }
     
     await Company.update(
@@ -511,7 +520,8 @@ const updateCompanyProfile = async (request, h) => {
         noOfEmployees, foundedYear        
       }, { where: { companyId: rCompanyId }} 
     );
-    await Companyinfo.update({ logo: updateDetails.logo, banner: updateDetails.banner }, { where: { companyId: rCompanyId }});
+    const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg: updateDetails.emailBg };
+    await Companyinfo.update(companyInfoUpdateDetails, { where: { companyId: rCompanyId }});
     
     // find all company info (using SQL to avoid nested ugliness in the response)
     const db1 = request.getDb('xpaxr');
