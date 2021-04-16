@@ -165,7 +165,7 @@ const createCompanySuperAdmin = async (request, h) => {
     if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
     
     // creating company
-    const cdata = await Company.create({ companyName, displayName: companyName, active: true });
+    const cdata = await Company.create({ companyName: companyName.toLowerCase().trim(), displayName: companyName, active: true });
     const companyRes = cdata && cdata.toJSON();
     const { companyId, companyUuid } = companyRes || {};
 
@@ -440,6 +440,111 @@ const updateUserBySuperadmin = async (request, h) => {
     return h.response({ error: true, message: 'Internal Server Error' }).code(500);
   }
 }
+
+const updateCompanyProfile = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    
+    const updateDetails = request.payload;    
+    const { 
+      companyName, website, description, 
+      companyIndustryId, noOfEmployees, foundedYear      
+    } = updateDetails || {};
+    const { companyUuid } = request.params || {};
+    const { Company, Companyinfo, Companyindustry, Profileauditlog, Userinfo } = request.getModels('xpaxr');
+
+    const validUpdateRequests = [
+      'companyName',      'website',
+      'description',    'companyIndustryId',
+      'noOfEmployees',        'foundedYear',
+      'logo',      'banner',
+    ];
+    const requestedUpdateOperations = Object.keys(updateDetails) || [];
+    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const userRecord = await Userinfo.findOne({ where: { userId } });
+    const luser = userRecord && userRecord.toJSON();
+    const { userId: luserId, companyId: luserCompanyId } = luser || {};
+    
+    const requestedForCompany = await Company.findOne({ where: { companyUuid }}) || {};
+    const rCompanyInfo = requestedForCompany && requestedForCompany.toJSON();
+    const { companyId: rCompanyId } = rCompanyInfo || {};
+
+    if (!rCompanyId) return h.response({ error: true, message: 'No Company found!'}).code(400);
+    if (luserCompanyId !== rCompanyId) {    // when request is (not from self-company)
+      return h.response({ error: true, message: 'Bad Request! You are not authorized!'}).code(403);
+    }
+    
+    // upload picture to azure and use that generated link to save on db
+    if(updateDetails.logo){
+      const fileItem = updateDetails.logo;
+      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
+      const uploadRes = await uploadFile(fileItem, luserId, ['png', 'jpg', 'jpeg']);
+      if(uploadRes.error) return h.response(uploadRes).code(400);
+      
+      updateDetails.logo = uploadRes.vurl;
+    }
+
+    if(updateDetails.banner){
+      const fileItem = updateDetails.banner;
+      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
+      const uploadRes = await uploadFile(fileItem, luserId, ['png', 'jpg', 'jpeg']);
+      if(uploadRes.error) return h.response(uploadRes).code(400);
+      
+      updateDetails.banner = uploadRes.vurl;
+    }
+    
+    await Company.update(
+      {
+        companyName: companyName.toLowerCase().trim(),
+        displayName: companyName,
+        website, description, companyIndustryId, 
+        noOfEmployees, foundedYear        
+      }, { where: { companyId: rCompanyId }} 
+    );
+    await Companyinfo.update({ logo: updateDetails.logo, banner: updateDetails.banner }, { where: { companyId: rCompanyId }});
+    
+    // find all company info (using SQL to avoid nested ugliness in the response)
+    const db1 = request.getDb('xpaxr');
+    const sqlStmt = `select * from hris.company c
+        inner join hris.companyinfo ci on ci.company_id=c.company_id
+        where c.company_id=:rCompanyId`;
+
+    const sequelize = db1.sequelize;
+    const SQLcompanyInfo = await sequelize.query(sqlStmt, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+            rCompanyId
+        },
+    });
+    const responses = camelizeKeys(SQLcompanyInfo);
+
+    // await Profileauditlog.create({ 
+    //   affectedUserId: rForUserId,
+    //   performerUserId: luserId,
+    //   actionName: 'Update a User',
+    //   actionType: 'UPDATE',
+    //   actionDescription: `The user of userId ${luserId} has updated his own info`
+    // });
+    
+    
+    return h.response(responses).code(201);
+  } catch (error) {
+    console.error(error.stack);
+    return h.response({
+      error: true, message: 'Bad Request!'
+    }).code(400);
+  }
+};
 
 const createCompanyStaff = async (request, h) => {
   try {
@@ -1590,6 +1695,7 @@ module.exports = {
   getAllUsersBySuperadmin,
   updateUserBySuperadmin,
 
+  updateCompanyProfile,
   createCompanyStaff,
   getCompanyStaff,
   getFellowCompanyStaff,

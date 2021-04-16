@@ -7,6 +7,7 @@ import {
   updateUserBySuperadmin,
   
   createCompanyStaff,
+  updateCompanyProfile,
   updateCompanyStaff,
   getCompanyStaff,
   getFellowCompanyStaff,
@@ -84,6 +85,22 @@ const xuser = {
             mode: 'try',
           },
           handler: updateUserBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/company/{companyUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          payload: {
+            maxBytes: 3000000,
+            output: 'stream',
+            parse: true,
+            multipart: true,
+          },
+          handler: updateCompanyProfile,
         },
       });
       server.route({

@@ -4,6 +4,7 @@ var _Applicationauditlog = require("./applicationauditlog");
 var _Applicationhiremember = require("./applicationhiremember");
 var _Attributeset = require("./attributeset");
 var _Company = require("./company");
+var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
 var _Emaillog = require("./emaillog");
 var _Emailtemplate = require("./emailtemplate");
@@ -40,6 +41,7 @@ function initModels(sequelize) {
   var Applicationhiremember = _Applicationhiremember(sequelize, DataTypes);
   var Attributeset = _Attributeset(sequelize, DataTypes);
   var Company = _Company(sequelize, DataTypes);
+  var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
   var Emailtemplate = _Emailtemplate(sequelize, DataTypes);
@@ -86,6 +88,8 @@ function initModels(sequelize) {
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
+  Company.belongsTo(Companyindustry, { as: "companyIndustry", foreignKey: "companyIndustryId"});
+  Companyindustry.hasMany(Company, { as: "companies", foreignKey: "companyIndustryId"});
   Applicationauditlog.belongsTo(Jobapplication, { as: "affectedApplication", foreignKey: "affectedApplicationId"});
   Jobapplication.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "affectedApplicationId"});
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
@@ -163,6 +167,7 @@ function initModels(sequelize) {
     Applicationhiremember,
     Attributeset,
     Company,
+    Companyindustry,
     Companyinfo,
     Emaillog,
     Emailtemplate,

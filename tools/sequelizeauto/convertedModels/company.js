@@ -33,11 +33,6 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.TEXT,
       allowNull: true
     },
-    companyType: {
-      type: DataTypes.INTEGER,
-      allowNull: true,
-      field: 'company_type'
-    },
     active: {
       type: DataTypes.BOOLEAN,
       allowNull: true
@@ -53,6 +48,28 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
+    },
+    companyIndustryId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'companyindustry',
+          schema: 'hris'
+        },
+        key: 'company_industry_id'
+      },
+      field: 'company_industry_id'
+    },
+    noOfEmployees: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      field: 'no_of_employees'
+    },
+    foundedYear: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      field: 'founded_year'
     }
   }, {
     sequelize,
@@ -86,10 +103,12 @@ const initRelations = (model) =>{
   const Company = model.Company;
   const Companyinfo = model.Companyinfo;
   const Userinfo = model.Userinfo;
+  const Companyindustry = model.Companyindustry;
 
 
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
+  Company.belongsTo(Companyindustry, { as: "companyIndustry", foreignKey: "companyIndustryId"});
 
 }
