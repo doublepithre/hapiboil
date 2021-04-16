@@ -296,7 +296,7 @@ const getAllJobs = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'candidate') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
-        const { recommended, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const { recommended, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
         const recommendedVal = recommended ? Number(recommended) : 1;
 
@@ -323,24 +323,22 @@ const getAllJobs = async (request, h) => {
         // custom date search query
         let lowerDateRange;
         let upperDateRange;
-        if(createDate){
-            if(!isArray(createDate)) {
-                lowerDateRange = new Date(createDate);
-                upperDateRange = new Date('2999-12-31');
-            } else {
-                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
-                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
-                
-                lowerDateRange = new Date(createDate[0]);
-                upperDateRange = new Date(createDate[1]);
-            }    
+        if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
+
+        if(startDate){
+            if(startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if(startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
             const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
             if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
-        } else {
-            lowerDateRange = new Date('2000-01-01');
-            upperDateRange = new Date('2999-12-31');
+            if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
         }
 
         let recommendations;
@@ -372,11 +370,11 @@ const getAllJobs = async (request, h) => {
         }
 
         const db1 = request.getDb('xpaxr');
-        const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate };
 
         // get sql statement for getting jobs or jobs count        
         function getSqlStmt(queryType, obj = filters){
-            const { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -395,10 +393,10 @@ const getAllJobs = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where j.active=true 
-                and j.is_private=false 
-                and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
-            
-            if(recommendedVal === 1) sqlStmt += ` and j.job_id in (:jobIdArray)`
+                and j.is_private=false`;            
+                        
+            if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
+            if(recommendedVal === 1) sqlStmt += ` and j.job_id in (:jobIdArray)`;
             // filters
             if(jobTypeId){
                 sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
@@ -513,7 +511,7 @@ const getRecruiterJobs = async (request, h) => {
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: recruiterCompanyId } = luserProfileInfo || {};
         
-        const { ownJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const { ownJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
         const ownJobsVal = ownJobs ? Number(ownJobs) : 0;
 
@@ -538,32 +536,30 @@ const getRecruiterJobs = async (request, h) => {
         // custom date search query
         let lowerDateRange;
         let upperDateRange;
-        if(createDate){
-            if(!isArray(createDate)) {
-                lowerDateRange = new Date(createDate);
-                upperDateRange = new Date('2999-12-31');
-            } else {
-                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
-                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
-                
-                lowerDateRange = new Date(createDate[0]);
-                upperDateRange = new Date(createDate[1]);
-            }    
+        if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
+
+        if(startDate){
+            if(startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if(startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
             const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
             if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
-        } else {
-            lowerDateRange = new Date('2000-01-01');
-            upperDateRange = new Date('2999-12-31');
+            if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
         }
         
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { startDate, ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
-            const { ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { startDate, ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -582,12 +578,12 @@ const getRecruiterJobs = async (request, h) => {
                     inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                     inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
                     inner join hris.jobhiremember jhm on jhm.job_id=j.job_id 
-                where j.active=true 
-                    and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
+                where j.active=true                     
                     and j.company_id=:recruiterCompanyId 
                     and jhm.access_level in ('creator', 'administrator', 'viewer') 
                     and jhm.user_id=:userId`;
 
+            if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
             // filters
             if(ownJobsVal === 'true'){
                 sqlStmt += ` and j.user_id=:userId`;
@@ -1145,7 +1141,7 @@ const getAppliedJobs = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { limit, offset, sort, search, status, applicationDate } = request.query;
+        const { limit, offset, sort, search, status, startDate, endDate } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
         // Checking if application status is valid
@@ -1173,32 +1169,30 @@ const getAppliedJobs = async (request, h) => {
         // custom date search query
         let lowerDateRange;
         let upperDateRange;
-        if(applicationDate){
-            if(!isArray(applicationDate)) {
-                lowerDateRange = new Date(applicationDate);
-                upperDateRange = new Date('2999-12-31');
-            } else {
-                if(!applicationDate[0]) lowerDateRange = new Date('2000-01-01');
-                if(!applicationDate[1]) upperDateRange = new Date('2999-12-31');
-                
-                lowerDateRange = new Date(applicationDate[0]);
-                upperDateRange = new Date(applicationDate[1]);
-            }    
+        if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
+
+        if(startDate){
+            if(startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if(startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
             const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
-            if(!isValidDate) return h.response({error: true, message: 'Unvalid applicationDate query!'}).code(400);
+            if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid applicationDate range!'}).code(400);                        
-        } else {
-            lowerDateRange = new Date('2000-01-01');
-            upperDateRange = new Date('2999-12-31');
+            if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
         }
 
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { search, sortBy, sortType, status };
+        const filters = { startDate, search, sortBy, sortType, status };
         function getSqlStmt(queryType, obj = filters){
-            const { search, sortBy, sortType, status } = obj;
+            const { startDate, search, sortBy, sortType, status } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -1220,9 +1214,9 @@ const getAppliedJobs = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id            
-            where ja.user_id=:userId
-                and ja.created_at > :lowerDateRange and ja.created_at < :upperDateRange`;
-
+            where ja.user_id=:userId`;
+            
+            if(startDate) sqlStmt += ` and ja.created_at >= :lowerDateRange and ja.created_at <= :upperDateRange`;
             // filters
             if(status){
                 sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
@@ -1395,7 +1389,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
-      const { limit, offset, sort, applicationDate, search, status } = request.query;            
+      const { limit, offset, sort, startDate, endDate, search, status } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // Checking if application status is valid
@@ -1425,33 +1419,31 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       // custom date search query
       let lowerDateRange;
       let upperDateRange;
-      if(applicationDate){
-          if(!isArray(applicationDate)) {
-              lowerDateRange = new Date(applicationDate);
-              upperDateRange = new Date('2999-12-31');
-          } else {
-              if(!applicationDate[0]) lowerDateRange = new Date('2000-01-01');
-              if(!applicationDate[1]) upperDateRange = new Date('2999-12-31');
-              
-              lowerDateRange = new Date(applicationDate[0]);
-              upperDateRange = new Date(applicationDate[1]);
-          }    
+      if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
+
+      if(startDate){
+          if(startDate && !endDate) {
+              lowerDateRange = new Date(startDate);
+              upperDateRange = new Date(); //Now()
+          }
+          if(startDate && endDate) {
+              lowerDateRange = new Date(startDate);
+              upperDateRange = new Date(endDate);
+          }
+
           const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
-          if(!isValidDate) return h.response({error: true, message: 'Unvalid applicationDate query!'}).code(400);
+          if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
           const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-          if(!isValidDateRange) return h.response({error: true, message: 'Unvalid applicationDate range!'}).code(400);                        
-      } else {
-          lowerDateRange = new Date('2000-01-01');
-          upperDateRange = new Date('2999-12-31');
+          if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
       }
 
       const { jobId } = request.params || {};      
       const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting all applications or all applications' count        
-        const filters = { status, search, sortBy, sortType }
+        const filters = { startDate, status, search, sortBy, sortType }
         function getSqlStmt(queryType, obj = filters){            
-            const { status, search, sortBy, sortType } = obj;
+            const { startDate, status, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -1466,9 +1458,9 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                     inner join hris.userinfo ui on ui.user_id=ja.user_id                    
                 where ja.is_withdrawn=false 
                     and ahm.access_level in ('jobcreator', 'viewer', 'administrator')
-                    and ja.job_id=:jobId and ahm.user_id=:userId
-                    and ja.created_at > :lowerDateRange and ja.created_at < :upperDateRange`;
-            
+                    and ja.job_id=:jobId and ahm.user_id=:userId`;
+
+            if(startDate) sqlStmt += ` and ja.created_at >= :lowerDateRange and ja.created_at <= :upperDateRange`;
             // filters
             if(status){
                 sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
