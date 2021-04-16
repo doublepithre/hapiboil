@@ -470,7 +470,8 @@ const updateCompanyProfile = async (request, h) => {
     const updateDetails = request.payload;    
     const { 
       companyName, website, description, 
-      companyIndustryId, noOfEmployees, foundedYear      
+      companyIndustryId, noOfEmployees, foundedYear,
+      emailBg      
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
     const { Company, Companyinfo, Companyindustry, Profileauditlog, Userinfo } = request.getModels('xpaxr');
@@ -519,13 +520,10 @@ const updateCompanyProfile = async (request, h) => {
       updateDetails.banner = uploadRes.vurl;
     }
     
-    if(updateDetails.emailBg){
-      const fileItem = updateDetails.emailBg;
-      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
-      const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
-      if(uploadRes.error) return h.response(uploadRes).code(400);
-      
-      updateDetails.emailBg = uploadRes.vurl;
+    if(emailBg){
+      const RegEx = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
+      const isHexCode = RegEx.test(emailBg);
+      if(!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!'}).code(400);
     }
     
     await Company.update(
@@ -536,7 +534,7 @@ const updateCompanyProfile = async (request, h) => {
         noOfEmployees, foundedYear        
       }, { where: { companyId: rCompanyId }} 
     );
-    const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg: updateDetails.emailBg };
+    const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
     await Companyinfo.update(companyInfoUpdateDetails, { where: { companyId: rCompanyId }});
     
     // find all company info (using SQL to avoid nested ugliness in the response)
