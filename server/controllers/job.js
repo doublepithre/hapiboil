@@ -372,7 +372,7 @@ const getAllJobs = async (request, h) => {
         }
 
         const db1 = request.getDb('xpaxr');
-        const filters = { jobIdArray, recommendedVal,  search, sortBy, sortType };
+        const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
 
         // get sql statement for getting jobs or jobs count        
         function getSqlStmt(queryType, obj = filters){
