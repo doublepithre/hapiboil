@@ -6,6 +6,7 @@ import {
   getAllUsersBySuperadmin,
   updateUserBySuperadmin,
   
+  getCompanyIndustryOptions,
   createCompanyStaff,
   updateCompanyProfile,
   updateCompanyStaff,
@@ -85,6 +86,16 @@ const xuser = {
             mode: 'try',
           },
           handler: updateUserBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company/industries',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getCompanyIndustryOptions,
         },
       });
       server.route({

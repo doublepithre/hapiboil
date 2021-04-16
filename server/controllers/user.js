@@ -441,6 +441,22 @@ const updateUserBySuperadmin = async (request, h) => {
   }
 }
 
+const getCompanyIndustryOptions = async (request, h) => {
+  try{
+      if (!request.auth.isAuthenticated) {
+          return h.response({ message: 'Forbidden'}).code(403);
+      }
+      const { Companyindustry } = request.getModels('xpaxr');
+      const companyIndustries = await Companyindustry.findAll({});
+      
+      return h.response({ industry: companyIndustries}).code(200);
+  }
+  catch (error) {
+      console.error(error.stack);
+      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
 const updateCompanyProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
@@ -1705,6 +1721,7 @@ module.exports = {
   getAllUsersBySuperadmin,
   updateUserBySuperadmin,
 
+  getCompanyIndustryOptions,
   updateCompanyProfile,
   createCompanyStaff,
   getCompanyStaff,

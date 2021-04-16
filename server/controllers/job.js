@@ -2016,7 +2016,7 @@ const isUserQuestionnaireDone = async(userId,model)=>{
 }
 
 module.exports = {
-    createJob,
+    createJob,    
     getJobDetailsOptions,
     getAutoComplete,
     getSingleJob,

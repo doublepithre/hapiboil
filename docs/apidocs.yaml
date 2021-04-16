@@ -231,6 +231,31 @@ paths:
                     description: Describes reason for failure
                     type: string
 
+  /account/company/industries:
+    get: 
+      summary: Get company industries
+      tags:
+        - Job
+      security:
+      - bearerAuth: []     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  industry:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        companyIndustryId:
+                          type: number
+                        companyIndustryName:
+                          type: string
+  
   /account/company/{companyUuid}/: 
     patch:
       summary: Update Company info
@@ -281,8 +306,7 @@ paths:
             application/json: 
               schema:
                 $ref: "#/components/schemas/CompanyFullDetails"
-  
-      
+        
   /account/company-staff?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
     get: 
         summary: Get all company staff
