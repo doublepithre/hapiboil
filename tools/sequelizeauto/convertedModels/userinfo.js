@@ -171,6 +171,7 @@ const initRelations = (model) =>{
   const User = model.User;
   const Applicationauditlog = model.Applicationauditlog;
   const Applicationhiremember = model.Applicationhiremember;
+  const Companyauditlog = model.Companyauditlog;
   const Jobapplication = model.Jobapplication;
   const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
@@ -191,6 +192,7 @@ const initRelations = (model) =>{
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
   Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
+  Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Userinfo.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});

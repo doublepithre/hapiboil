@@ -142,7 +142,7 @@ const createCompanySuperAdmin = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
     }
 
-    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Company, Companyinfo, Emailtemplate, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Companyauditlog, Company, Companyinfo, Emailtemplate, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, companyName, } = request.payload || {};
     const accountType = 'companysuperadmin';
 
@@ -170,6 +170,13 @@ const createCompanySuperAdmin = async (request, h) => {
     const { companyId, companyUuid } = companyRes || {};
 
     const cidata = await Companyinfo.create({ companyId });
+    await Companyauditlog.create({ 
+      affectedCompanyId: companyId,
+      performerUserId: luserId,
+      actionName: 'Create a Company',
+      actionType: 'CREATE',
+      actionDescription: `The user of userId ${luserId} has created the company of companyId ${companyId}`,
+    });
 
     // creating company superadmin user
     const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
@@ -511,16 +518,17 @@ const updateCompanyBySuperadmin = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || (updateDetails.active !== true && updateDetails.active !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
-    const { Company, Profileauditlog } = request.getModels('xpaxr');
+    const { Company, Companyauditlog, Profileauditlog } = request.getModels('xpaxr');
 
     const { companyUuid } = request.params || {};
     const requestedForCompany = await Company.findOne({ where: { companyUuid }}) || {};
     const rcompanyInfo = requestedForCompany && requestedForCompany.toJSON();
-    const { companyId: rCompanyId } = rcompanyInfo || {};
+    const { companyId: rCompanyId, active: oldActive } = rcompanyInfo || {};
 
     if(!rCompanyId)  return h.response({ error: true, message: 'No company found!'}).code(400);
+    if(updateDetails.active === oldActive)  return h.response({ error: true, message: `The company is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
 
     // when deactivating a company
     if(updateDetails.active === false){      
@@ -567,6 +575,15 @@ const updateCompanyBySuperadmin = async (request, h) => {
     }
     
     await Company.update(updateDetails, { where: { companyUuid }} );
+
+    await Companyauditlog.create({ 
+      affectedCompanyId: rCompanyId,
+      performerUserId: userId,
+      actionName: `${ updateDetails.active === true ? 'Re-activate' : 'Deactivate' } a Company`,
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${userId} has ${ updateDetails.active === true ? 're-activated' : 'Deactivated' } the company of companyId ${rCompanyId}`,
+    });
+
     const updatedCinfo = await Company.findOne({
         where:{ companyUuid },
         attributes: { exclude: ['createdAt', 'updatedAt']
@@ -609,7 +626,7 @@ const updateUserBySuperadmin = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || (updateDetails.active !== true && updateDetails.active !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     const { Userinfo, Profileauditlog } = request.getModels('xpaxr');
 
@@ -634,6 +651,7 @@ const updateUserBySuperadmin = async (request, h) => {
     }
     
     await Userinfo.update(updateDetails, { where: { userUuid: userUuid }} );
+
     const updatedUinfo = await Userinfo.findOne({
         where:{ userUuid: userUuid },
         attributes: { exclude: ['createdAt', 'updatedAt']
@@ -690,7 +708,7 @@ const updateCompanyProfile = async (request, h) => {
       emailBg      
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
-    const { Company, Companyinfo, Companyindustry, Profileauditlog, Userinfo } = request.getModels('xpaxr');
+    const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
 
     const validUpdateRequests = [
       'companyName',      'website',
@@ -752,6 +770,14 @@ const updateCompanyProfile = async (request, h) => {
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
     await Companyinfo.update(companyInfoUpdateDetails, { where: { companyId: rCompanyId }});
+
+    await Companyauditlog.create({ 
+      affectedCompanyId: rCompanyId,
+      performerUserId: userId,
+      actionName: 'Update a Company',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${userId} has updated the company of companyId ${rCompanyId}`,
+    });
     
     // find all company info (using SQL to avoid nested ugliness in the response)
     const db1 = request.getDb('xpaxr');
@@ -766,7 +792,7 @@ const updateCompanyProfile = async (request, h) => {
             rCompanyId
         },
     });
-    const responses = camelizeKeys(SQLcompanyInfo);
+    const responses = camelizeKeys(SQLcompanyInfo)[0];
 
     // await Profileauditlog.create({ 
     //   affectedUserId: rForUserId,

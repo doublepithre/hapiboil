@@ -4,6 +4,7 @@ var _Applicationauditlog = require("./applicationauditlog");
 var _Applicationhiremember = require("./applicationhiremember");
 var _Attributeset = require("./attributeset");
 var _Company = require("./company");
+var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
 var _Emaillog = require("./emaillog");
@@ -41,6 +42,7 @@ function initModels(sequelize) {
   var Applicationhiremember = _Applicationhiremember(sequelize, DataTypes);
   var Attributeset = _Attributeset(sequelize, DataTypes);
   var Company = _Company(sequelize, DataTypes);
+  var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
@@ -82,6 +84,8 @@ function initModels(sequelize) {
   Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
+  Companyauditlog.belongsTo(Company, { as: "affectedCompany", foreignKey: "affectedCompanyId"});
+  Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
@@ -138,6 +142,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Applicationhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
+  Companyauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
+  Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
   Jobapplication.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Jobauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
@@ -167,6 +173,7 @@ function initModels(sequelize) {
     Applicationhiremember,
     Attributeset,
     Company,
+    Companyauditlog,
     Companyindustry,
     Companyinfo,
     Emaillog,
