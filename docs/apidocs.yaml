@@ -406,10 +406,18 @@ paths:
                       items:
                         $ref: "#/components/schemas/companyUser"                      
 
+  /account/company-staff/{userUuid}:
     post:
       summary: Create Company Staff
       tags:
         - User
+      parameters:
+        - name: userUuid
+          in: path
+          description: UUID of User
+          required: true
+          schema:
+            type: string
       security:
         - bearerAuth: []
       requestBody: 
@@ -453,11 +461,18 @@ paths:
                   message:
                     description: Describes reason for failure
                     type: string
-    
+   
     patch:
       summary: Update Roles or Deactivate Company Staff
       tags:
         - User
+      parameters:
+        - name: userUuid
+          in: path
+          description: UUID of User
+          required: true
+          schema:
+            type: string
       security:
         - bearerAuth: []
       requestBody: 
@@ -478,13 +493,7 @@ paths:
             application/json:
               schema: 
                 type: object
-                properties: 
-                  userUuid:
-                    type: string
-                  userId:
-                    type: number
-                  email: 
-                    type: string
+                $ref: "#/components/schemas/User"
         '400':
           description: Failed to update user
           content:
