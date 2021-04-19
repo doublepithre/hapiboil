@@ -1776,7 +1776,39 @@ const getProfile = async (request, h) => {
       const res = { questionId, answer:responseVal.answer };
       responses.push(res);
     }
-    return h.response({ responses }).code(200);
+
+    // attaching isComplete property
+    const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;
+
+    const targetId = 1;
+
+    const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
+    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+    where qt.target_id=:targetId`;  
+
+    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          targetId,
+        },
+    });
+    const userQuesCount = allSQLUserQuesCount[0].count;
+    
+    const sqlStmtForUserRes = `select count(*) 
+      from hris.userquesresponses uqr
+      where uqr.user_id=:userId`;        
+
+    const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          userId,            
+        },
+    });
+    const userResCount = allSQLUserResCount[0].count;
+
+    const isComplete = userQuesCount === userResCount;
+    return h.response({ isComplete, responses }).code(200);
   }
   catch (error) {
     console.error(error.stack);
