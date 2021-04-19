@@ -986,7 +986,7 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
+                properties:                  
                   responses:
                     type: array
                     items:
@@ -1005,6 +1005,8 @@ paths:
               schema:
                 type: object
                 properties:
+                  isComplete:
+                    type: boolean
                   responses:
                     type: array
                     items:
