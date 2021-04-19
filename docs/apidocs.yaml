@@ -153,7 +153,73 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
+  /account/companies?limit={limit}&offset={skip}&search={searchTEXT}&industryId={industryId}&sort={sort}:
+    get: 
+        summary: Get all companies by Superadmin
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [company_name:asc, company_name:desc, created_at:asc, created_at:desc, company_id:asc, company_id:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    companies:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/CompanyFullDetails"                      
+
+  /account/companies/{companyUuid}:
+    patch:
+      summary: Update/(Re/De)-activate any Company
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+      responses:
+        '201':
+          description: Company successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Company"
+        '400':
+          description: Failed to update company
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+
+  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyName={companyName}&companyId={companyId}&sort={sort}:
     get: 
         summary: Get all users
         tags:
@@ -166,14 +232,14 @@ paths:
           required: false
           schema:
             type: string
-            enum: [candidate, employer, mentor, companysuperadmin, 'superadmin']        
+            enum: [candidate, employer, mentor, companysuperadmin, superadmin]        
 
         - name: sort
           in: query          
           required: false
           schema:
             type: string
-            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+            enum: [company_name:asc, company_name:desc, first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
         
         responses:
           '200':
@@ -190,8 +256,9 @@ paths:
                       items:
                         $ref: "#/components/schemas/companyUser"                      
 
+  /account/users/{userUuid}:
     patch:
-      summary: Update/(Re/De)-activate Any User
+      summary: Update/(Re/De)-activate any User
       tags:
         - User
       security:
@@ -211,13 +278,8 @@ paths:
             application/json:
               schema: 
                 type: object
-                properties: 
-                  userUuid:
-                    type: string
-                  userId:
-                    type: number
-                  email: 
-                    type: string
+                $ref: "#/components/schemas/User"
+
         '400':
           description: Failed to update user
           content:
@@ -893,6 +955,7 @@ paths:
                     type: array
                     items:
                       $ref:  "#/components/schemas/Question"
+  
   /account/profile:
     post:
       summary:  Create profile/Answer Questions
@@ -1759,6 +1822,8 @@ components:
         banner:
           type: string
         emailBg:
+          type: string
+        companyIndustryName:
           type: string
         
     Question:

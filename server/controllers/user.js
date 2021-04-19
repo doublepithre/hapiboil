@@ -270,28 +270,25 @@ const getAllCompanyBySuperadmin = async (request, h) => {
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
-    const { limit, offset, sort, search, industry } = request.query;            
+    const { limit, offset, sort, search, industryId } = request.query;            
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
-    // Checking user type
-    const validCompanyIndustries = ['candidate', 'employer', 'mentor', 'companysuperadmin', 'superadmin'];
-    const isIndustryQueryValid = (industry && isArray(industry)) ? (
-      industry.every( req => validCompanyIndustries.includes(req))
-    ) : validCompanyIndustries.includes(industry);
-    if (industry && !isIndustryQueryValid) return h.response({ error: true, message: 'Invalid industry query parameter!'}).code(400);
-    
-
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'ASC'];
+      let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
       if (!sortType && sortBy === 'created_at') sortType = 'DESC';
       if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
-      const validSorts = ['company_name', 'created_at'];
+      
+      const validSortTypes = ['asc', 'desc'];
+      const sortByLower = sortBy.toLowerCase();
+      const isSortTypeReqValid = validSortTypes.includes(sortByLower);
+      
+      const validSorts = ['company_id', 'company_name', 'created_at'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-      if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+      if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
         return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       }       
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
@@ -299,9 +296,9 @@ const getAllCompanyBySuperadmin = async (request, h) => {
       const db1 = request.getDb('xpaxr');
 
       // get sql statement for getting all users or its count        
-      const filters = { search, sortBy, sortType, industry }
+      const filters = { search, sortBy, sortType, industryId }
       function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, industry } = obj;
+          const { search, sortBy, sortType, industryId } = obj;
           let sqlStmt;
           const type = queryType && queryType.toLowerCase();
           if(type === 'count'){
@@ -318,8 +315,8 @@ const getAllCompanyBySuperadmin = async (request, h) => {
               where c.company_id is not null`;
            
           // filters
-          if(industry){
-            sqlStmt += isArray(industry) ? ` and ci.company_industry_name in (:industry)` : ` and ci.company_industry_name=:industry`;
+          if(industryId){
+            sqlStmt += isArray(industryId) ? ` and c.company_industry_Id in (:industryId)` : ` and c.company_industry_Id=:industryId`;
           }
           // search
           if(search) {
@@ -343,7 +340,7 @@ const getAllCompanyBySuperadmin = async (request, h) => {
       	const allSQLCompanies = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: {                 
-                industry,
+                industryId,
                 limitNum, offsetNum,
                 searchVal,                
             },
@@ -351,7 +348,7 @@ const getAllCompanyBySuperadmin = async (request, h) => {
       	const allSQLCompaniesCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: {                 
-                industry,
+                industryId,
                 limitNum, offsetNum,
                 searchVal,                
             },
@@ -379,14 +376,12 @@ const getAllUsersBySuperadmin = async (request, h) => {
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
-    const { Userinfo } = request.getModels('xpaxr');
-    // get the company of the recruiter
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userProfileInfo = userRecord && userRecord.toJSON();
-    const { companyId } = userProfileInfo || {};
-
-    const { limit, offset, sort, search, userType } = request.query;            
+    const { limit, offset, sort, search, userType, companyName, companyId } = request.query;            
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+    // filters
+    const userTypeLower = userType ? (isArray(userType) ? userType.map(ut => ut.toLowerCase()) : userType.toLowerCase()) : null;
+    const companyNameLower = companyName ? (isArray(companyName) ? companyName.map(cn => cn.toLowerCase()) : companyName.toLowerCase()) : null;
 
     // Checking user type
     const validAccountTypes = ['candidate', 'employer', 'mentor', 'companysuperadmin', 'superadmin'];
@@ -395,18 +390,21 @@ const getAllUsersBySuperadmin = async (request, h) => {
     ) : validAccountTypes.includes(userType);
     if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
     
-
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'ASC'];
+      let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'ASC'];
       if (!sortType) sortType = 'ASC';
-      const validSorts = ['first_name', 'last_name'];
+
+      const validSorts = ['company_name', 'first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
 
+      const validSortTypes = ['asc', 'desc'];
+      const sortByLower = sortBy.toLowerCase();
+      const isSortTypeReqValid = validSortTypes.includes(sortByLower);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
         return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       }       
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
@@ -414,9 +412,9 @@ const getAllUsersBySuperadmin = async (request, h) => {
       const db1 = request.getDb('xpaxr');
 
       // get sql statement for getting all users or its count        
-      const filters = { search, sortBy, sortType, userType }
+      const filters = { search, sortBy, sortType, userTypeLower, companyNameLower, companyId }
       function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userType } = obj;
+          const { search, sortBy, sortType, userTypeLower, companyNameLower, companyId } = obj;
           let sqlStmt;
           const type = queryType && queryType.toLowerCase();
           if(type === 'count'){
@@ -434,8 +432,14 @@ const getAllUsersBySuperadmin = async (request, h) => {
               where user_id is not null`;
            
           // filters
-          if(userType){
-            sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
+          if(userTypeLower){
+            sqlStmt += isArray(userTypeLower) ? ` and ut.user_type_name in (:userTypeLower)` : ` and ut.user_type_name=:userTypeLower`;
+          }
+          if(companyNameLower){
+            sqlStmt += isArray(companyNameLower) ? ` and c.company_name in (:companyNameLower)` : ` and c.company_name=:companyNameLower`;
+          }
+          if(companyId){
+            sqlStmt += isArray(companyId) ? ` and ui.company_id in (:companyId)` : ` and ui.company_id=:companyId`;
           }
           // search
           if(search) {
@@ -460,7 +464,9 @@ const getAllUsersBySuperadmin = async (request, h) => {
       	const allSQLUsers = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: {                 
-                userType,
+                userTypeLower,
+                companyId,
+                companyNameLower,
                 limitNum, offsetNum,
                 searchVal,                
             },
@@ -468,7 +474,9 @@ const getAllUsersBySuperadmin = async (request, h) => {
       	const allSQLUsersCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: {                 
-                userType,
+                userTypeLower,
+                companyId,
+                companyNameLower,
                 limitNum, offsetNum,
                 searchVal,                
             },
