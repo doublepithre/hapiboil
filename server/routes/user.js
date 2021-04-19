@@ -3,7 +3,9 @@ import {
   createUser, 
 
   createCompanySuperAdmin,
+  getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
+  updateCompanyBySuperadmin,
   updateUserBySuperadmin,
   
   getCompanyIndustryOptions,
@@ -66,6 +68,26 @@ const xuser = {
             mode: 'try',
           },
           handler: createCompanySuperAdmin,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/companies',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllCompanyBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/companies/{companyUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateCompanyBySuperadmin,
         },
       });
       server.route({

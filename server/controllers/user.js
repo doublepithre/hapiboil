@@ -258,6 +258,115 @@ const createCompanySuperAdmin = async (request, h) => {
   }
 };
 
+const getAllCompanyBySuperadmin = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+
+    const { limit, offset, sort, search, industry } = request.query;            
+    const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+    // Checking user type
+    const validCompanyIndustries = ['candidate', 'employer', 'mentor', 'companysuperadmin', 'superadmin'];
+    const isIndustryQueryValid = (industry && isArray(industry)) ? (
+      industry.every( req => validCompanyIndustries.includes(req))
+    ) : validCompanyIndustries.includes(industry);
+    if (industry && !isIndustryQueryValid) return h.response({ error: true, message: 'Invalid industry query parameter!'}).code(400);
+    
+
+      // sort query
+      let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'ASC'];
+      if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+      if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
+      const validSorts = ['company_name', 'created_at'];
+      const isSortReqValid = validSorts.includes(sortBy);
+
+      // pagination
+      const limitNum = limit ? Number(limit) : 10;
+      const offsetNum = offset ? Number(offset) : 0;
+      if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      }       
+      if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+      
+      const db1 = request.getDb('xpaxr');
+
+      // get sql statement for getting all users or its count        
+      const filters = { search, sortBy, sortType, industry }
+      function getSqlStmt(queryType, obj = filters){            
+          const { search, sortBy, sortType, industry } = obj;
+          let sqlStmt;
+          const type = queryType && queryType.toLowerCase();
+          if(type === 'count'){
+              sqlStmt = `select count(*)`;
+          } else {
+              sqlStmt = `select
+                c.display_name as company_name, c.*, ci.company_industry_name, cinfo.email_bg, cinfo.banner, cinfo.logo`;
+          }
+
+          sqlStmt += `
+              from hris.company c
+                inner join hris.companyindustry ci on ci.company_industry_id=c.company_industry_id
+                inner join hris.companyinfo cinfo on cinfo.company_id=c.company_id
+              where c.company_id is not null`;
+           
+          // filters
+          if(industry){
+            sqlStmt += isArray(industry) ? ` and ci.company_industry_name in (:industry)` : ` and ci.company_industry_name=:industry`;
+          }
+          // search
+          if(search) {
+              sqlStmt += ` and (
+                  c.company_name ilike :searchVal
+                  or ci.company_industry_name ilike :searchVal                                      
+              )`;
+          }
+
+          if(type !== 'count') {
+              // sorts
+              sqlStmt += ` order by c.${ sortBy } ${ sortType}`
+              // limit and offset
+              sqlStmt += ` limit :limitNum  offset :offsetNum`
+          };
+          
+          return sqlStmt;                
+      }
+        
+        const sequelize = db1.sequelize;
+      	const allSQLCompanies = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: {                 
+                industry,
+                limitNum, offsetNum,
+                searchVal,                
+            },
+        });
+      	const allSQLCompaniesCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: {                 
+                industry,
+                limitNum, offsetNum,
+                searchVal,                
+            },
+        });
+        const allCompanies = camelizeKeys(allSQLCompanies);
+
+        const paginatedResponse = { count: allSQLCompaniesCount[0].count, companies: allCompanies };
+        return h.response(paginatedResponse).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
 const getAllUsersBySuperadmin = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -375,6 +484,105 @@ const getAllUsersBySuperadmin = async (request, h) => {
   }
 }
 
+// de/re-activate any Company
+const updateCompanyBySuperadmin = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    
+    const updateDetails = request.payload;    
+    const validUpdateRequests = [
+      'active',
+    ];
+    const requestedUpdateOperations = Object.keys(updateDetails) || [];
+    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    
+    const { Company, Profileauditlog } = request.getModels('xpaxr');
+
+    const { companyUuid } = request.params || {};
+    const requestedForCompany = await Company.findOne({ where: { companyUuid }}) || {};
+    const rcompanyInfo = requestedForCompany && requestedForCompany.toJSON();
+    const { companyId: rCompanyId } = rcompanyInfo || {};
+
+    if(!rCompanyId)  return h.response({ error: true, message: 'No company found!'}).code(400);
+
+    // when deactivating a company
+    if(updateDetails.active === false){      
+      const db1 = request.getDb('xpaxr');
+      const sqlStmt = `DELETE
+      from hris.accesstoken ato
+      where
+        ato.user_id in
+      (
+        select ui.user_id
+        from hris.userinfo ui
+        where ui.company_id = :rCompanyId
+      )`;
+      
+      const sequelize = db1.sequelize;
+      const ares = await sequelize.query(sqlStmt, {
+        type: QueryTypes.SELECT,
+        replacements: { rCompanyId },
+      });
+      
+      // deactivate them
+      const sqlStmt2 = `UPDATE hris.userinfo ui          
+        SET active=false
+        where ui.company_id= :rCompanyId`;
+      
+      const ares2 = await sequelize.query(sqlStmt2, {
+        type: QueryTypes.SELECT,
+        replacements: { rCompanyId },
+      });
+    }
+
+    // when reactivating a company
+    if(updateDetails.active === true){      
+      const db1 = request.getDb('xpaxr');
+      // reactivate staff
+      const sqlStmt3 = `UPDATE hris.userinfo ui          
+        SET active=true
+        where ui.company_id= :rCompanyId`;
+      const sequelize = db1.sequelize;
+      const ares3 = await sequelize.query(sqlStmt3, {
+        type: QueryTypes.SELECT,
+        replacements: { rCompanyId },
+      });
+    }
+    
+    await Company.update(updateDetails, { where: { companyUuid }} );
+    const updatedCinfo = await Company.findOne({
+        where:{ companyUuid },
+        attributes: { exclude: ['createdAt', 'updatedAt']
+      }
+    });
+    const cinfo = updatedCinfo && updatedCinfo.toJSON();
+
+    // await Profileauditlog.create({ 
+    //   affectedUserId: ruserId,
+    //   performerUserId: userId,
+    //   actionName: 'Update a User',
+    //   actionType: 'UPDATE',
+    //   actionDescription: `The user of userId ${userId} has updated the user of userId ${ruserId}`
+    // });
+
+    return h.response(cinfo).code(200);
+  }
+  catch(error) {
+    console.log(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+  }
+}
+
+// de/re-activate any User
 const updateUserBySuperadmin = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -1716,7 +1924,9 @@ module.exports = {
   createUser,
 
   createCompanySuperAdmin,
+  getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
+  updateCompanyBySuperadmin,
   updateUserBySuperadmin,
 
   getCompanyIndustryOptions,
