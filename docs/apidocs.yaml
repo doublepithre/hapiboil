@@ -1762,6 +1762,8 @@ components:
           type: number
         email:
           type: string
+        inTalentPool:
+          type: boolean        
         privacyClause:
           type: boolean        
         tandc:
