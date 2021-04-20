@@ -165,7 +165,10 @@ const getEmailTemplateDataAsync = async (
     }
     const knownEmailTemplates = [      
       "reset-password",      
-      "email-verification"
+      "email-verification",
+      "account-creation-reset-password",
+      "account-creation-verify-email",
+      "company-account-creation",
     ];
     if(!knownEmailTemplates.includes(templateName)) {
       isUserCustomTemplate = true;
@@ -647,6 +650,7 @@ const sendEmailAsync = async (edata, additionalEData) => {
   try {
     const {
       email = "sriharsha@x0pa.com",
+      password,
       emails,
       ccEmails,
       templateName,

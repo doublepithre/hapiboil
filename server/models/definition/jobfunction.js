@@ -2,7 +2,6 @@ const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   const Jobfunction = sequelize.define('Jobfunction', {
     jobFunctionId: {
-      autoIncrement: true,
       type: DataTypes.INTEGER,
       allowNull: false,
       primaryKey: true,
@@ -12,6 +11,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       field: 'job_function_name'
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn('now'),
+      field: 'created_at'
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn('now'),
+      field: 'updated_at'
     }
   }, {
     sequelize,

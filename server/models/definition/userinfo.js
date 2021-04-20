@@ -124,11 +124,21 @@ module.exports = (sequelize, DataTypes) => {
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
     },
-    isEmailVerified: {
+    privacyClause: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: false,
-      field: 'is_email_verified'
+      field: 'privacy_clause'
+    },
+    tandc: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false
+    },
+    inTalentPool: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false
     }
   }, {
     sequelize,
@@ -160,30 +170,43 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Userinfo = model.Userinfo;
-  const Jobapplication = model.Jobapplication;
   const Job = model.Job;
+  const Questionnaire = model.Questionnaire;
   const Company = model.Company;
   const User = model.User;
+  const Applicationauditlog = model.Applicationauditlog;
   const Applicationhiremember = model.Applicationhiremember;
+  const Companyauditlog = model.Companyauditlog;
+  const Jobapplication = model.Jobapplication;
+  const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
-  const Questionnaire = model.Questionnaire;
+  const Mentorquesresponse = model.Mentorquesresponse;
+  const Profileauditlog = model.Profileauditlog;
   const Usermeta = model.Usermeta;
+  const Userquesresponse = model.Userquesresponse;
   const Userrole = model.Userrole;
   const Usertype = model.Usertype;
 
 
-  Userinfo.belongsToMany(Jobapplication, { through: Applicationhiremember, foreignKey: "userId", otherKey: "applicationId" });
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Mentorquesresponse, foreignKey: "userId", otherKey: "questionId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
+  Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
+  Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
+  Userinfo.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
-  Userinfo.hasMany(Job, { as: "jobs", foreignKey: "userId"});
+  Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
+  Userinfo.hasMany(Profileauditlog, { as: "profileauditlogs", foreignKey: "affectedUserId"});
+  Userinfo.hasMany(Profileauditlog, { as: "performerUserProfileauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
+  Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
   Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
 

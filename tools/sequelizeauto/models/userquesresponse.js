@@ -29,6 +29,13 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       field: 'user_id'
     },
     createdAt: {

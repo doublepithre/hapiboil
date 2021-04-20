@@ -1,13 +1,29 @@
 import { 
+  DEMOuploadFileAPI,
   createUser, 
+
   createCompanySuperAdmin,
-  createCompanyRecruiter,
+  getAllCompanyBySuperadmin,
+  getAllUsersBySuperadmin,
+  updateCompanyBySuperadmin,
+  updateUserBySuperadmin,
+  
+  getCompanyIndustryOptions,
+  createCompanyStaff,
+  updateCompanyProfile,
+  updateCompanyStaff,
+  getCompanyStaff,
+  getFellowCompanyStaff,
+  
   getUser, 
   updateUser, 
-  sendVerificationEmail,
+  updatePassword,
+  resendVerificationEmailBySuperadmin,
+  resendCompanyVerificationEmail,
   verifyEmail,
   forgotPassword, 
   resetPassword, 
+  
   createProfile,
   getUserMetaData,
   updateMetaData,
@@ -22,12 +38,28 @@ const xuser = {
     try {
       server.route({
         method: 'POST',
+        path: '/upload',
+        options: {
+          auth: {
+            mode: 'try',
+          },          
+          payload: {
+            maxBytes: 3000000,
+            output: 'stream',
+            parse: true,
+            multipart: true,
+          },
+          handler: DEMOuploadFileAPI,
+        },
+      });
+      server.route({
+        method: 'POST',
         path: '/',
         options: {
           auth: false,
           handler: createUser,
         },
-      });
+      });     
       server.route({
         method: 'POST',
         path: '/company-superadmin',
@@ -39,13 +71,109 @@ const xuser = {
         },
       });
       server.route({
-        method: 'POST',
-        path: '/employer',
+        method: 'GET',
+        path: '/companies',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: createCompanyRecruiter,
+          handler: getAllCompanyBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/companies/{companyUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateCompanyBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/users',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllUsersBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/users/{userUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateUserBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company/industries',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getCompanyIndustryOptions,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/company/{companyUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          payload: {
+            maxBytes: 3000000,
+            output: 'stream',
+            parse: true,
+            multipart: true,
+          },
+          handler: updateCompanyProfile,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/company-staff',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createCompanyStaff,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/company-staff/{userUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateCompanyStaff,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company-staff',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getCompanyStaff,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/fellow-staff',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getFellowCompanyStaff,
         },
       });
       server.route({
@@ -85,26 +213,50 @@ const xuser = {
           auth: {
             mode: 'try',
           },
+          payload: {
+            maxBytes: 3000000,
+            output: 'stream',
+            parse: true,
+            multipart: true,
+          },
           handler: updateUser,
         },
       });
       server.route({
-        method: 'POST',
-        path: '/send-verify',
+        method: 'PATCH',
+        path: '/update-password',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: sendVerificationEmail,
+          handler: updatePassword,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/resend-verify',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: resendVerificationEmailBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/resend-company-verify',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: resendCompanyVerificationEmail,
         },
       });
       server.route({
         method: 'PATCH',
         path: '/verify/{requestKey}',
         options: {
-          auth: {
-            mode: 'try',
-          },
+          auth: false,
           handler: verifyEmail,
         },
       });

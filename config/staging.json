@@ -27,5 +27,10 @@
       },
       "logging": false
     }
+  },
+  "azure": {
+    "docStorageAccountName": "empdevstrg",
+    "docStorageAccountKey" : "3r1eU6cftRZ6tQiy+d1M2d8dSh11YcWvl1dHUH6wOHAcLLjDJhyl0w6DL7NxZwgYGEID4NAuRGXN8uYk2Mplaw",
+    "docContainerName": "stagingContainer"
   }
 }

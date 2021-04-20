@@ -11,6 +11,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: false,
       field: 'job_location_name'
+    },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn('now'),
+      field: 'created_at'
+    },
+    updatedAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn('now'),
+      field: 'updated_at'
     }
   }, {
     sequelize,
