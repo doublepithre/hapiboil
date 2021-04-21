@@ -416,11 +416,11 @@ const getAllJobs = async (request, h) => {
             if(search) {
                 sqlStmt += ` and (
                     jn.job_name ilike :searchVal
-                    or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
                     or ji.job_industry_name ilike :searchVal
                     or jl.job_location_name ilike :searchVal
+                    or j.job_description ilike :searchVal
                 )`;
             }
 
@@ -606,11 +606,11 @@ const getRecruiterJobs = async (request, h) => {
             if(search) {
                 sqlStmt += ` and (
                     jn.job_name ilike :searchVal
-                    or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
                     or ji.job_industry_name ilike :searchVal
                     or jl.job_location_name ilike :searchVal
+                    or j.job_description ilike :searchVal
                 )`;
             };
             
