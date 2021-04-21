@@ -986,7 +986,9 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:                  
+                properties:   
+                  isComplete:
+                    type: boolean               
                   responses:
                     type: array
                     items:
@@ -1884,6 +1886,8 @@ components:
               description: For multiple choice questions
               items: 
                 type: number
+        timeTaken: 
+          type: number
             
     job:
       type: object

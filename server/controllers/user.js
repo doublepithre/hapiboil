@@ -1843,8 +1843,8 @@ const createProfile = async (request, h) => {
       const resRecord = [];
       for (let response of quesResponses) {
         response = response && response.toJSON();
-        const { questionId, responseVal } = response;
-        const res = { questionId, answer:responseVal.answer };
+        const { questionId, responseVal, timeTaken } = response;
+        const res = { questionId, answer:responseVal.answer, timeTaken };
         resRecord.push(res);
       }
 
