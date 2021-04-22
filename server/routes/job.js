@@ -22,6 +22,7 @@ import {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     getRecommendedTalents,
+    getTalentsAndApplicants,
 } from "../controllers/job";
 
 const xjob = {
@@ -264,6 +265,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getRecommendedTalents,
+        },
+      });      
+      server.route({
+        method: 'GET',
+        path: '/j/talents-and-applicants',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getTalentsAndApplicants,
         },
       });      
     } 
