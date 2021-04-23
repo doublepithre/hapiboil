@@ -210,7 +210,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/j/application/{userId}',
+        path: '/j/application/{jobId}/{userId}',
         options: {
           auth: {
             mode: 'try',

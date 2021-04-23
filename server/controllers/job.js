@@ -1353,22 +1353,31 @@ const getApplicantProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
-      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
-                  
-      const { userId } = request.params || {};
-      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-      const applicantProfileInfo = userRecord && userRecord.toJSON();
-      const { userTypeId, roleId } = applicantProfileInfo || {};
+      const { jobId, userId } = request.params || {};
+
+      // get the applicant's profile
+      const db1 = request.getDb('xpaxr');
+      const sqlStmt = `select 
+            ja.application_id,
+            ui.*, ut.user_type_name, ur.role_name
+        from hris.userinfo ui
+            inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+            inner join hris.userrole ur on ur.role_id=ui.role_id
+            inner join hris.jobapplications ja on ja.user_id=ui.user_id
+        where ui.user_id=:userId and ja.job_id=:jobId`;
+
+        const sequelize = db1.sequelize;
+        const userinfoSQL = await sequelize.query(sqlStmt, {
+          type: QueryTypes.SELECT,
+          replacements: { 
+              jobId, userId,
+          },
+      });
+      const applicantInfo = camelizeKeys(userinfoSQL)[0];
+      const { userId: auserId } = applicantInfo || {};
+      if(!auserId) return h.response({ error: true, message: 'No applicant found!' }).code(400);
       
-      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
-      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
-      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
-      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
-  
-      applicantProfileInfo.userTypeName = userTypeName;
-      applicantProfileInfo.roleName = roleName;
-  
-      return h.response(applicantProfileInfo).code(200);
+      return h.response(applicantInfo).code(200);
     }
     catch(error) {
       console.error(error.stack);
