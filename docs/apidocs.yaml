@@ -74,6 +74,10 @@ paths:
                 accountType:
                   type: string
                   enum: [candidate, specialist]
+                privacyClause:
+                  type: boolean                  
+                tandc:
+                  type: boolean
       responses:
         '201':
           description: User successfully created
@@ -149,11 +153,271 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/create-staff:
+  /account/companies?limit={limit}&offset={skip}&search={searchTEXT}&industryId={industryId}&sort={sort}:
+    get: 
+        summary: Get all companies by Superadmin
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [company_name:asc, company_name:desc, created_at:asc, created_at:desc, company_id:asc, company_id:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    companies:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/CompanyFullDetails"                      
+
+  /account/companies/{companyUuid}:
+    patch:
+      summary: Update/(Re/De)-activate any Company
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+      responses:
+        '201':
+          description: Company successfully updated
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Company"
+        '400':
+          description: Failed to update company
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+
+  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyName={companyName}&companyId={companyId}&sort={sort}:
+    get: 
+        summary: Get all users
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: userType
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [candidate, employer, mentor, companysuperadmin, superadmin]        
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [company_name:asc, company_name:desc, first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    users:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/companyUser"                      
+
+  /account/users/{userUuid}:
+    patch:
+      summary: Update/(Re/De)-activate any User
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+      responses:
+        '201':
+          description: User successfully updated
+          content:
+            application/json:
+              schema: 
+                type: object
+                $ref: "#/components/schemas/User"
+
+        '400':
+          description: Failed to update user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
+
+  /account/company/industries:
+    get: 
+      summary: Get company industries
+      tags:
+        - Job
+      security:
+      - bearerAuth: []     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  industry:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        companyIndustryId:
+                          type: number
+                        companyIndustryName:
+                          type: string
+  
+  /account/company/{companyUuid}/: 
+    patch:
+      summary: Update Company info
+      parameters:
+        - name: companyUuid
+          in: path
+          description: UUID of Company
+          required: true
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                companyName:
+                  type: string
+                displayName:
+                  type: string
+                website:
+                  type: string
+                description:
+                  type: stirng
+                active:
+                  type: boolean
+                noOfEmployees:
+                  type: number          
+                foundedYear:
+                  type: number
+                companyIndustryId:
+                  type: number
+                logo:
+                  type: file
+                banner:
+                  type: file
+                emailBg:
+                  type: string
+
+      responses:
+        '200':
+          description: Successfully updated Company info
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/CompanyFullDetails"
+        
+  /account/company-staff?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
+    get: 
+        summary: Get all company staff
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: userType
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [employer, mentor, companysuperadmin]        
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:
+                    count:
+                      type: number
+                    staff:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/companyUser"                      
+
+  /account/company-staff/{userUuid}:
     post:
       summary: Create Company Staff
       tags:
         - User
+      parameters:
+        - name: userUuid
+          in: path
+          description: UUID of User
+          required: true
+          schema:
+            type: string
       security:
         - bearerAuth: []
       requestBody: 
@@ -197,7 +461,87 @@ paths:
                   message:
                     description: Describes reason for failure
                     type: string
+   
+    patch:
+      summary: Update Roles or Deactivate Company Staff
+      tags:
+        - User
+      parameters:
+        - name: userUuid
+          in: path
+          description: UUID of User
+          required: true
+          schema:
+            type: string
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                active:
+                  type: boolean
+                userType:
+                  type: string
+                  enum: [employer, mentor, companysuperadmin]             
+      responses:
+        '201':
+          description: Company Staff successfully updated
+          content:
+            application/json:
+              schema: 
+                type: object
+                $ref: "#/components/schemas/User"
+        '400':
+          description: Failed to update user
+          content:
+            application/json: 
+              schema: 
+                type: object
+                properties:
+                  error:
+                    type: boolean
+                  message:
+                    description: Describes reason for failure
+                    type: string
                 
+  /account/fellow-staff?search={searchTEXT}&userType={userType}&sort={sort}:
+    get: 
+        summary: Get all fellow company staff
+        tags:
+          - User
+        security:
+        - bearerAuth: []
+        parameters:
+        - name: userType
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [employer, mentor]        
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+        
+        responses:
+          '200':
+            description: OK
+            content:
+              application/json:
+                schema:
+                  type: object   
+                  properties:                  
+                    staff:
+                      type: array
+                      items:
+                        $ref: "#/components/schemas/companyUser"                      
+
   /login:
     post:
       summary: Login user
@@ -229,6 +573,24 @@ paths:
                     token:
                       type: string
                       description: JWT to be used for authorization 
+
+  /logout:
+    post:
+      summary: Logout user
+      tags:
+        - User
+  
+      responses:
+        '200':
+          description: Successful logout
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties: 
+                    message: 
+                      type: string
+                      example: Log out successful!
 
   /account/me:
     get: 
@@ -315,6 +677,8 @@ paths:
             schema:
               type: object
               properties:
+                picture:
+                  type: file
                 active:
                   type: boolean
                   nullable: true
@@ -336,6 +700,10 @@ paths:
                 roleId:
                   type: number
                   nullable: true
+                privacyClause:
+                  type: boolean                  
+                tandc:
+                  type: boolean
       responses:
         '200':
           description: Successfully updated user info
@@ -373,16 +741,25 @@ paths:
                     type: string
                     example: Password updation successful
   
-  /account/send-verify: 
+  /account/resend-verify: 
     post: 
-      summary: Get Verification Email
+      summary: Resend Verification Email to a User by Superadmin
       security:
-      - bearerAuth: []
+      - bearerAuth: []      
       tags:
         - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: number
+
       responses:
         '200':
-          description: Successfully get verification email
+          description: Successfully resend verification email
           content:
             application/json:                 
               schema: 
@@ -404,6 +781,46 @@ paths:
                   updatedAt:
                     type: string   
   
+  /account/resend-company-verify: 
+    post: 
+      summary: Resend Verification Email to new Company Staff
+      security:
+      - bearerAuth: []      
+      tags:
+        - User
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                userId:
+                  type: number
+
+      responses:
+        '200':
+          description: Successfully resend verification email
+          content:
+            application/json:                 
+              schema: 
+                properties:
+                  requestId:
+                    type: number
+                  requestKey:
+                    type: string
+                  userId:
+                    type: number 
+                  expiresAt:
+                    type: string
+                  resourceType:
+                    type: string
+                  actionType:
+                    type: string
+                  createdAt:
+                    type: string
+                  updatedAt:
+                    type: string   
+ 
   /account/verify/{emailVerificationToken}:     
     patch: 
       summary: Verify Email
@@ -547,6 +964,7 @@ paths:
                     type: array
                     items:
                       $ref:  "#/components/schemas/Question"
+  
   /account/profile:
     post:
       summary:  Create profile/Answer Questions
@@ -568,7 +986,7 @@ paths:
             application/json:
               schema:
                 type: object
-                properties:
+                properties:                  
                   responses:
                     type: array
                     items:
@@ -587,12 +1005,14 @@ paths:
               schema:
                 type: object
                 properties:
+                  isComplete:
+                    type: boolean
                   responses:
                     type: array
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job?limit={limit}&offset={skip}&recommended={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&createDate={lowerDate}&createDate={upperDate}:
+  /job?limit={limit}&offset={skip}&recommended={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&startDate={lowerDate}&endDate={upperDate}:
     post: 
       summary: Create Job
       tags:
@@ -634,12 +1054,20 @@ paths:
             type: string
             enum: [score:asc, score:desc, created_at:asc, created_at:desc, job_name:asc, job_name:desc]
         
-        - name: createDate
+        - name: startDate
           in: query          
           required: false
           schema:
             type: string
             example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
       responses:
         '200':
           description: OK
@@ -648,6 +1076,40 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/paginatedAllJobs"
+
+  /job/j/auto-complete?type={type}&search={searchTEXT}:
+    get: 
+      summary: Get job autocompletes
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: type
+          in: query          
+          required: true
+          schema:
+            type: string
+            enum: [jobName, jobIndustry, jobFunction]     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number        
+                  autoCompletes:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        job?????Id:
+                          type: number
+                        job?????Name:
+                          type: string
 
   /job/j/job-details-options:
     get: 
@@ -794,7 +1256,7 @@ paths:
               properties:
                 accessLevel:
                   type: string     
-                  enum: [reader, administrator]                             
+                  enum: [viewer, administrator]                             
                 userId:
                   type: string
                   example: "182"
@@ -829,7 +1291,7 @@ paths:
               properties:
                 accessLevel:
                   type: string  
-                  enum: [reader, administrator]                
+                  enum: [viewer, administrator]                
                 userId:
                   type: string
                   example: "182"
@@ -878,7 +1340,7 @@ paths:
                     type: string
                     example: Access record deleted
 
-  /job/j/recruiter?limit={limit}&offset={skip}&ownJobs={1}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
+  /job/j/recruiter?limit={limit}&offset={skip}&ownJobs={1}&search={searchString}&startDate={lowerDate}&endDate={upperDate}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
     get: 
       summary: Get recruiter jobs
       tags:
@@ -900,12 +1362,19 @@ paths:
             type: string
             enum: [score:asc, score:desc, created_at:asc, created_at:desc, job_name:asc, job_name:desc]
         
-        - name: createDate
+        - name: startDate
           in: query          
           required: false
           schema:
             type: string
             example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
 
       responses:
         '200':
@@ -962,13 +1431,42 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&offset={skip}&sort=createdAt:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1:
+  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&startDate={lowerDate}&endDate={upperDate}:
     get: 
         summary: Get applied jobs
         tags:
           - Job
         security:
         - bearerAuth: []
+        parameters:
+        - name: status
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [Applied, Withdrawn, Shortlisted, Interview, Offer, Hired]
+
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [created_at:asc, created_at:desc, status:asc, status:desc, job_name:asc, job_name:desc]        
+         
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+        
         responses:
           '200':
             description: OK
@@ -982,7 +1480,7 @@ paths:
                     appliedJobs:
                       type: array
                       items:
-                      $ref: "#/components/schemas/jobApplicationDetailed"                      
+                        $ref: "#/components/schemas/jobApplicationDetailed"                      
 
   /job/j/apply:
     post: 
@@ -1023,9 +1521,6 @@ paths:
                   jobId:
                     type: string
                     example: "1"
-                  userId:
-                    type: string
-                    example: "182"
                     
       responses:
         '201':
@@ -1036,7 +1531,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplicationDetailed"                      
       
-  /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&applicationDate={lowerDate}&applicationDate={upperDate}:
+  /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&startDate={lowerDate}&endDate={upperDate}:
     get: 
       summary: Get all Applicants
       tags:
@@ -1044,6 +1539,13 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+        - name: status
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [Applied, Withdrawn, Shortlisted, Interview, Offer, Hired]
+        
         - name: sort
           in: query          
           required: false
@@ -1051,12 +1553,20 @@ paths:
             type: string
             enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, application_date:asc, application_date:desc, status:asc, status:desc]
         
-        - name: applicationDate
+        - name: startDate
           in: query          
           required: false
           schema:
             type: string
             example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+            
       responses:
         '200':
           description: OK
@@ -1128,7 +1638,7 @@ paths:
               properties:
                 accessLevel:
                   type: string     
-                  enum: [reader, administrator]                             
+                  enum: [viewer, administrator]                             
                 userId:
                   type: string
                   example: "182"
@@ -1163,7 +1673,7 @@ paths:
               properties:
                 accessLevel:
                   type: string  
-                  enum: [reader, administrator]                
+                  enum: [viewer, administrator]                
                 userId:
                   type: string
                   example: "182"
@@ -1252,10 +1762,12 @@ components:
           type: number
         email:
           type: string
-        isEmailVerified:
+        inTalentPool:
           type: boolean        
         privacyClause:
           type: boolean        
+        tandc:
+          type: boolean
         userTypeId:
           type: number
         roleId:
@@ -1282,6 +1794,51 @@ components:
           type: string
         userTypeName:
           type: string
+    
+    Company:
+      type: object
+      description: This is company information.      
+      properties:
+        companyId:
+          type: number
+        companyUuid:
+          type: number
+        companyName:
+          type: string
+        displayName:
+          type: string
+        website:
+          type: string
+        description:
+          type: stirng
+        active:
+          type: boolean
+        noOfEmployees:
+          type: number          
+        foundedYear:
+          type: number
+        companyIndustryId:
+          type: number
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+    
+    CompanyFullDetails:
+      type: object
+      description: This extends the Company model and provides more information.
+      allOf:
+        - $ref: "#/components/schemas/Company"
+      properties:
+        logo:
+          type: string
+        banner:
+          type: string
+        emailBg:
+          type: string
+        companyIndustryName:
+          type: string
+        
     Question:
       type: object
       properties:
@@ -1409,11 +1966,14 @@ components:
       description: This extends detailed jobs to include applications
       allOf:        
         - $ref: "#/components/schemas/jobApplication"
+        - $ref: "#/components/schemas/jobFullDetailed"
       properties:
-        applicationId:
-          type: number 
-        job:
-          $ref: "#/components/schemas/jobDetailed"
+        applicantId:
+          type: number         
+        applicationDate:
+          type: string         
+        creatorId:
+          type: number         
       
     jobApplicationWithOnlyJobId:
       type: object
@@ -1473,7 +2033,7 @@ components:
       properties:
         accessLevel:
           type: string  
-          enum: [reader, administrator]                      
+          enum: [viewer, administrator]                      
         userId:
           type: string
         jobId:
@@ -1489,7 +2049,7 @@ components:
       properties:
         accessLevel:
           type: string  
-          enum: [reader, administrator]                      
+          enum: [viewer, administrator]                      
         userId:
           type: string
         applicationId:
@@ -1505,6 +2065,15 @@ components:
       allOf:        
         - $ref: "#/components/schemas/jobApplication"
         - $ref: "#/components/schemas/User"
+
+    companyUser:
+      type: object
+      description: This is the schema for company user
+      allOf:        
+        - $ref: "#/components/schemas/User"
+      properties:
+        companyName:
+          type: string
 
     meta:
       type: object

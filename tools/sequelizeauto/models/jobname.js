@@ -1,22 +1,23 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Companyinfo', {
-    companyId: {
+  return sequelize.define('Jobname', {
+    jobNameId: {
+      autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      references: {
-        model: {
-          tableName: 'company',
-          schema: 'hris'
-        },
-        key: 'company_id'
-      },
-      field: 'company_id'
+      field: 'job_name_id'
     },
-    logo: {
+    jobName: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: false,
+      field: 'job_name'
+    },
+    jobNameLower: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      unique: "jobname_job_name_lower_key",
+      field: 'job_name_lower'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -29,31 +30,25 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
-    },
-    emailBg: {
-      type: DataTypes.STRING(10),
-      allowNull: true,
-      field: 'email_bg'
-    },
-    banner: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    config: {
-      type: DataTypes.JSON,
-      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'companyinfo',
+    tableName: 'jobname',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "companyinfo_pkey",
+        name: "jobname_job_name_lower_key",
         unique: true,
         fields: [
-          { name: "company_id" },
+          { name: "job_name_lower" },
+        ]
+      },
+      {
+        name: "jobname_pkey",
+        unique: true,
+        fields: [
+          { name: "job_name_id" },
         ]
       },
     ]

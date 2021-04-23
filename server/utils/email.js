@@ -166,7 +166,8 @@ const getEmailTemplateDataAsync = async (
     const knownEmailTemplates = [      
       "reset-password",      
       "email-verification",
-      "account-creation",
+      "account-creation-reset-password",
+      "account-creation-verify-email",
       "company-account-creation",
     ];
     if(!knownEmailTemplates.includes(templateName)) {

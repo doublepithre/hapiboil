@@ -25,7 +25,7 @@ const createJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
         
-        const { Job, Jobhiremember, Userinfo, Jobtype } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobhiremember, Jobauditlog, Userinfo, Jobtype } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -39,14 +39,41 @@ const createJob = async (request, h) => {
         const isJobWithDuration = jobsWithDuration.includes(jobTypeName);
 
         if(isJobWithDuration && !duration){
-            return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+            return h.response({ error: true, message: 'Please provide the duration'}).code(400);
         }
         if(!isJobWithDuration){
             jobDetails.duration = null;
         }
 
-        const resRecord = await Job.create({ ...jobDetails, active: true, userId, companyId });        
-        await Jobhiremember.create({ accessLevel: 'owner', userId, jobId: resRecord.jobId, })
+        // check if job name already exists
+        const jobNameRecord = await Jobname.findOne({ where: { jobNameLower: jobName.toLowerCase() }});
+        const jobNameInfo = jobNameRecord && jobNameRecord.toJSON();
+        const { jobNameId: oldJobNameId } = jobNameInfo || {};
+
+        let jobNameIdToSave;
+        if(!oldJobNameId){
+            const newJobNameRecord = await Jobname.create({
+                jobName,
+                jobNameLower: jobName.toLowerCase().trim(),
+            });
+            const newJobNameInfo = newJobNameRecord && newJobNameRecord.toJSON();
+            const { jobNameId: newJobNameId } = newJobNameInfo || {};
+            jobNameIdToSave = newJobNameId;
+        } else {
+            jobNameIdToSave = oldJobNameId;
+        }
+        
+        // create job
+        const resRecord = await Job.create({ ...jobDetails, jobNameId: jobNameIdToSave, active: true, userId, companyId });        
+        const { jobId } = resRecord;
+        await Jobhiremember.create({ accessLevel: 'creator', userId, jobId: resRecord.jobId, })
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Create a Job',
+            actionType: 'CREATE',
+            actionDescription: `The user of userId ${userId} has created the job of jobId ${jobId}`
+        });
         return h.response(resRecord).code(201);        
     }
     catch (error) {
@@ -81,7 +108,61 @@ const getJobDetailsOptions = async (request, h) => {
     }
 }
 
-// getSingleJob (SQL)
+const getAutoComplete = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { search, type } = request.query;
+        if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
+        const searchVal = `%${ search.toLowerCase() }%`;
+        
+        const validTypes = [ 'score', 'created_at', 'job_name'];
+        const isTypeReqValid = validTypes.includes(type);
+        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
+
+        const db1 = request.getDb('xpaxr');
+
+        // get sql statement for getting jobs or jobs count
+        const filters = { type };
+        function getSqlStmt(queryType, obj = filters){
+            const { type } = obj;
+            let sqlStmt;
+            const queryTypeLower = queryType && queryType.toLowerCase();
+            if(queryTypeLower === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select *`;
+            }
+                        
+            if(type === 'jobName') sqlStmt += ` from hris.jobname jn where jn.job_name ilike :searchVal`;
+            if(type === 'jobIndustry') sqlStmt += ` from hris.jobindustry ji where ji.job_industry_name ilike :searchVal`;
+            if(type === 'jobFunction') sqlStmt += ` from hris.jobfunction jf where jf.job_function_name ilike :searchVal`;
+            
+            if(queryTypeLower !== 'count') sqlStmt += ` limit 10`
+            return sqlStmt;
+        };
+
+        const sequelize = db1.sequelize;
+      	const allSQLAutoCompletes = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { searchVal },
+        });
+      	const allSQLAutoCompletesCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { searchVal },
+        });           
+        const allAutoCompletes = camelizeKeys(allSQLAutoCompletes);
+        
+        const responses = { count: allSQLAutoCompletesCount[0].count, autoCompletes: allAutoCompletes };
+        return h.response(responses).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
 const getSingleJob = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -111,20 +192,22 @@ const getSingleJob = async (request, h) => {
                 sqlStmt = `select count(*)`;
             } else {
                 sqlStmt = `select
-                j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
+                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
             }
 
             sqlStmt += `
             from hris.jobs j
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
-                left join hris.company c on c.company_id=j.company_id
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where j.active=true and j.is_private=false and j.job_uuid=:jobUuid`;
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where j.active=true and j.job_uuid=:jobUuid`;
 
             // if he is an employer
+            if(luserTypeName === 'candidate') sqlStmt += ` and j.is_private=false `;        
             if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
             
             return sqlStmt;
@@ -198,7 +281,7 @@ const getSingleJob = async (request, h) => {
         return h.response({error: true, message: 'Internal Server Error!'}).code(500);
     }
 }
-// getAllJobs (SQL)
+
 const getAllJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -213,7 +296,7 @@ const getAllJobs = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'candidate') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
-        const { recommended, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const { recommended, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
         const recommendedVal = recommended ? Number(recommended) : 1;
 
@@ -240,24 +323,22 @@ const getAllJobs = async (request, h) => {
         // custom date search query
         let lowerDateRange;
         let upperDateRange;
-        if(createDate){
-            if(!isArray(createDate)) {
-                lowerDateRange = new Date(createDate);
-                upperDateRange = new Date('2999-12-31');
-            } else {
-                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
-                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
-                
-                lowerDateRange = new Date(createDate[0]);
-                upperDateRange = new Date(createDate[1]);
-            }    
+        if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
+
+        if(startDate){
+            if(startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if(startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
             const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
             if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
-        } else {
-            lowerDateRange = new Date('2000-01-01');
-            upperDateRange = new Date('2999-12-31');
+            if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
         }
 
         let recommendations;
@@ -289,32 +370,33 @@ const getAllJobs = async (request, h) => {
         }
 
         const db1 = request.getDb('xpaxr');
+        const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate };
 
-        // get sql statement for getting jobs or jobs count
-        const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        // get sql statement for getting jobs or jobs count        
         function getSqlStmt(queryType, obj = filters){
-            const { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
                 sqlStmt = `select count(*)`;
             } else {
                 sqlStmt = `select
-                    j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+                    jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
             }
 
             sqlStmt += `
             from hris.jobs j
-                left join hris.company c on c.company_id=j.company_id
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where j.active=true 
-                and j.is_private=false 
-                and j.created_at > :lowerDateRange and j.created_at < :upperDateRange`;
-            
-            if(recommendedVal === 1) sqlStmt += ` and j.job_id in (:jobIdArray)`
+                and j.is_private=false`;            
+                        
+            if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
+            if(recommendedVal === 1) sqlStmt += ` and j.job_id in (:jobIdArray)`;
             // filters
             if(jobTypeId){
                 sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
@@ -333,7 +415,7 @@ const getAllJobs = async (request, h) => {
             // search
             if(search) {
                 sqlStmt += ` and (
-                    j.job_name ilike :searchVal
+                    jn.job_name ilike :searchVal
                     or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
@@ -353,7 +435,11 @@ const getAllJobs = async (request, h) => {
                         sqlStmt += ` end`;
                         if(sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
                     } else {
-                        sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                        if(sortBy === 'job_name') {
+                            sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                        } else {
+                            sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                        }
                     }
                 } else {
                     sqlStmt += ` order by j.${sortBy} ${sortType}`;
@@ -404,7 +490,6 @@ const getAllJobs = async (request, h) => {
     }
 }
 
-// getAllRecruiterJobs (SQL)
 const getRecruiterJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -426,7 +511,7 @@ const getRecruiterJobs = async (request, h) => {
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: recruiterCompanyId } = luserProfileInfo || {};
         
-        const { ownJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, createDate, search } = request.query;
+        const { ownJobs, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
         const ownJobsVal = ownJobs ? Number(ownJobs) : 0;
 
@@ -451,55 +536,54 @@ const getRecruiterJobs = async (request, h) => {
         // custom date search query
         let lowerDateRange;
         let upperDateRange;
-        if(createDate){
-            if(!isArray(createDate)) {
-                lowerDateRange = new Date(createDate);
-                upperDateRange = new Date('2999-12-31');
-            } else {
-                if(!createDate[0]) lowerDateRange = new Date('2000-01-01');
-                if(!createDate[1]) upperDateRange = new Date('2999-12-31');
-                
-                lowerDateRange = new Date(createDate[0]);
-                upperDateRange = new Date(createDate[1]);
-            }    
+        if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
+
+        if(startDate){
+            if(startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if(startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
             const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
             if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-            if(!isValidDateRange) return h.response({error: true, message: 'Unvalid createDate range!'}).code(400);                        
-        } else {
-            lowerDateRange = new Date('2000-01-01');
-            upperDateRange = new Date('2999-12-31');
+            if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
         }
         
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
+        const filters = { startDate, ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType };
         function getSqlStmt(queryType, obj = filters){
-            const { ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
+            const { startDate, ownJobsVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
                 sqlStmt = `select count(*)`;
             } else {
                 sqlStmt = `select
-                j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
             }
 
             sqlStmt += `                    
                 from hris.jobs j
-                    left join hris.company c on c.company_id=j.company_id
-                    left join hris.jobtype jt on jt.job_type_id=j.job_type_id                
-                    left join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
-                    left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                    left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                    inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                    inner join hris.company c on c.company_id=j.company_id
+                    inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                    inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                    inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                    inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
                     inner join hris.jobhiremember jhm on jhm.job_id=j.job_id 
-                where j.active=true 
-                    and j.created_at > :lowerDateRange and j.created_at < :upperDateRange
+                where j.active=true                     
                     and j.company_id=:recruiterCompanyId 
-                    and jhm.access_level in ('owner', 'administrator', 'reader') 
+                    and jhm.access_level in ('creator', 'administrator', 'viewer') 
                     and jhm.user_id=:userId`;
 
+            if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
             // filters
             if(ownJobsVal === 'true'){
                 sqlStmt += ` and j.user_id=:userId`;
@@ -521,7 +605,7 @@ const getRecruiterJobs = async (request, h) => {
             // search
             if(search) {
                 sqlStmt += ` and (
-                    j.job_name ilike :searchVal
+                    jn.job_name ilike :searchVal
                     or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
@@ -532,7 +616,11 @@ const getRecruiterJobs = async (request, h) => {
             
             if(type !== 'count') {
                 // sorts
-                sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                if(sortBy === 'job_name'){
+                    sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else {
+                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                }
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
             };
@@ -588,9 +676,24 @@ const getJobAccessRecords = async (request, h) => {
         const luserAccessRecord = await Jobhiremember.findOne({ where: {jobId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'owner') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'creator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
-        const accessRecords = await Jobhiremember.findAll({ where: {jobId}});
+        // find all access records (using SQL to avoid nested ugliness in the response)
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select ui.first_name, ui.email, jhm.*
+              from hris.jobhiremember jhm
+                inner join hris.userinfo ui on ui.user_id=jhm.user_id                
+              where jhm.job_id=:jobId`;
+
+        const sequelize = db1.sequelize;
+      	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+        const accessRecords = camelizeKeys(allSQLAccessRecords);
+
         return h.response({ accessRecords: accessRecords }).code(200);
     }
     catch (error) {
@@ -613,7 +716,7 @@ const shareJob = async (request, h) => {
         }
 
         const { jobId: rParamsJobId } = request.params || {};
-        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Jobauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -633,7 +736,7 @@ const shareJob = async (request, h) => {
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
 
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -662,7 +765,15 @@ const shareJob = async (request, h) => {
 
         if(jobHireMemberId) return h.response({ error: true, message: 'Already shared with this user!'}).code(400);
 
-        const accessRecord = await Jobhiremember.create({ accessLevel, userId: fellowRecruiterId, jobId })
+        const accessRecord = await Jobhiremember.create({ accessLevel, userId: fellowRecruiterId, jobId });
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Share a Job',
+            actionType: 'CREATE',
+            actionDescription: `The user of userId ${userId} has shared the job of jobId ${jobId} with the user of userId ${fellowRecruiterId}. The given access is ${accessLevel}`
+        });
+
         return h.response(accessRecord).code(201);
     }
     catch (error) {
@@ -685,19 +796,19 @@ const updateSharedJob = async (request, h) => {
         }
 
         const { jobId: rParamsJobId } = request.params || {};
-        const { Job, Jobhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Jobauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {rParamsJobId}});
+        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobId: rParamsJobId}});
         if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
         
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -721,13 +832,21 @@ const updateSharedJob = async (request, h) => {
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { jobHireMemberId } = alreadySharedInfo || {};
+        const { jobHireMemberId, accessLevel: oldAccessLevel } = alreadySharedInfo || {};
 
         if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+        if(oldAccessLevel === accessLevel) return h.response({ error: true, message: 'Already given this access to this user!'}).code(400);
 
         // update the shared job          
         await Jobhiremember.update({ accessLevel, userId: fellowRecruiterId, jobId }, { where: { jobId, userId: fellowRecruiterId }});
-        await Jobhiremember.update({ accessLevel, userId: fellowRecruiterId, jobId }, { where: { jobId, userId: fellowRecruiterId }});
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Update the Access of the Shared Job',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has updated the access of the shared job of jobId ${jobId} with the user of userId ${fellowRecruiterId}. Previous given access was ${oldAccessLevel}, Current given access is ${accessLevel}`
+        });
+
         const updatedAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId: fellowRecruiterId }});
         return h.response(updatedAccessRecord).code(201);
     }
@@ -751,7 +870,7 @@ const deleteJobAccessRecord = async (request, h) => {
         }
 
         const { jobId: rParamsJobId } = request.params || {};
-        const { Job, Jobhiremember, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Jobauditlog, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -774,10 +893,18 @@ const deleteJobAccessRecord = async (request, h) => {
         const { jobHireMemberId, accessLevel } = alreadySharedInfo || {};
 
         if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
-        if(accessLevel === 'owner') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+        if(accessLevel === 'creator') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
 
         // delete the shared job record
         await Jobhiremember.destroy({ where: { jobId, userId: fellowRecruiterId }});        
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Delete the Access of the Shared Job',
+            actionType: 'DELETE',
+            actionDescription: `The user of userId ${userId} has deleted the access of the shared job of jobId ${jobId} from the user of userId ${fellowRecruiterId}. Now it is unshared with that user`
+        });
+
         return h.response({message: 'Access record deleted'}).code(200);
     }
     catch (error) {
@@ -803,7 +930,7 @@ const updateJob = async (request, h) => {
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
         
-        const { Job, Jobtype, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -847,9 +974,39 @@ const updateJob = async (request, h) => {
             durationVal = null;
         }
 
-        await Job.update({ jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});
+        // check if job name already exists
+
+        let jobNameIdToSave;
+        if(jobName){
+            const jobNameRecord = await Jobname.findOne({ where: { jobNameLower: jobName.toLowerCase() }});
+            const jobNameInfo = jobNameRecord && jobNameRecord.toJSON();
+            const { jobNameId: oldJobNameId } = jobNameInfo || {};
+
+            if(!oldJobNameId){
+                const newJobNameRecord = await Jobname.create({
+                    jobName,
+                    jobNameLower: jobName.toLowerCase().trim(),
+                });
+                const newJobNameInfo = newJobNameRecord && newJobNameRecord.toJSON();
+                const { jobNameId: newJobNameId } = newJobNameInfo || {};
+                jobNameIdToSave = newJobNameId;
+            } else {
+                jobNameIdToSave = oldJobNameId;
+            }
+        }
         
+        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});        
         const record = await Job.findOne({where: {jobUuid}});
+        const { jobId } = record;
+        
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'Update a Job',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has updated the job of jobId ${jobId}`
+        });
+
         return h.response(record).code(201);
     }
     catch (error) {
@@ -932,8 +1089,8 @@ const applyToJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Under Review" }
-        const { Job, Jobapplication, Applicationhiremember } = request.getModels('xpaxr');
+        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Applied" }
+        const { Job, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
         
         const jobInDB = await Job.findOne({ where: { jobId }});
         const {jobId: jobInDbId} = jobInDB || {};
@@ -950,7 +1107,14 @@ const applyToJob = async (request, h) => {
         
         await Promise.all([
             Applicationhiremember.create({ applicationId, userId, accessLevel: 'candidate', }),
-            Applicationhiremember.create({ applicationId, userId: employerId, accessLevel: 'employer', })
+            Applicationhiremember.create({ applicationId, userId: employerId, accessLevel: 'jobcreator', }),
+            Applicationauditlog.create({ 
+                affectedApplicationId: applicationId,
+                performerUserId: userId,
+                actionName: 'Apply to a Job',
+                actionType: 'CREATE',
+                actionDescription: `The user of userId ${userId} has applied to the job of jobId ${jobId}`
+            })
         ]);            
 
         delete recordResponse.createdAt;
@@ -977,12 +1141,22 @@ const getAppliedJobs = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort } = request.query;
-        let [sortBy, sortType] = sort ? sort.split(':') : ['createdAt', 'DESC'];
-        if (!sortType && sortBy !== 'createdAt') sortType = 'ASC';
-        if (!sortType && sortBy === 'createdAt') sortType = 'DESC';
+        const { limit, offset, sort, search, status, startDate, endDate } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
-        const validSorts = [ 'createdAt', 'jobName'];
+        // Checking if application status is valid
+        const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+        const isStatusReqValid = (status && isArray(status)) ? (
+        status.every( req => validStatus.includes(req))
+        ) : validStatus.includes(status);
+        if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
+
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
+        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+
+        const validSorts = ['status', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         // pagination
@@ -992,58 +1166,107 @@ const getAppliedJobs = async (request, h) => {
         if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
-        const filters = {}
-        if(jobTypeId) filters.jobTypeId = jobTypeId;
-        if(jobFunctionId) filters.jobFunctionId = jobFunctionId;
-        if(jobIndustryId) filters.jobIndustryId = jobIndustryId;
-        if(jobLocationId) filters.jobLocationId = jobLocationId;
-        if(minExp) filters.minExp = minExp;
+        // custom date search query
+        let lowerDateRange;
+        let upperDateRange;
+        if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
 
-        const { Jobapplication, Job, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');
-        const jobs = await Jobapplication.findAll({ 
-            where: { userId },
-            include: [{
-                model: Job,
-                as: "job",
-                where: {
-                    ...filters,
-                },
-                order: [
-                    [sortBy, sortType]
-                ],
-                required: true,
-                include: [{
-                    model: Jobtype,
-                    as: "jobType",
-                },
-                {
-                    model: Jobindustry,
-                    as: "jobIndustry",
-                },
-                {
-                    model: Jobfunction,
-                    as: "jobFunction",
-                },
-                {
-                    model: Joblocation,
-                    as: "jobLocation",
-                }]
-            }],
-            offset: offsetNum,
-            limit: limitNum,
+        if(startDate){
+            if(startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if(startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
+        }
+
+        const db1 = request.getDb('xpaxr');
+
+        // get sql statement for getting jobs or jobs count
+        const filters = { startDate, search, sortBy, sortType, status };
+        function getSqlStmt(queryType, obj = filters){
+            const { startDate, search, sortBy, sortType, status } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select  
+                    ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
+                    ja.created_at as application_date,
+                    jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id,
+                    c.display_name as company_name`;
+            }
+
+            sqlStmt += `                    
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id            
+            where ja.user_id=:userId`;
+            
+            if(startDate) sqlStmt += ` and ja.created_at >= :lowerDateRange and ja.created_at <= :upperDateRange`;
+            // filters
+            if(status){
+                sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
+            } 
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    jn.job_name ilike :searchVal
+                    or c.company_name ilike :searchVal
+                )`;
+            };
+            
+            if(type !== 'count') {
+                // sorts
+                if(sortBy === 'job_name'){
+                    sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else {
+                    sqlStmt += ` order by ja.${sortBy} ${sortType}`;
+                }
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+            
+            return sqlStmt;                
+        }
+        
+        const sequelize = db1.sequelize;
+      	const allSQLAppliedJobs = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                userId,                 
+                sortBy, sortType, limitNum, offsetNum, 
+                searchVal,
+                status,
+                lowerDateRange, upperDateRange,
+            },
         });
-        const totalAppliedJobs = await Jobapplication.count({ 
-            where: { userId },
-            include: [{
-                model: Job,
-                as: "job",
-                where: {
-                    ...filters,
-                },                
-                required: true,
-            }],
+      	const allSQLAppliedJobsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                userId,                
+                sortBy, sortType, limitNum, offsetNum, 
+                searchVal,
+                status,
+                lowerDateRange, upperDateRange,
+            },
         });
-        const paginatedResponse = { count: totalAppliedJobs, appliedJobs: jobs }
+        const allAppliedJobs = camelizeKeys(allSQLAppliedJobs);
+       
+        const paginatedResponse = { count: allSQLAppliedJobsCount[0].count, appliedJobs: allAppliedJobs }
         return h.response(paginatedResponse).code(200);
     }
     catch (error) {
@@ -1058,23 +1281,20 @@ const withdrawFromAppliedJob = async (request, h) => {
         return h.response({ message: 'Forbidden' }).code(403);
       }   
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;  
-        if(luserTypeName !== 'candidate'){
-            return h.response({error:true, message:'You are not authorized!'}).code(403);
-        }
+      if(luserTypeName !== 'candidate'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+      }
 
-      const { jobId, userId } = request.payload || {};
-      if(!(jobId && userId)){
+      const { jobId } = request.payload || {};
+      if(!jobId){
         return h.response({ error: true, message: 'Not a valid request!' }).code(400);    
       }
 
       const { credentials } = request.auth || {};
       const { id: luserId } = credentials || {};
-      if(luserId !== userId){
-        return h.response({ error: true, message: 'Not a valid request!' }).code(400);      
-      }
 
-      const { Job, Jobapplication, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
-      const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: userId }}) || {};
+      const { Job, Jobname, Jobapplication, Applicationauditlog, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
+      const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: luserId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
         return h.response({ error: true, message: 'Bad request! No applied job found!' }).code(400);    
@@ -1084,35 +1304,37 @@ const withdrawFromAppliedJob = async (request, h) => {
       }
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
-      await Jobapplication.update( { isWithdrawn: true }, { where: { applicationId: applicationId }} );
-      const updatedApplication = await Jobapplication.findOne({
-          where:{ applicationId: applicationId },
-          include: [{
-            model: Job,
-            as: "job",                      
-            required: true,
-            include: [{
-                model: Jobtype,
-                as: "jobType",
-            },
-            {
-                model: Jobindustry,
-                as: "jobIndustry",
-            },
-            {
-                model: Jobfunction,
-                as: "jobFunction",
-            },
-            {
-                model: Joblocation,
-                as: "jobLocation",
-            }]
-          }],
-          attributes: { exclude: ['createdAt', 'updatedAt', 'userId']
-        }
-      });
-      const updatedApplicationData = updatedApplication && updatedApplication.toJSON();
-      return h.response(updatedApplicationData).code(200);
+      await Jobapplication.update( { isWithdrawn: true, status: 'Withdrawn' }, { where: { applicationId: applicationId }} );
+      await Applicationauditlog.create({ 
+            affectedApplicationId: applicationId,
+            performerUserId: luserId,
+            actionName: 'Withdraw from a Job',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${luserId} has withdrawn from the job of jobId ${jobId}`
+        });
+
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select  
+                ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
+                jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                
+                left join hris.jobtype jt on jt.job_type_id=j.job_type_id
+                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id
+                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where ja.application_id=:applicationId`;
+        
+        const sequelize = db1.sequelize;
+        const ares = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { applicationId },
+        });
+        const updatedApplicationData = camelizeKeys(ares)[0];
+    
+        return h.response(updatedApplicationData).code(200);
     }
     catch(error) {
       console.log(error.stack);
@@ -1154,7 +1376,6 @@ const getApplicantProfile = async (request, h) => {
     }
 }
 
-// get all applicants (SQL)
 const getAllApplicantsSelectiveProfile = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
@@ -1168,16 +1389,22 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
-      const { limit, offset, sort, applicationDate, search } = request.query;            
+      const { limit, offset, sort, startDate, endDate, search, status } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
+      // Checking if application status is valid
+      const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+      const isStatusReqValid = (status && isArray(status)) ? (
+      status.every( req => validStatus.includes(req))
+      ) : validStatus.includes(status);
+      if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
+    
       // sort query
       let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'DESC'];
       if (!sortType && sortBy !== 'application_date') sortType = 'ASC';
       if (!sortType && sortBy === 'application_date') sortType = 'DESC';      
       const validSorts = ['first_name', 'last_name', 'application_date', 'status'];
       const isSortReqValid = validSorts.includes(sortBy);
-
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
@@ -1192,34 +1419,31 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       // custom date search query
       let lowerDateRange;
       let upperDateRange;
-      if(applicationDate){
-          if(!isArray(applicationDate)) {
-              lowerDateRange = new Date(applicationDate);
-              upperDateRange = new Date('2999-12-31');
-          } else {
-              if(!applicationDate[0]) lowerDateRange = new Date('2000-01-01');
-              if(!applicationDate[1]) upperDateRange = new Date('2999-12-31');
-              
-              lowerDateRange = new Date(applicationDate[0]);
-              upperDateRange = new Date(applicationDate[1]);
-          }    
-          const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
-          if(!isValidDate) return h.response({error: true, message: 'Unvalid applicationDate query!'}).code(400);
-          const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-          if(!isValidDateRange) return h.response({error: true, message: 'Unvalid applicationDate range!'}).code(400);                        
-      } else {
-          lowerDateRange = new Date('2000-01-01');
-          upperDateRange = new Date('2999-12-31');
-      }
+      if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
 
+      if(startDate){
+          if(startDate && !endDate) {
+              lowerDateRange = new Date(startDate);
+              upperDateRange = new Date(); //Now()
+          }
+          if(startDate && endDate) {
+              lowerDateRange = new Date(startDate);
+              upperDateRange = new Date(endDate);
+          }
+
+          const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+          if(!isValidDate) return h.response({error: true, message: 'Unvalid createDate query!'}).code(400);
+          const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+          if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
+      }
 
       const { jobId } = request.params || {};      
       const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting all applications or all applications' count        
-        const filters = { search, sortBy, sortType }
+        const filters = { startDate, status, search, sortBy, sortType }
         function getSqlStmt(queryType, obj = filters){            
-            const { search, sortBy, sortType } = obj;
+            const { startDate, status, search, sortBy, sortType } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
@@ -1233,10 +1457,14 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                     inner join hris.applicationhiremember ahm on ahm.application_id=ja.application_id
                     inner join hris.userinfo ui on ui.user_id=ja.user_id                    
                 where ja.is_withdrawn=false 
-                    and ahm.access_level in ('employer', 'reader', 'administrator')
-                    and ja.job_id=:jobId and ahm.user_id=:userId
-                    and ja.created_at > :lowerDateRange and ja.created_at < :upperDateRange`;
-            
+                    and ahm.access_level in ('jobcreator', 'viewer', 'administrator')
+                    and ja.job_id=:jobId and ahm.user_id=:userId`;
+
+            if(startDate) sqlStmt += ` and ja.created_at >= :lowerDateRange and ja.created_at <= :upperDateRange`;
+            // filters
+            if(status){
+                sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
+            } 
             // search
             if(search) {
                 sqlStmt += ` and (
@@ -1247,7 +1475,12 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
 
             if(type !== 'count') {
                 // sorts
-                sqlStmt += ` order by ${ sortBy } ${ sortType}`
+                if(sortBy === 'application_date'){
+                    sqlStmt += ` order by ja.created_at ${sortType}`;
+                } else {
+                    sqlStmt += ` order by ${sortBy} ${sortType}`;
+                }
+                
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
             };
@@ -1262,6 +1495,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                 jobId, userId,
                 limitNum, offsetNum,
                 searchVal,
+                status,
                 lowerDateRange, upperDateRange,
             },
         });
@@ -1271,6 +1505,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
                 jobId, userId,
                 limitNum, offsetNum,
                 searchVal,
+                status,
                 lowerDateRange, upperDateRange,
             },
         });
@@ -1303,9 +1538,23 @@ const getApplicationAccessRecords = async (request, h) => {
         const luserAccessRecord = await Applicationhiremember.findOne({ where: {applicationId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'jobcreator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
-        const accessRecords = await Applicationhiremember.findAll({ where: {applicationId}});
+        // find all access records (using SQL to avoid nested ugliness in the response)
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select ui.first_name, ui.email, ahm.*
+            from hris.applicationhiremember ahm
+                inner join hris.userinfo ui on ui.user_id=ahm.user_id                
+            where ahm.application_id=:applicationId`;
+
+        const sequelize = db1.sequelize;
+      	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                applicationId
+            },
+        });
+        const accessRecords = camelizeKeys(allSQLAccessRecords);
         return h.response({ accessRecords }).code(200);
     }
     catch (error) {
@@ -1328,7 +1577,7 @@ const shareApplication = async (request, h) => {
         }
 
         const { applicationId: rParamsApplicationId } = request.params || {};
-        const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { Job, Jobapplication, Applicationhiremember, Applicationauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -1350,13 +1599,13 @@ const shareApplication = async (request, h) => {
         const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
         const { accessLevel: luserAccessLevel } = canIshareInfo || {};
 
-        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // sharing job with fellow recruiter
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
 
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -1385,7 +1634,15 @@ const shareApplication = async (request, h) => {
 
         if(applicationHireMemberId) return h.response({ error: true, message: 'Already shared with this user!'}).code(400);
 
-        const accessRecord = await Applicationhiremember.create({ accessLevel, userId: fellowRecruiterId, applicationId, })
+        const accessRecord = await Applicationhiremember.create({ accessLevel, userId: fellowRecruiterId, applicationId, });
+        await Applicationauditlog.create({ 
+            affectedApplicationId: applicationId,
+            performerUserId: userId,
+            actionName: 'Share an Application',
+            actionType: 'CREATE',
+            actionDescription: `The user of userId ${userId} has shared the application of applicationId ${applicationId} with the user of userId ${fellowRecruiterId}. The given access is ${accessLevel}`
+        });
+
         return h.response(accessRecord).code(201);
     }
     catch (error) {
@@ -1408,7 +1665,7 @@ const updateSharedApplication = async (request, h) => {
         }
 
         const { applicationId: rParamsApplicationId } = request.params || {};
-        const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { Job, Jobapplication, Applicationhiremember, Applicationauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -1428,12 +1685,12 @@ const updateSharedApplication = async (request, h) => {
         const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
         const { accessLevel: luserAccessLevel } = canIshareInfo || {};
 
-        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // update the shared application access
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
-        const validAccessLevel = ['reader', 'administrator'];
+        const validAccessLevel = ['viewer', 'administrator'];
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
@@ -1457,13 +1714,21 @@ const updateSharedApplication = async (request, h) => {
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { applicationHireMemberId } = alreadySharedInfo || {};
+        const { applicationHireMemberId, accessLevel: oldAccessLevel } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+        if(oldAccessLevel === accessLevel) return h.response({ error: true, message: 'Already given this access to this user!'}).code(400);
 
         // update the shared job          
         await Applicationhiremember.update({ accessLevel }, { where: { applicationId, userId: fellowRecruiterId }});
-        await Applicationhiremember.update({ accessLevel }, { where: { applicationId, userId: fellowRecruiterId }});
+        await Applicationauditlog.create({ 
+            affectedApplicationId: applicationId,
+            performerUserId: userId,
+            actionName: 'Update the Access of the Shared Application',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has updated the access of the shared application of applicationId ${applicationId} with the user of userId ${fellowRecruiterId}. Previous given access was ${oldAccessLevel}, Current given access is ${accessLevel}`
+        });
+        
         const updatedAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         return h.response(updatedAccessRecord).code(201);
     }
@@ -1487,7 +1752,7 @@ const deleteApplicationAccessRecord = async (request, h) => {
         }
 
         const { applicationId: rParamsApplicationId } = request.params || {};
-        const { Job, Jobapplication, Applicationhiremember, Userinfo, Usertype } = request.getModels('xpaxr');
+        const { Job, Jobapplication, Applicationhiremember, Applicationauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -1507,21 +1772,28 @@ const deleteApplicationAccessRecord = async (request, h) => {
         const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
         const { accessLevel: luserAccessLevel } = canIshareInfo || {};
 
-        if(luserAccessLevel !== 'employer') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
         
-        const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
+        const { userId: fellowRecruiterId } = request.payload || {};
         if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { applicationHireMemberId } = alreadySharedInfo || {};
+        const { applicationHireMemberId, accessLevel } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
-        if(accessLevel === 'employer') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+        if(accessLevel === 'jobcreator' || accessLevel === 'candidate') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);        
 
         // delete the shared job record
         await Applicationhiremember.destroy({ where: { applicationId, userId: fellowRecruiterId }});        
+        await Applicationauditlog.create({ 
+            affectedApplicationId: applicationId,
+            performerUserId: userId,
+            actionName: 'Delete the Access of the Shared Application',
+            actionType: 'DELETE',
+            actionDescription: `The user of userId ${userId} has deleted the access of the shared application of applicationId ${applicationId} from the user of userId ${fellowRecruiterId}. Now it is unshared with that user`
+        });
         return h.response({message: 'Access record deleted'}).code(200);
     }
     catch (error) {
@@ -1736,8 +2008,9 @@ const isUserQuestionnaireDone = async(userId,model)=>{
 }
 
 module.exports = {
-    createJob,
+    createJob,    
     getJobDetailsOptions,
+    getAutoComplete,
     getSingleJob,
     getAllJobs,
     getRecruiterJobs,

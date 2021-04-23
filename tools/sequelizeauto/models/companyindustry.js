@@ -1,22 +1,17 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Companyinfo', {
-    companyId: {
+  return sequelize.define('Companyindustry', {
+    companyIndustryId: {
+      autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      references: {
-        model: {
-          tableName: 'company',
-          schema: 'hris'
-        },
-        key: 'company_id'
-      },
-      field: 'company_id'
+      field: 'company_industry_id'
     },
-    logo: {
+    companyIndustryName: {
       type: DataTypes.STRING,
-      allowNull: true
+      allowNull: false,
+      field: 'company_industry_name'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -29,31 +24,18 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
-    },
-    emailBg: {
-      type: DataTypes.STRING(10),
-      allowNull: true,
-      field: 'email_bg'
-    },
-    banner: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    config: {
-      type: DataTypes.JSON,
-      allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'companyinfo',
+    tableName: 'companyindustry',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "companyinfo_pkey",
+        name: "companyindustry_pkey",
         unique: true,
         fields: [
-          { name: "company_id" },
+          { name: "company_industry_id" },
         ]
       },
     ]

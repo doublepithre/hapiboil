@@ -1,6 +1,7 @@
 import { 
     createJob,
     getJobDetailsOptions,
+    getAutoComplete,
     getSingleJob,
     getAllJobs,
     getRecruiterJobs,
@@ -133,6 +134,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getJobDetailsOptions,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/auto-complete',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAutoComplete,
         },
       });
       server.route({
