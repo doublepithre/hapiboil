@@ -1724,6 +1724,31 @@ paths:
                     type: string
                     example: Access record deleted
 
+  /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
+    get: 
+      summary: Get all recommended talents and applicants
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]
+        
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object                
+                $ref: "#/components/schemas/paginatedUsers" 
+  
+
   /job/j/talents?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents
