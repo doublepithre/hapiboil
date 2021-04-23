@@ -117,7 +117,7 @@ const getAutoComplete = async (request, h) => {
         if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
         
-        const validTypes = [ 'score', 'created_at', 'job_name'];
+        const validTypes = [ 'jobName', 'jobIndustry', 'jobFunction'];
         const isTypeReqValid = validTypes.includes(type);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
