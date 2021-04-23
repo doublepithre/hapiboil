@@ -1584,7 +1584,7 @@ paths:
                     items:
                     $ref: "#/components/schemas/applicationsWithApplicant"  
    
-  /job/j/application/{userId}:
+  /job/j/application/{jobId}/{userId}:
     get: 
       summary: Get Applicant's profile
       tags:
@@ -1598,7 +1598,11 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/User" 
+                allOf:        
+                  - $ref: "#/components/schemas/User" 
+                properties:
+                  applicationId:
+                    type: number
 
   /job/j/share-application/{applicationId}:
     get: 
