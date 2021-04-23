@@ -138,7 +138,8 @@ module.exports = function(sequelize, DataTypes) {
     inTalentPool: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
-      defaultValue: false
+      defaultValue: false,
+      field: 'in_talent_pool'
     }
   }, {
     sequelize,

@@ -23,6 +23,7 @@ import {
     deleteApplicationAccessRecord,
     getRecommendedTalents,
     getTalentsAndApplicants,
+    getTalentProfile,
 } from "../controllers/job";
 
 const xjob = {
@@ -265,6 +266,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getRecommendedTalents,
+        },
+      });      
+      server.route({
+        method: 'GET',
+        path: '/j/talent/{userId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getTalentProfile,
         },
       });      
       server.route({

@@ -2078,6 +2078,46 @@ const getTalentsAndApplicants = async (request, h) => {
     }
 }
 
+const getTalentProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+      }
+
+      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+                  
+      const { userId } = request.params || {};
+      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+      const talentProfileInfo = userRecord && userRecord.toJSON();
+      const { userId: rUserId, userTypeId, roleId, inTalentPool } = talentProfileInfo || {};
+      
+      if(!rUserId) return h.response({error:true, message:'No user found!'}).code(400);
+      if(!inTalentPool) return h.response({error:true, message:'You are not authorized. User has not agreed to join the Talent Pool!'}).code(403);
+      
+      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
+      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
+      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
+      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+      
+      if(roleName !== 'candidate') return h.response({error:true, message:'This user is not a candidate!'}).code(400);
+
+  
+      talentProfileInfo.userTypeName = userTypeName;
+      talentProfileInfo.roleName = roleName;
+  
+      return h.response(talentProfileInfo).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
 const isJobQuestionnaireDone = async(jobId,model)=>{
     const { Jobsquesresponse,Questionnaire,Questiontarget } = model
     let questionnaireCount = Questionnaire.count({
@@ -2176,4 +2216,5 @@ module.exports = {
     deleteApplicationAccessRecord,
     getRecommendedTalents,
     getTalentsAndApplicants,
+    getTalentProfile,
 }
