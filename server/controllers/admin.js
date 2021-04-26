@@ -357,21 +357,30 @@ const createQuestionAttributes = async (request, h) => {
     if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
-        let { Qaattribute } = request.getModels('xpaxr');
-        let answerIdSet = new Set();
-        for (let qaa of request.payload) {
-            answerIdSet.add(qaa.answerId);
-        }
-        let answerIdArr = Array.from(answerIdSet);
+        let { Qaattribute,Questionnaireanswer } = request.getModels('xpaxr');
         const sequelize = request.getDb('xpaxr').sequelize;
         let transaction = await sequelize.transaction();
         try {
+            let rows = await Questionnaireanswer.findAll({
+                attributes:["answerId"],
+                where:{
+                    questionId:request.payload.questionId
+            }})
+            let answerIdArr = [];
+            for (let ans of rows){
+                answerIdArr.push(ans.answerId);
+            }
             await Qaattribute.destroy({
                 where: {
                     answerId: answerIdArr
                 }
             })
-            let res = await Qaattribute.bulkCreate(request.payload);
+            let res;
+            if (request.payload.questionAnswerAttributes.length>0){
+                res = await Qaattribute.bulkCreate(request.payload.questionAnswerAttributes);
+            }else{
+                res = {message:"Successfuly deleted all question attributes"};
+            }
             await transaction.commit();
             return h.response(res).code(200);
         } catch (err) {
