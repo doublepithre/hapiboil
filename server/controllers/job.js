@@ -442,7 +442,11 @@ const getAllJobs = async (request, h) => {
                         }
                     }
                 } else {
-                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                    if(sortBy === 'job_name') {
+                        sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                    } else {
+                        sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                    }
                 };
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
