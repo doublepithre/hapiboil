@@ -117,7 +117,7 @@ const getAutoComplete = async (request, h) => {
         if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
         
-        const validTypes = [ 'score', 'created_at', 'job_name'];
+        const validTypes = [ 'jobName', 'jobIndustry', 'jobFunction'];
         const isTypeReqValid = validTypes.includes(type);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
@@ -416,11 +416,11 @@ const getAllJobs = async (request, h) => {
             if(search) {
                 sqlStmt += ` and (
                     jn.job_name ilike :searchVal
-                    or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
                     or ji.job_industry_name ilike :searchVal
                     or jl.job_location_name ilike :searchVal
+                    or j.job_description ilike :searchVal
                 )`;
             }
 
@@ -606,11 +606,11 @@ const getRecruiterJobs = async (request, h) => {
             if(search) {
                 sqlStmt += ` and (
                     jn.job_name ilike :searchVal
-                    or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
                     or ji.job_industry_name ilike :searchVal
                     or jl.job_location_name ilike :searchVal
+                    or j.job_description ilike :searchVal
                 )`;
             };
             
@@ -1353,22 +1353,31 @@ const getApplicantProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
-      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
-                  
-      const { userId } = request.params || {};
-      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-      const applicantProfileInfo = userRecord && userRecord.toJSON();
-      const { userTypeId, roleId } = applicantProfileInfo || {};
+      const { jobId, userId } = request.params || {};
+
+      // get the applicant's profile
+      const db1 = request.getDb('xpaxr');
+      const sqlStmt = `select 
+            ja.application_id,
+            ui.*, ut.user_type_name, ur.role_name
+        from hris.userinfo ui
+            inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+            inner join hris.userrole ur on ur.role_id=ui.role_id
+            inner join hris.jobapplications ja on ja.user_id=ui.user_id
+        where ui.user_id=:userId and ja.job_id=:jobId`;
+
+        const sequelize = db1.sequelize;
+        const userinfoSQL = await sequelize.query(sqlStmt, {
+          type: QueryTypes.SELECT,
+          replacements: { 
+              jobId, userId,
+          },
+      });
+      const applicantInfo = camelizeKeys(userinfoSQL)[0];
+      const { userId: auserId } = applicantInfo || {};
+      if(!auserId) return h.response({ error: true, message: 'No applicant found!' }).code(400);
       
-      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
-      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
-      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
-      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
-  
-      applicantProfileInfo.userTypeName = userTypeName;
-      applicantProfileInfo.roleName = roleName;
-  
-      return h.response(applicantProfileInfo).code(200);
+      return h.response(applicantInfo).code(200);
     }
     catch(error) {
       console.error(error.stack);
@@ -1821,19 +1830,19 @@ const getRecommendedTalents = async (request, h) => {
       if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
-        // let model = request.getModels('xpaxr');
-        // if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-        // let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
-        // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+        let model = request.getModels('xpaxr');
+        if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+        recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
         
         // FAKE RECOMMENDED DATA (delete it when going for staging)
-        const recommendations = [
-            { user_id: '135', score: '5' },
-            { user_id: '139', score: '4' },
-            { user_id: '137', score: '3' },
-            { user_id: '136', score: '2' },
-            { user_id: '140', score: '1' },
-        ]
+        // const recommendations = [
+        //     { user_id: '135', score: '5' },
+        //     { user_id: '139', score: '4' },
+        //     { user_id: '137', score: '3' },
+        //     { user_id: '136', score: '2' },
+        //     { user_id: '140', score: '1' },
+        // ]
     
         // storing all the jobIds in the given order   
         const userIdArray = [];
@@ -1927,6 +1936,190 @@ const getRecommendedTalents = async (request, h) => {
 
        const paginatedResponse = { count: allSQLTalentsCount[0].count, users: allTalents }
        return h.response(paginatedResponse).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
+const getTalentsAndApplicants = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { credentials } = request.auth || {};
+      const { id: luserId } = credentials || {}; 
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+
+      const db1 = request.getDb('xpaxr');
+      const sequelize = db1.sequelize;
+
+        //   finding all jobs of this recruiter
+        const { Jobapplication } = request.getModels('xpaxr');
+        const sqlStmt = `select j.job_id
+            from hris.jobs j
+            where j.user_id=:luserId
+        `;
+        const allOwnJobIdsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { luserId },
+        });
+
+        const addIdsIfNotExist = (id, array)=>{
+            if(!array.includes(id)){
+                array.push(id.toString());
+            }
+        }
+
+        const applicantIds = [];
+        const talentUserIds = [];
+        for(let i=0; i<allOwnJobIdsSQL.length; i++){
+            const ownJob = allOwnJobIdsSQL[i];
+            
+            const [applications, recommendationRes] = await Promise.all([
+                Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']}),
+                axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } }),
+            ]);
+            
+            const recommendation = recommendationRes?.data?.recommendation || [];
+            
+            applications[0] && applications.forEach((item)=> addIdsIfNotExist(item.userId, applicantIds));
+            recommendation[0] && recommendation.forEach((item)=> addIdsIfNotExist(item.user_id, talentUserIds));
+            
+        };
+
+        console.log(applicantIds, talentUserIds);
+        const refinedUnique = new Set([...talentUserIds, ...applicantIds]);
+        const finalArray = [...refinedUnique];
+        
+      // _______________QUERY PARAMETERS
+      const { limit, offset, sort, search } = request.query;            
+      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+      // sort query
+      let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'ASC'];
+      const validSorts = ['score', 'first_name', 'last_name'];
+      const isSortReqValid = validSorts.includes(sortBy);
+
+      // pagination
+      const limitNum = limit ? Number(limit) : 10;
+      const offsetNum = offset ? Number(offset) : 0;
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      }       
+      if(limitNum>100){
+        return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+      }
+        
+        // get sql statement for getting jobs or jobs count
+        const filters = { search, sortBy, sortType };
+        function getSqlStmt(queryType, obj = filters){
+            const { search, sortBy, sortType } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select ui.*, ut.user_type_name, ur.role_name `;
+            }
+
+            sqlStmt += `            
+                from hris.userinfo ui
+                    inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+                    inner join hris.userrole ur on ur.role_id=ui.role_id
+                where ui.user_id in (:finalArray)`;            
+                
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    ui.first_name ilike :searchVal
+                    or ui.last_name ilike :searchVal                    
+                )`;
+            }
+
+            if(type !== 'count') {
+                // sorts (order)
+                if(sortBy === 'score'){
+                    sqlStmt += ` order by case`
+                    for( let i=0; i<finalArray.length; i++){
+                        sqlStmt += ` WHEN ui.user_id=${ finalArray[i] } THEN ${ i }`;
+                    }
+                    sqlStmt += ` end`;
+                    if(sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
+                } else {
+                    sqlStmt += ` order by ${sortBy} ${sortType}`;
+                }
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+
+            return sqlStmt;
+        };
+
+      	const allSQLTalents = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                limitNum, offsetNum,
+                finalArray,
+                searchVal
+            },
+        });
+      	const allSQLTalentsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                limitNum, offsetNum,
+                finalArray,
+                searchVal
+            },
+        });           
+        const allTalents = camelizeKeys(allSQLTalents);
+
+
+       const paginatedResponse = { count: allSQLTalentsCount[0].count, users: allTalents }
+       return h.response(paginatedResponse).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
+const getTalentProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+      }
+
+      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+                  
+      const { userId } = request.params || {};
+      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+      const talentProfileInfo = userRecord && userRecord.toJSON();
+      const { userId: rUserId, userTypeId, roleId, inTalentPool } = talentProfileInfo || {};
+      
+      if(!rUserId) return h.response({error:true, message:'No user found!'}).code(400);
+      if(!inTalentPool) return h.response({error:true, message:'You are not authorized. User has not agreed to join the Talent Pool!'}).code(403);
+      
+      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
+      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
+      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
+      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+      
+      if(roleName !== 'candidate') return h.response({error:true, message:'This user is not a candidate!'}).code(400);
+
+  
+      talentProfileInfo.userTypeName = userTypeName;
+      talentProfileInfo.roleName = roleName;
+  
+      return h.response(talentProfileInfo).code(200);
     }
     catch(error) {
       console.error(error.stack);
@@ -2031,4 +2224,6 @@ module.exports = {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     getRecommendedTalents,
+    getTalentsAndApplicants,
+    getTalentProfile,
 }
