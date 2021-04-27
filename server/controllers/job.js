@@ -356,11 +356,16 @@ const getAllJobs = async (request, h) => {
 
             // FAKE RECOMMENDED DATA (delete it when going for staging)
             const recommendations = [
-                { job_id: '5', score: '5' },
-                { job_id: '7', score: '4' },
-                { job_id: '9', score: '3' },
-                { job_id: '6', score: '2' },
-                { job_id: '8', score: '1' },
+                { job_id: '25', score: '10' },
+                { job_id: '27', score: '9' },
+                { job_id: '30', score: '8' },
+                { job_id: '28', score: '7' },
+                { job_id: '33', score: '6' },
+                { job_id: '31', score: '5' },
+                { job_id: '26', score: '4' },
+                { job_id: '34', score: '3' },
+                { job_id: '32', score: '2' },
+                { job_id: '29', score: '1' },
             ]
         
             // storing all the jobIds in the given order            
@@ -1834,19 +1839,24 @@ const getRecommendedTalents = async (request, h) => {
       if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
-        let model = request.getModels('xpaxr');
-        if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
-        recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+        // let model = request.getModels('xpaxr');
+        // if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
+        // let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+        // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
         
         // FAKE RECOMMENDED DATA (delete it when going for staging)
-        // const recommendations = [
-        //     { user_id: '135', score: '5' },
-        //     { user_id: '139', score: '4' },
-        //     { user_id: '137', score: '3' },
-        //     { user_id: '136', score: '2' },
-        //     { user_id: '140', score: '1' },
-        // ]
+        const recommendations = [
+            { user_id: '167', score: '10' },
+            { user_id: '169', score: '9' },
+            { user_id: '161', score: '8' },
+            { user_id: '164', score: '7' },
+            { user_id: '160', score: '6' },
+            { user_id: '165', score: '5' },
+            { user_id: '162', score: '4' },
+            { user_id: '168', score: '3' },
+            { user_id: '166', score: '2' },
+            { user_id: '163', score: '1' },
+        ]
     
         // storing all the jobIds in the given order   
         const userIdArray = [];
@@ -1983,12 +1993,25 @@ const getTalentsAndApplicants = async (request, h) => {
         for(let i=0; i<allOwnJobIdsSQL.length; i++){
             const ownJob = allOwnJobIdsSQL[i];
             
-            const [applications, recommendationRes] = await Promise.all([
-                Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']}),
-                axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } }),
-            ]);
-            
-            const recommendation = recommendationRes?.data?.recommendation || [];
+            // const [applications, recommendationRes] = await Promise.all([
+            //     Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']}),
+            //     axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } }),
+            // ]);            
+            // const recommendation = recommendationRes?.data?.recommendation || [];
+
+            const applications = await Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']});
+            const recommendation =  [
+                    { user_id: '167', score: '10' },
+                    { user_id: '169', score: '9' },
+                    { user_id: '161', score: '8' },
+                    { user_id: '164', score: '7' },
+                    { user_id: '160', score: '6' },
+                    { user_id: '165', score: '5' },
+                    { user_id: '162', score: '4' },
+                    { user_id: '168', score: '3' },
+                    { user_id: '166', score: '2' },
+                    { user_id: '163', score: '1' },
+            ]
             
             applications[0] && applications.forEach((item)=> addIdsIfNotExist(item.userId, applicantIds));
             recommendation[0] && recommendation.forEach((item)=> addIdsIfNotExist(item.user_id, talentUserIds));
