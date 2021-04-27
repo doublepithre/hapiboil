@@ -48,6 +48,18 @@ const xadmin = {
         },
       });
       server.route({
+        method: 'GET',
+        path: '/questions/empauwer-us',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            return await getQuestions(request,h,'empauwer_us')
+          },
+        },
+      });
+      server.route({
         method: 'POST',
         path: '/questions',
         options: {
