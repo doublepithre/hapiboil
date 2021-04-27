@@ -109,7 +109,7 @@ const createQuestions = async (request, h) => {
                     }
                 }
                 let questionArray = await Questionnaire.bulkCreate(quesArr);
-                let qaArray = [];//answerId,questionId,answerVal,optionId
+                let qaArray = [];//answerId,questionId,optionId
                 let typeQuestionMap = swap(questionTypeMap);
 
                 for (let ques of questionArray) {
@@ -117,14 +117,14 @@ const createQuestions = async (request, h) => {
                     let questionType = typeQuestionMap[ques.questionTypeId];
                     if (questionType === 'single_choice' || questionType === 'multiple_choice') {
                         for (let option of ques.questionConfig.options) {
-                            qaArray.push({ questionId, answerVal: option.optionName, optionId: option.optionId })
+                            qaArray.push({ questionId, optionId: option.optionId })
                         }
                     } else if (questionType === "scale5") {
                         for (let i = 1; i <= 5; i++) {
-                            qaArray.push({ questionId, answerVal: ques.questionConfig.desc, optionId: i })
+                            qaArray.push({ questionId, optionId: i })
                         }
                     } else {
-                        qaArray.push({ questionId, answerVal: "None", optionId: 0 })
+                        qaArray.push({ questionId, optionId: 0 })
                     }
                 }
                 await Questionnaireanswer.bulkCreate(qaArray);
@@ -165,7 +165,7 @@ const getQuestionById = async (request, h, questionId) => {
                 {
                     model: Questionnaireanswer,
                     as: "questionnaireanswers",
-                    attributes: ["answerId", "optionId", "answerVal"],
+                    attributes: ["answerId", "optionId"],
                     required: true,
                     include: [
                         {
