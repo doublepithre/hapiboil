@@ -1,4 +1,5 @@
 const request = require("request");
+import { createPartiallyEmittedExpression } from 'typescript';
 import { camelizeKeys } from '../utils/camelizeKeys';
 // note potential json injection when passing directly 
 // from request.payload into sequelize fn but okay as this is for admin only
@@ -153,7 +154,7 @@ const getQuestionById = async (request, h, questionId) => {
     if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
-        const { Questionnaire, Questiontype, Questionnaireanswer, Qaattribute, Attributeset } = request.getModels('xpaxr');
+        const { Questionnaire, Questiontype, Questiontarget, Questioncategory,Questionnaireanswer, Qaattribute, Attributeset } = request.getModels('xpaxr');
         try {
             let res = await Questionnaire.findOne({
                 include: [{
@@ -161,6 +162,18 @@ const getQuestionById = async (request, h, questionId) => {
                     as: "questionType",
                     attributes: ["questionTypeName"],
                     required: true
+                },
+                {
+                    model:Questiontarget,
+                    as:"questionTarget",
+                    attributes:["targetName"],
+                    required:true
+                },
+                {
+                    model:Questioncategory,
+                    as:"questionCategory",
+                    attributes:["questionCategoryName"],
+                    required:true
                 },
                 {
                     model: Questionnaireanswer,
@@ -187,8 +200,54 @@ const getQuestionById = async (request, h, questionId) => {
                 where: {
                     questionId
                 },
-                attributes: ["questionId", "questionConfig", "questionName"]
+                attributes: ["questionId", "questionConfig", "questionName","weight"]
             });
+            return h.response(res).code(200);
+        } catch (err) {
+            console.error(err.stack)
+        }
+
+    }
+}
+
+const editQuestion = async (request, h) => {
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated' }).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'superadmin') {
+        return h.response({ message: 'Not authorized' }).code(403);
+    } else {
+        try {
+            const { Questionnaire,Questioncategory,Questiontype,Questiontarget } = request.getModels('xpaxr');
+
+            let [questionCategories, questionTypes, questionTargets] = await Promise.all([Questioncategory.findAll({ attributes: ['questionCategoryId', 'questionCategoryName'] }),
+            Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
+            Questiontarget.findAll({ attributes: ["targetId", "targetName"] })]);
+
+            let questionCategoryMap = questionCategories.reduce((map, obj) => (map[obj.questionCategoryName] = obj.questionCategoryId, map), {});
+            let questionTypeMap = questionTypes.reduce((map, obj) => (map[obj.questionTypeName] = obj.questionTypeId, map), {});
+            let questionTargetMap = questionTargets.reduce((map, obj) => (map[obj.targetName] = obj.targetId, map), {});
+            console.log(questionCategoryMap);
+            console.log(questionTypeMap);
+            console.log(questionTargetMap);
+            console.log(request.payload);
+            
+            let questionPayload = request.payload;
+
+            let res = await Questionnaire.update({
+                questionName:questionPayload.questionName,
+                questionConfig:questionPayload.questionConfig,
+                questionTypeId:questionTypeMap[questionPayload.questionTypeName],
+                questionCategoryId:questionCategoryMap[questionPayload.category],
+                questionTargetMap:questionTargetMap[questionPayload.target]
+            },{
+                where:{
+                    questionId:questionPayload.questionId
+                }
+            });
+
             return h.response(res).code(200);
         } catch (err) {
             console.error(err.stack)
@@ -234,19 +293,6 @@ const deleteQuestions = async (request, h) => {
         console.log("DELETE")
         console.log(request.payload);
         return h.response(res).code(200);
-    }
-}
-
-
-const editQuestions = (request, h) => {
-    if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
-    }
-    let userTypeName = request.auth.artifacts.decoded.userTypeName;
-    let userId = request.auth.credentials.id;
-    if (userTypeName !== 'superadmin') {
-        return h.response({ message: 'Not authorized' }).code(403);
-    } else {
     }
 }
 
@@ -517,10 +563,10 @@ function incorrectQuestionFormatException(message) {
 module.exports = {
     getQuestions,
     createQuestions,
-    editQuestions,
     deleteQuestions,
     updateIsActive,
     getQuestionById,
+    editQuestion,
     getQuestionCategories,
     getQuestionTypes,
     getAttributes,

@@ -1,6 +1,5 @@
 import { 
     createQuestions,
-    editQuestions,
     getQuestionCategories,
     getQuestionTypes,
     getAttributes,
@@ -10,6 +9,7 @@ import {
     deleteQuestions,
     updateIsActive,
     getQuestionById,
+    editQuestion,
     createQuestionAttributes,
     getQuestions,
     addQuestionMapping,
@@ -70,16 +70,6 @@ const xadmin = {
         },
       });
       server.route({
-        method: 'PATCH',
-        path: '/questions',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: editQuestions,
-        },
-      });
-      server.route({
         method: 'DELETE',
         path: '/questions',
         options: {
@@ -108,6 +98,18 @@ const xadmin = {
           },
           handler: async(request,h)=>{
             return getQuestionById(request,h,request.params.questionId);
+          },
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/question',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            return editQuestion(request,h);
           },
         },
       });
