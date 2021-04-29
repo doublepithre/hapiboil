@@ -680,7 +680,12 @@ const getJobAccessRecords = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
         const { jobId } = request.params || {};
-        const { Jobhiremember } = request.getModels('xpaxr');
+        const { Userinfo, Jobhiremember } = request.getModels('xpaxr');
+
+        // get the company of the luser recruiter
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
 
         const luserAccessRecord = await Jobhiremember.findOne({ where: {jobId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
@@ -691,14 +696,14 @@ const getJobAccessRecords = async (request, h) => {
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select ui.first_name, ui.email, jhm.*
               from hris.jobhiremember jhm
-                inner join hris.userinfo ui on ui.user_id=jhm.user_id                
-              where jhm.job_id=:jobId`;
+                inner join hris.userinfo ui on ui.user_id=jhm.user_id         
+              where jhm.job_id=:jobId and ui.company_id=:recruiterCompanyId`;
 
         const sequelize = db1.sequelize;
       	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { 
-                jobId
+                jobId, recruiterCompanyId
             },
         });
         const accessRecords = camelizeKeys(allSQLAccessRecords);
@@ -1551,7 +1556,12 @@ const getApplicationAccessRecords = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
         const { applicationId } = request.params || {};
-        const { Applicationhiremember } = request.getModels('xpaxr');
+        const { Userinfo, Applicationhiremember } = request.getModels('xpaxr');
+
+        // get the company of the luser recruiter
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
 
         const luserAccessRecord = await Applicationhiremember.findOne({ where: {applicationId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
@@ -1563,13 +1573,13 @@ const getApplicationAccessRecords = async (request, h) => {
         const sqlStmt = `select ui.first_name, ui.email, ahm.*
             from hris.applicationhiremember ahm
                 inner join hris.userinfo ui on ui.user_id=ahm.user_id                
-            where ahm.application_id=:applicationId`;
+            where ahm.application_id=:applicationId and ui.company_id=:recruiterCompanyId`;
 
         const sequelize = db1.sequelize;
       	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { 
-                applicationId
+                applicationId, recruiterCompanyId
             },
         });
         const accessRecords = camelizeKeys(allSQLAccessRecords);
