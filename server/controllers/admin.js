@@ -1,5 +1,4 @@
 const request = require("request");
-import { createPartiallyEmittedExpression } from 'typescript';
 import { camelizeKeys } from '../utils/camelizeKeys';
 // note potential json injection when passing directly 
 // from request.payload into sequelize fn but okay as this is for admin only
@@ -205,6 +204,7 @@ const getQuestionById = async (request, h, questionId) => {
             return h.response(res).code(200);
         } catch (err) {
             console.error(err.stack)
+            return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
         }
 
     }
@@ -250,7 +250,8 @@ const editQuestion = async (request, h) => {
 
             return h.response(res).code(200);
         } catch (err) {
-            console.error(err.stack)
+            console.error(err.stack);
+            return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
         }
 
     }
