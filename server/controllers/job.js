@@ -193,6 +193,8 @@ const getSingleJob = async (request, h) => {
             } else {
                 sqlStmt = `select
                 jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
+
+                if(luserTypeName === 'employer') sqlStmt += `, jhm.access_level`
             }
 
             sqlStmt += `
@@ -203,8 +205,11 @@ const getSingleJob = async (request, h) => {
                 inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where j.active=true and j.job_uuid=:jobUuid`;
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
+            
+            // if he is an employer
+            if(luserTypeName === 'employer') sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id`;        
+            sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid`;
 
             // if he is an employer
             if(luserTypeName === 'candidate') sqlStmt += ` and j.is_private=false `;        
@@ -575,7 +580,7 @@ const getRecruiterJobs = async (request, h) => {
                 sqlStmt = `select count(*)`;
             } else {
                 sqlStmt = `select
-                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+                jhm.access_level, jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
             }
 
             sqlStmt += `                    
