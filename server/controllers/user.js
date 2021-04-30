@@ -1773,8 +1773,8 @@ const getProfile = async (request, h) => {
     const responses = [];
     for (let response of quesResponses) {
       response = response && response.toJSON();
-      const { questionId, responseVal } = response;
-      const res = { questionId, answer:responseVal.answer };
+      const { questionId, responseVal, timeTaken } = response;
+      const res = { questionId, answer:responseVal.answer, timeTaken };
       responses.push(res);
     }
 
@@ -1843,11 +1843,43 @@ const createProfile = async (request, h) => {
       const resRecord = [];
       for (let response of quesResponses) {
         response = response && response.toJSON();
-        const { questionId, responseVal } = response;
-        const res = { questionId, answer:responseVal.answer };
+        const { questionId, responseVal, timeTaken } = response;
+        const res = { questionId, answer:responseVal.answer, timeTaken };
         resRecord.push(res);
       }
-      createProfileResponse = { responses: resRecord };
+
+      // attaching isComplete property
+      const db1 = request.getDb('xpaxr');
+      const sequelize = db1.sequelize;
+
+      const targetId = 1;
+
+      const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      where qt.target_id=:targetId`;  
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
+          type: QueryTypes.SELECT,
+          replacements: { 
+            targetId,
+          },
+      });
+      const userQuesCount = allSQLUserQuesCount[0].count;
+      
+      const sqlStmtForUserRes = `select count(*) 
+        from hris.userquesresponses uqr
+        where uqr.user_id=:userId`;        
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
+          type: QueryTypes.SELECT,
+          replacements: { 
+            userId,            
+          },
+      });
+      const userResCount = allSQLUserResCount[0].count;
+
+      const isComplete = userQuesCount === userResCount;
+      createProfileResponse = { isComplete, responses: resRecord };
 
     } else if ( userTypeName === 'employer') {
       // For Employer profile creation
@@ -1868,6 +1900,8 @@ const createProfile = async (request, h) => {
         resRecord.push(res);
       }
       createProfileResponse = { responses: resRecord };
+
+      
     } else {
       return h.response({ error: true, message: 'Invalid Request!'}).code(400);
     }    

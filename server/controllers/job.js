@@ -117,7 +117,7 @@ const getAutoComplete = async (request, h) => {
         if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
         
-        const validTypes = [ 'score', 'created_at', 'job_name'];
+        const validTypes = [ 'jobName', 'jobIndustry', 'jobFunction'];
         const isTypeReqValid = validTypes.includes(type);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
@@ -356,11 +356,16 @@ const getAllJobs = async (request, h) => {
 
             // FAKE RECOMMENDED DATA (delete it when going for staging)
             const recommendations = [
-                { job_id: '5', score: '5' },
-                { job_id: '7', score: '4' },
-                { job_id: '9', score: '3' },
-                { job_id: '6', score: '2' },
-                { job_id: '8', score: '1' },
+                { job_id: '25', score: '10' },
+                { job_id: '27', score: '9' },
+                { job_id: '30', score: '8' },
+                { job_id: '28', score: '7' },
+                { job_id: '33', score: '6' },
+                { job_id: '31', score: '5' },
+                { job_id: '26', score: '4' },
+                { job_id: '34', score: '3' },
+                { job_id: '32', score: '2' },
+                { job_id: '29', score: '1' },
             ]
         
             // storing all the jobIds in the given order            
@@ -416,11 +421,11 @@ const getAllJobs = async (request, h) => {
             if(search) {
                 sqlStmt += ` and (
                     jn.job_name ilike :searchVal
-                    or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
                     or ji.job_industry_name ilike :searchVal
                     or jl.job_location_name ilike :searchVal
+                    or j.job_description ilike :searchVal
                 )`;
             }
 
@@ -442,7 +447,11 @@ const getAllJobs = async (request, h) => {
                         }
                     }
                 } else {
-                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                    if(sortBy === 'job_name') {
+                        sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                    } else {
+                        sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                    }
                 };
                 // limit and offset
                 sqlStmt += ` limit :limitNum  offset :offsetNum`
@@ -606,11 +615,11 @@ const getRecruiterJobs = async (request, h) => {
             if(search) {
                 sqlStmt += ` and (
                     jn.job_name ilike :searchVal
-                    or j.job_description ilike :searchVal
                     or jt.job_type_name ilike :searchVal
                     or jf.job_function_name ilike :searchVal
                     or ji.job_industry_name ilike :searchVal
                     or jl.job_location_name ilike :searchVal
+                    or j.job_description ilike :searchVal
                 )`;
             };
             
@@ -671,7 +680,12 @@ const getJobAccessRecords = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
         const { jobId } = request.params || {};
-        const { Jobhiremember } = request.getModels('xpaxr');
+        const { Userinfo, Jobhiremember } = request.getModels('xpaxr');
+
+        // get the company of the luser recruiter
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
 
         const luserAccessRecord = await Jobhiremember.findOne({ where: {jobId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
@@ -682,14 +696,14 @@ const getJobAccessRecords = async (request, h) => {
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select ui.first_name, ui.email, jhm.*
               from hris.jobhiremember jhm
-                inner join hris.userinfo ui on ui.user_id=jhm.user_id                
-              where jhm.job_id=:jobId`;
+                inner join hris.userinfo ui on ui.user_id=jhm.user_id         
+              where jhm.job_id=:jobId and ui.company_id=:recruiterCompanyId`;
 
         const sequelize = db1.sequelize;
       	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { 
-                jobId
+                jobId, recruiterCompanyId
             },
         });
         const accessRecords = camelizeKeys(allSQLAccessRecords);
@@ -1353,22 +1367,31 @@ const getApplicantProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
-      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
-                  
-      const { userId } = request.params || {};
-      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-      const applicantProfileInfo = userRecord && userRecord.toJSON();
-      const { userTypeId, roleId } = applicantProfileInfo || {};
+      const { jobId, userId } = request.params || {};
+
+      // get the applicant's profile
+      const db1 = request.getDb('xpaxr');
+      const sqlStmt = `select 
+            ja.application_id,
+            ui.*, ut.user_type_name, ur.role_name
+        from hris.userinfo ui
+            inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+            inner join hris.userrole ur on ur.role_id=ui.role_id
+            inner join hris.jobapplications ja on ja.user_id=ui.user_id
+        where ui.user_id=:userId and ja.job_id=:jobId`;
+
+        const sequelize = db1.sequelize;
+        const userinfoSQL = await sequelize.query(sqlStmt, {
+          type: QueryTypes.SELECT,
+          replacements: { 
+              jobId, userId,
+          },
+      });
+      const applicantInfo = camelizeKeys(userinfoSQL)[0];
+      const { userId: auserId } = applicantInfo || {};
+      if(!auserId) return h.response({ error: true, message: 'No applicant found!' }).code(400);
       
-      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
-      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
-      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
-      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
-  
-      applicantProfileInfo.userTypeName = userTypeName;
-      applicantProfileInfo.roleName = roleName;
-  
-      return h.response(applicantProfileInfo).code(200);
+      return h.response(applicantInfo).code(200);
     }
     catch(error) {
       console.error(error.stack);
@@ -1533,7 +1556,12 @@ const getApplicationAccessRecords = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
         const { applicationId } = request.params || {};
-        const { Applicationhiremember } = request.getModels('xpaxr');
+        const { Userinfo, Applicationhiremember } = request.getModels('xpaxr');
+
+        // get the company of the luser recruiter
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
 
         const luserAccessRecord = await Applicationhiremember.findOne({ where: {applicationId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
@@ -1545,13 +1573,13 @@ const getApplicationAccessRecords = async (request, h) => {
         const sqlStmt = `select ui.first_name, ui.email, ahm.*
             from hris.applicationhiremember ahm
                 inner join hris.userinfo ui on ui.user_id=ahm.user_id                
-            where ahm.application_id=:applicationId`;
+            where ahm.application_id=:applicationId and ui.company_id=:recruiterCompanyId`;
 
         const sequelize = db1.sequelize;
       	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { 
-                applicationId
+                applicationId, recruiterCompanyId
             },
         });
         const accessRecords = camelizeKeys(allSQLAccessRecords);
@@ -1828,11 +1856,16 @@ const getRecommendedTalents = async (request, h) => {
         
         // FAKE RECOMMENDED DATA (delete it when going for staging)
         const recommendations = [
-            { user_id: '135', score: '5' },
-            { user_id: '139', score: '4' },
-            { user_id: '137', score: '3' },
-            { user_id: '136', score: '2' },
-            { user_id: '140', score: '1' },
+            { user_id: '167', score: '10' },
+            { user_id: '169', score: '9' },
+            { user_id: '161', score: '8' },
+            { user_id: '164', score: '7' },
+            { user_id: '160', score: '6' },
+            { user_id: '165', score: '5' },
+            { user_id: '162', score: '4' },
+            { user_id: '168', score: '3' },
+            { user_id: '166', score: '2' },
+            { user_id: '163', score: '1' },
         ]
     
         // storing all the jobIds in the given order   
@@ -1927,6 +1960,203 @@ const getRecommendedTalents = async (request, h) => {
 
        const paginatedResponse = { count: allSQLTalentsCount[0].count, users: allTalents }
        return h.response(paginatedResponse).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
+const getTalentsAndApplicants = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      const { credentials } = request.auth || {};
+      const { id: luserId } = credentials || {}; 
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+
+      const db1 = request.getDb('xpaxr');
+      const sequelize = db1.sequelize;
+
+        //   finding all jobs of this recruiter
+        const { Jobapplication } = request.getModels('xpaxr');
+        const sqlStmt = `select j.job_id
+            from hris.jobs j
+            where j.user_id=:luserId
+        `;
+        const allOwnJobIdsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { luserId },
+        });
+
+        const addIdsIfNotExist = (id, array)=>{
+            if(!array.includes(id)){
+                array.push(id.toString());
+            }
+        }
+
+        const applicantIds = [];
+        const talentUserIds = [];
+        for(let i=0; i<allOwnJobIdsSQL.length; i++){
+            const ownJob = allOwnJobIdsSQL[i];
+            
+            // const [applications, recommendationRes] = await Promise.all([
+            //     Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']}),
+            //     axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } }),
+            // ]);            
+            // const recommendation = recommendationRes?.data?.recommendation || [];
+
+            const applications = await Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']});
+            const recommendation =  [
+                    { user_id: '167', score: '10' },
+                    { user_id: '169', score: '9' },
+                    { user_id: '161', score: '8' },
+                    { user_id: '164', score: '7' },
+                    { user_id: '160', score: '6' },
+                    { user_id: '165', score: '5' },
+                    { user_id: '162', score: '4' },
+                    { user_id: '168', score: '3' },
+                    { user_id: '166', score: '2' },
+                    { user_id: '163', score: '1' },
+            ]
+            
+            applications[0] && applications.forEach((item)=> addIdsIfNotExist(item.userId, applicantIds));
+            recommendation[0] && recommendation.forEach((item)=> addIdsIfNotExist(item.user_id, talentUserIds));
+            
+        };
+
+        console.log(applicantIds, talentUserIds);
+        const refinedUnique = new Set([...talentUserIds, ...applicantIds]);
+        const finalArray = [...refinedUnique];
+        
+      // _______________QUERY PARAMETERS
+      const { limit, offset, sort, search } = request.query;            
+      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+      // sort query
+      let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'ASC'];
+      const validSorts = ['score', 'first_name', 'last_name'];
+      const isSortReqValid = validSorts.includes(sortBy);
+
+      // pagination
+      const limitNum = limit ? Number(limit) : 10;
+      const offsetNum = offset ? Number(offset) : 0;
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      }       
+      if(limitNum>100){
+        return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+      }
+        
+        // get sql statement for getting jobs or jobs count
+        const filters = { search, sortBy, sortType };
+        function getSqlStmt(queryType, obj = filters){
+            const { search, sortBy, sortType } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select ui.*, ut.user_type_name, ur.role_name `;
+            }
+
+            sqlStmt += `            
+                from hris.userinfo ui
+                    inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+                    inner join hris.userrole ur on ur.role_id=ui.role_id
+                where ui.user_id in (:finalArray)`;            
+                
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    ui.first_name ilike :searchVal
+                    or ui.last_name ilike :searchVal                    
+                )`;
+            }
+
+            if(type !== 'count') {
+                // sorts (order)
+                if(sortBy === 'score'){
+                    sqlStmt += ` order by case`
+                    for( let i=0; i<finalArray.length; i++){
+                        sqlStmt += ` WHEN ui.user_id=${ finalArray[i] } THEN ${ i }`;
+                    }
+                    sqlStmt += ` end`;
+                    if(sortType === 'asc') sqlStmt += ` desc`; //by default, above method keeps them in the order of the Data Science Server in the sense of asc, to reverse it you must use desc
+                } else {
+                    sqlStmt += ` order by ${sortBy} ${sortType}`;
+                }
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+
+            return sqlStmt;
+        };
+
+      	const allSQLTalents = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                limitNum, offsetNum,
+                finalArray,
+                searchVal
+            },
+        });
+      	const allSQLTalentsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                limitNum, offsetNum,
+                finalArray,
+                searchVal
+            },
+        });           
+        const allTalents = camelizeKeys(allSQLTalents);
+
+
+       const paginatedResponse = { count: allSQLTalentsCount[0].count, users: allTalents }
+       return h.response(paginatedResponse).code(200);
+    }
+    catch(error) {
+      console.error(error.stack);
+      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
+const getTalentProfile = async (request, h) => {
+    try{
+      if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Forbidden' }).code(403);
+      }
+      // Checking user type from jwt
+      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+      if(luserTypeName !== 'employer'){
+        return h.response({error:true, message:'You are not authorized!'}).code(403);
+      }
+
+      const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
+                  
+      const { userId } = request.params || {};
+      const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+      const talentProfileInfo = userRecord && userRecord.toJSON();
+      const { userId: rUserId, userTypeId, roleId, inTalentPool } = talentProfileInfo || {};
+      
+      if(!rUserId) return h.response({error:true, message:'No user found!'}).code(400);
+      if(!inTalentPool) return h.response({error:true, message:'You are not authorized. User has not agreed to join the Talent Pool!'}).code(403);
+      
+      const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
+      const userRoleRecord = await Userrole.findOne({ where: { roleId }});
+      const { userTypeName } = userTypeRecord && userTypeRecord.toJSON();
+      const { roleName } = userRoleRecord && userRoleRecord.toJSON();
+      
+      if(roleName !== 'candidate') return h.response({error:true, message:'This user is not a candidate!'}).code(400);
+
+  
+      talentProfileInfo.userTypeName = userTypeName;
+      talentProfileInfo.roleName = roleName;
+  
+      return h.response(talentProfileInfo).code(200);
     }
     catch(error) {
       console.error(error.stack);
@@ -2031,4 +2261,6 @@ module.exports = {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     getRecommendedTalents,
+    getTalentsAndApplicants,
+    getTalentProfile,
 }
