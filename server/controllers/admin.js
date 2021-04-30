@@ -109,7 +109,7 @@ const createQuestions = async (request, h) => {
                     }
                 }
                 let questionArray = await Questionnaire.bulkCreate(quesArr);
-                let qaArray = [];//answerId,questionId,answerVal,optionId
+                let qaArray = [];//answerId,questionId,optionId
                 let typeQuestionMap = swap(questionTypeMap);
 
                 for (let ques of questionArray) {
@@ -117,14 +117,14 @@ const createQuestions = async (request, h) => {
                     let questionType = typeQuestionMap[ques.questionTypeId];
                     if (questionType === 'single_choice' || questionType === 'multiple_choice') {
                         for (let option of ques.questionConfig.options) {
-                            qaArray.push({ questionId, answerVal: option.optionName, optionId: option.optionId })
+                            qaArray.push({ questionId, optionId: option.optionId })
                         }
                     } else if (questionType === "scale5") {
                         for (let i = 1; i <= 5; i++) {
-                            qaArray.push({ questionId, answerVal: ques.questionConfig.desc, optionId: i })
+                            qaArray.push({ questionId, optionId: i })
                         }
                     } else {
-                        qaArray.push({ questionId, answerVal: "None", optionId: 0 })
+                        qaArray.push({ questionId, optionId: 0 })
                     }
                 }
                 await Questionnaireanswer.bulkCreate(qaArray);
@@ -153,7 +153,7 @@ const getQuestionById = async (request, h, questionId) => {
     if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
-        const { Questionnaire, Questiontype, Questionnaireanswer, Qaattribute, Attributeset } = request.getModels('xpaxr');
+        const { Questionnaire, Questiontype, Questiontarget, Questioncategory,Questionnaireanswer, Qaattribute, Attributeset } = request.getModels('xpaxr');
         try {
             let res = await Questionnaire.findOne({
                 include: [{
@@ -163,9 +163,21 @@ const getQuestionById = async (request, h, questionId) => {
                     required: true
                 },
                 {
+                    model:Questiontarget,
+                    as:"questionTarget",
+                    attributes:["targetName"],
+                    required:true
+                },
+                {
+                    model:Questioncategory,
+                    as:"questionCategory",
+                    attributes:["questionCategoryName"],
+                    required:true
+                },
+                {
                     model: Questionnaireanswer,
                     as: "questionnaireanswers",
-                    attributes: ["answerId", "optionId", "answerVal"],
+                    attributes: ["answerId", "optionId"],
                     required: true,
                     include: [
                         {
@@ -187,11 +199,59 @@ const getQuestionById = async (request, h, questionId) => {
                 where: {
                     questionId
                 },
-                attributes: ["questionId", "questionConfig", "questionName"]
+                attributes: ["questionId", "questionConfig", "questionName","weight"]
             });
             return h.response(res).code(200);
         } catch (err) {
             console.error(err.stack)
+            return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
+        }
+
+    }
+}
+
+const editQuestion = async (request, h) => {
+    if (!request.auth.isAuthenticated) {
+        return h.response({ message: 'Not authenticated' }).code(401);
+    }
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    let userId = request.auth.credentials.id;
+    if (userTypeName !== 'superadmin') {
+        return h.response({ message: 'Not authorized' }).code(403);
+    } else {
+        try {
+            const { Questionnaire,Questioncategory,Questiontype,Questiontarget } = request.getModels('xpaxr');
+
+            let [questionCategories, questionTypes, questionTargets] = await Promise.all([Questioncategory.findAll({ attributes: ['questionCategoryId', 'questionCategoryName'] }),
+            Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
+            Questiontarget.findAll({ attributes: ["targetId", "targetName"] })]);
+
+            let questionCategoryMap = questionCategories.reduce((map, obj) => (map[obj.questionCategoryName] = obj.questionCategoryId, map), {});
+            let questionTypeMap = questionTypes.reduce((map, obj) => (map[obj.questionTypeName] = obj.questionTypeId, map), {});
+            let questionTargetMap = questionTargets.reduce((map, obj) => (map[obj.targetName] = obj.targetId, map), {});
+            console.log(questionCategoryMap);
+            console.log(questionTypeMap);
+            console.log(questionTargetMap);
+            console.log(request.payload);
+            
+            let questionPayload = request.payload;
+
+            let res = await Questionnaire.update({
+                questionName:questionPayload.questionName,
+                questionConfig:questionPayload.questionConfig,
+                questionTypeId:questionTypeMap[questionPayload.questionTypeName],
+                questionCategoryId:questionCategoryMap[questionPayload.category],
+                questionTargetMap:questionTargetMap[questionPayload.target]
+            },{
+                where:{
+                    questionId:questionPayload.questionId
+                }
+            });
+
+            return h.response(res).code(200);
+        } catch (err) {
+            console.error(err.stack);
+            return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
         }
 
     }
@@ -234,19 +294,6 @@ const deleteQuestions = async (request, h) => {
         console.log("DELETE")
         console.log(request.payload);
         return h.response(res).code(200);
-    }
-}
-
-
-const editQuestions = (request, h) => {
-    if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
-    }
-    let userTypeName = request.auth.artifacts.decoded.userTypeName;
-    let userId = request.auth.credentials.id;
-    if (userTypeName !== 'superadmin') {
-        return h.response({ message: 'Not authorized' }).code(403);
-    } else {
     }
 }
 
@@ -357,21 +404,30 @@ const createQuestionAttributes = async (request, h) => {
     if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
-        let { Qaattribute } = request.getModels('xpaxr');
-        let answerIdSet = new Set();
-        for (let qaa of request.payload) {
-            answerIdSet.add(qaa.answerId);
-        }
-        let answerIdArr = Array.from(answerIdSet);
+        let { Qaattribute,Questionnaireanswer } = request.getModels('xpaxr');
         const sequelize = request.getDb('xpaxr').sequelize;
         let transaction = await sequelize.transaction();
         try {
+            let rows = await Questionnaireanswer.findAll({
+                attributes:["answerId"],
+                where:{
+                    questionId:request.payload.questionId
+            }})
+            let answerIdArr = [];
+            for (let ans of rows){
+                answerIdArr.push(ans.answerId);
+            }
             await Qaattribute.destroy({
                 where: {
                     answerId: answerIdArr
                 }
             })
-            let res = await Qaattribute.bulkCreate(request.payload);
+            let res;
+            if (request.payload.questionAnswerAttributes.length>0){
+                res = await Qaattribute.bulkCreate(request.payload.questionAnswerAttributes);
+            }else{
+                res = {message:"Successfuly deleted all question attributes"};
+            }
             await transaction.commit();
             return h.response(res).code(200);
         } catch (err) {
@@ -508,10 +564,10 @@ function incorrectQuestionFormatException(message) {
 module.exports = {
     getQuestions,
     createQuestions,
-    editQuestions,
     deleteQuestions,
     updateIsActive,
     getQuestionById,
+    editQuestion,
     getQuestionCategories,
     getQuestionTypes,
     getAttributes,

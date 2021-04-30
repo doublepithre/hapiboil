@@ -20,11 +20,6 @@ module.exports = (sequelize, DataTypes) => {
       },
       field: 'question_id'
     },
-    answerVal: {
-      type: DataTypes.TEXT,
-      allowNull: true,
-      field: 'answer_val'
-    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,

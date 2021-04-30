@@ -32,6 +32,10 @@
     "host":"localhost",
     "port":8000
   },
+  "webchat":{
+    "endpoint":"https://directline.botframework.com/v3/directline/tokens/generate",
+    "secret":"0bIf-YGwIC4.rtnoLBozL1QhcCBEdJCA6FfEjowHZaa7qqG0FaiMvTU"
+  },
   "azure": {
     "docStorageAccountName": "empdevstrg",
     "docStorageAccountKey" : "3r1eU6cftRZ6tQiy+d1M2d8dSh11YcWvl1dHUH6wOHAcLLjDJhyl0w6DL7NxZwgYGEID4NAuRGXN8uYk2Mplaw",
