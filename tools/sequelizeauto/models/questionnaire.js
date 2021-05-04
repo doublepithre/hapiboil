@@ -75,7 +75,7 @@ module.exports = function(sequelize, DataTypes) {
     },
     questionTargetId: {
       type: DataTypes.INTEGER,
-      allowNull: true,
+      allowNull: false,
       references: {
         model: {
           tableName: 'questiontarget',

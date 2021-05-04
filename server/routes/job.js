@@ -1,8 +1,14 @@
 import { 
     createJob,
     getJobDetailsOptions,
-    getSingleJobs,
+    getAutoComplete,
+    getSingleJob,
     getAllJobs,
+    getRecruiterJobs,
+    getJobAccessRecords,
+    shareJob,
+    updateSharedJob,
+    deleteJobAccessRecord,
     updateJob,
     createJobQuesResponses,
     getJobQuesResponses,
@@ -11,9 +17,13 @@ import {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    getApplicationAccessRecords,
+    shareApplication, 
+    updateSharedApplication,
+    deleteApplicationAccessRecord,
     getRecommendedTalents,
-    getJobRecommendations,
-    getRecruiterJobs
+    getTalentsAndApplicants,
+    getTalentProfile,
 } from "../controllers/job";
 
 const xjob = {
@@ -40,7 +50,7 @@ const xjob = {
             mode: 'try',
           },
           handler: async (request, h) => {
-            return await getSingleJobs(request, h);
+            return await getSingleJob(request, h);
           },
         },
       });
@@ -55,7 +65,7 @@ const xjob = {
             return await getAllJobs(request, h);
           },
         },
-      });
+      });      
       server.route({
         method: 'GET',
         path: '/j/recruiter',
@@ -80,12 +90,62 @@ const xjob = {
       });
       server.route({
         method: 'GET',
+        path: '/j/share-job/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobAccessRecords,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/j/share-job/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: shareJob,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/j/share-job/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateSharedJob,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/j/share-job/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteJobAccessRecord,
+        },
+      });
+      server.route({
+        method: 'GET',
         path: '/j/job-details-options',
         options: {
           auth: {
             mode: 'try',
           },
           handler: getJobDetailsOptions,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/auto-complete',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAutoComplete,
         },
       });
       server.route({
@@ -150,7 +210,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/j/application/{userId}',
+        path: '/j/application/{jobId}/{userId}',
         options: {
           auth: {
             mode: 'try',
@@ -160,32 +220,74 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/j/recommended-talents',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getApplicationAccessRecords,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: shareApplication,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateSharedApplication,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/j/share-application/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteApplicationAccessRecord,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/talents/{jobId}',
         options: {
           auth: {
             mode: 'try',
           },
           handler: getRecommendedTalents,
         },
-      });
+      });      
       server.route({
         method: 'GET',
-        path: '/j/recommendations',
+        path: '/j/talent/{userId}',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: async(request,h)=>{
-            try{
-              return await getJobRecommendations(request,h)
-            }catch(err){
-              console.error(err.stack)
-              return h.response({"message":"Internal Server Error"}).code(500)
-            }
-            
-          }
+          handler: getTalentProfile,
         },
-      });
+      });      
+      server.route({
+        method: 'GET',
+        path: '/j/talents-and-applicants',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getTalentsAndApplicants,
+        },
+      });      
     } 
     catch(err) {
       console.log(err);

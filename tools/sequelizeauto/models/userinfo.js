@@ -124,11 +124,22 @@ module.exports = function(sequelize, DataTypes) {
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
     },
-    isEmailVerified: {
+    privacyClause: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: false,
-      field: 'is_email_verified'
+      field: 'privacy_clause'
+    },
+    tandc: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false
+    },
+    inTalentPool: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'in_talent_pool'
     }
   }, {
     sequelize,
