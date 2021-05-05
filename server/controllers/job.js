@@ -309,8 +309,11 @@ const getAllJobs = async (request, h) => {
         let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'DESC'];
         if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
         if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        
         const validSorts = [ 'score', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
+        const validSortTypes = [ 'asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
 
         const validRecommendedVal = [ 0, 1];
         const isRecommendedValReqValid = validRecommendedVal.includes(recommendedVal);
@@ -322,7 +325,7 @@ const getAllJobs = async (request, h) => {
         const offsetNum = offset ? Number(offset) : 0;        
 
         // query validation
-        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(recommendedVal) || !sortBy || !isSortReqValid || !isSortByValid || !isRecommendedValReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(recommendedVal) || !sortBy || !isSortReqValid || !isSortTypeReqValid || !isSortByValid || !isRecommendedValReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
         // custom date search query
@@ -533,8 +536,12 @@ const getRecruiterJobs = async (request, h) => {
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
         if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
         if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
+
+        const validSortTypes = [ 'asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
         
         const validOwnJobsVal = [ 0, 1 ];
         const isOwnJobsReqValid = validOwnJobsVal.includes(ownJobsVal);
@@ -544,7 +551,7 @@ const getRecruiterJobs = async (request, h) => {
         const offsetNum = offset ? Number(offset) : 0;
 
         // query validation
-        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(ownJobsVal) || !sortBy || !isSortReqValid || !isOwnJobsReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || isNaN(ownJobsVal) || !sortBy || !isSortReqValid || !isSortTypeReqValid || !isOwnJobsReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
         // custom date search query
@@ -1178,11 +1185,14 @@ const getAppliedJobs = async (request, h) => {
         const validSorts = ['status', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
+        const validSortTypes = [ 'asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+
         // pagination
         const limitNum = limit ? Number(limit) : 10;
         const offsetNum = offset ? Number(offset) : 0;
 
-        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
+        if(isNaN(limitNum) || isNaN(offsetNum) || !sortBy || !isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);        
         if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
 
         // custom date search query
@@ -1431,13 +1441,17 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'DESC'];
       if (!sortType && sortBy !== 'application_date') sortType = 'ASC';
       if (!sortType && sortBy === 'application_date') sortType = 'DESC';      
+      
       const validSorts = ['first_name', 'last_name', 'application_date', 'status'];
       const isSortReqValid = validSorts.includes(sortBy);
+
+      const validSortTypes = [ 'asc', 'desc'];
+      const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
         return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       }       
       if(limitNum>100){

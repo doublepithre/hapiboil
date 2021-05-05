@@ -10,8 +10,9 @@ const loginUser = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { User, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
-    const { email, password } = request.payload || {};
-
+    const { email: rEmail, password } = request.payload || {};
+    const email = rEmail?.toLowerCase();
+    
     if ( !(email && password) ) {
       return h.response({ error: true, message: 'Please provide necessary credentials'}).code(400);
     }
