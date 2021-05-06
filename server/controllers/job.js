@@ -370,7 +370,6 @@ const getAllJobs = async (request, h) => {
                 return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
             }
             
-
             // FAKE RECOMMENDED DATA (delete it when going for staging)
             // const recommendations = [
             //     { job_id: '25', score: '10' },
@@ -383,9 +382,7 @@ const getAllJobs = async (request, h) => {
             //     { job_id: '34', score: '3' },
             //     { job_id: '32', score: '2' },
             //     { job_id: '29', score: '1' },
-            // ]
-        
-            
+            // ]                   
         }
 
         const db1 = request.getDb('xpaxr');
@@ -1891,7 +1888,6 @@ const getRecommendedTalents = async (request, h) => {
             return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
         }
 
-
         // FAKE RECOMMENDED DATA (delete it when going for staging)
         // const recommendations = [
         //     { user_id: '167', score: '10' },
@@ -1904,9 +1900,7 @@ const getRecommendedTalents = async (request, h) => {
         //     { user_id: '168', score: '3' },
         //     { user_id: '166', score: '2' },
         //     { user_id: '163', score: '1' },
-        // ]
-    
-     
+        // ]        
       
       const { limit, offset, sort, search } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
@@ -2054,8 +2048,8 @@ const getTalentsAndApplicants = async (request, h) => {
                 console.log(error.stack);
                 return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
             }
-           
-            
+                       
+            // FAKE RECOMMENDED DATA (delete it when going for staging)
             // const recommendation =  [
             //         { user_id: '167', score: '10' },
             //         { user_id: '169', score: '9' },
@@ -2068,8 +2062,6 @@ const getTalentsAndApplicants = async (request, h) => {
             //         { user_id: '166', score: '2' },
             //         { user_id: '163', score: '1' },
             // ]
-            
-            
         };
 
         console.log(applicantIds, talentUserIds);
