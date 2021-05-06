@@ -348,38 +348,44 @@ const getAllJobs = async (request, h) => {
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
             if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
         }
-
-        let recommendations;
+        
         const jobIdArray = [];
         // GET RECOMMENDED JOBS FROM DATA SCIENCE SERVER
         if(recommendedVal === 1){
             /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
 
-            // let model = request.getModels('xpaxr');
-            // if (!await isUserQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-            // recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
-            // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+            let model = request.getModels('xpaxr');
+            if (!await isUserQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
             
+            try {
+                const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
+                const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+                if(!isArray(recommendations) || (isArray(recommendations) && !recommendations.length)) return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+                
+                // storing all the jobIds in the given order            
+                recommendations.forEach(item =>{
+                    jobIdArray.push(item.job_id);
+                });
+            } catch (error) {
+                return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+            }
             
 
             // FAKE RECOMMENDED DATA (delete it when going for staging)
-            const recommendations = [
-                { job_id: '25', score: '10' },
-                { job_id: '27', score: '9' },
-                { job_id: '30', score: '8' },
-                { job_id: '28', score: '7' },
-                { job_id: '33', score: '6' },
-                { job_id: '31', score: '5' },
-                { job_id: '26', score: '4' },
-                { job_id: '34', score: '3' },
-                { job_id: '32', score: '2' },
-                { job_id: '29', score: '1' },
-            ]
+            // const recommendations = [
+            //     { job_id: '25', score: '10' },
+            //     { job_id: '27', score: '9' },
+            //     { job_id: '30', score: '8' },
+            //     { job_id: '28', score: '7' },
+            //     { job_id: '33', score: '6' },
+            //     { job_id: '31', score: '5' },
+            //     { job_id: '26', score: '4' },
+            //     { job_id: '34', score: '3' },
+            //     { job_id: '32', score: '2' },
+            //     { job_id: '29', score: '1' },
+            // ]
         
-            // storing all the jobIds in the given order            
-            recommendations.forEach(item =>{
-                jobIdArray.push(item.job_id);
-            });
+            
         }
 
         const db1 = request.getDb('xpaxr');
@@ -1868,30 +1874,39 @@ const getRecommendedTalents = async (request, h) => {
       if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
-        // let model = request.getModels('xpaxr');
-        // if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-        // let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
-        // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
-        
-        // FAKE RECOMMENDED DATA (delete it when going for staging)
-        const recommendations = [
-            { user_id: '167', score: '10' },
-            { user_id: '169', score: '9' },
-            { user_id: '161', score: '8' },
-            { user_id: '164', score: '7' },
-            { user_id: '160', score: '6' },
-            { user_id: '165', score: '5' },
-            { user_id: '162', score: '4' },
-            { user_id: '168', score: '3' },
-            { user_id: '166', score: '2' },
-            { user_id: '163', score: '1' },
-        ]
-    
-        // storing all the jobIds in the given order   
+        let model = request.getModels('xpaxr');
+        if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
         const userIdArray = [];
-        recommendations.forEach(item =>{
-            userIdArray.push(item.user_id);
-        });
+        
+        try {
+            const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+            const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+            if(!isArray(recommendations) || (isArray(recommendations) && !recommendations.length)) return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+            
+            // storing all the talentUserIds in the given order   
+            recommendations.forEach(item =>{
+                userIdArray.push(item.user_id);
+            });
+        } catch (error) {
+            return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+        }
+
+
+        // FAKE RECOMMENDED DATA (delete it when going for staging)
+        // const recommendations = [
+        //     { user_id: '167', score: '10' },
+        //     { user_id: '169', score: '9' },
+        //     { user_id: '161', score: '8' },
+        //     { user_id: '164', score: '7' },
+        //     { user_id: '160', score: '6' },
+        //     { user_id: '165', score: '5' },
+        //     { user_id: '162', score: '4' },
+        //     { user_id: '168', score: '3' },
+        //     { user_id: '166', score: '2' },
+        //     { user_id: '163', score: '1' },
+        // ]
+    
+     
       
       const { limit, offset, sort, search } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
@@ -2022,34 +2037,45 @@ const getTalentsAndApplicants = async (request, h) => {
         for(let i=0; i<allOwnJobIdsSQL.length; i++){
             const ownJob = allOwnJobIdsSQL[i];
             
-            // const [applications, recommendationRes] = await Promise.all([
-            //     Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']}),
-            //     axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } }),
-            // ]);            
-            // const recommendation = recommendationRes?.data?.recommendation || [];
-
             const applications = await Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']});
-            const recommendation =  [
-                    { user_id: '167', score: '10' },
-                    { user_id: '169', score: '9' },
-                    { user_id: '161', score: '8' },
-                    { user_id: '164', score: '7' },
-                    { user_id: '160', score: '6' },
-                    { user_id: '165', score: '5' },
-                    { user_id: '162', score: '4' },
-                    { user_id: '168', score: '3' },
-                    { user_id: '166', score: '2' },
-                    { user_id: '163', score: '1' },
-            ]
+            try {
+                const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } })
+                const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+                
+                // storing all the talentUserIds in the given order   
+                recommendations.forEach(item =>{
+                    talentUserIds.push(item.user_id);
+                });
+
+                applications[0] && applications.forEach((item)=> addIdsIfNotExist(item.userId, applicantIds));
+                recommendations[0] && recommendations.forEach((item)=> addIdsIfNotExist(item.user_id, talentUserIds));
+                
+            } catch (error) {  
+                console.log(error.stack);
+                return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+            }
+           
             
-            applications[0] && applications.forEach((item)=> addIdsIfNotExist(item.userId, applicantIds));
-            recommendation[0] && recommendation.forEach((item)=> addIdsIfNotExist(item.user_id, talentUserIds));
+            // const recommendation =  [
+            //         { user_id: '167', score: '10' },
+            //         { user_id: '169', score: '9' },
+            //         { user_id: '161', score: '8' },
+            //         { user_id: '164', score: '7' },
+            //         { user_id: '160', score: '6' },
+            //         { user_id: '165', score: '5' },
+            //         { user_id: '162', score: '4' },
+            //         { user_id: '168', score: '3' },
+            //         { user_id: '166', score: '2' },
+            //         { user_id: '163', score: '1' },
+            // ]
+            
             
         };
 
         console.log(applicantIds, talentUserIds);
         const refinedUnique = new Set([...talentUserIds, ...applicantIds]);
         const finalArray = [...refinedUnique];
+        if(!finalArray.length) return h.response({error: true, message: 'No users found!'}).code(400);;
         
       // _______________QUERY PARAMETERS
       const { limit, offset, sort, search } = request.query;            
