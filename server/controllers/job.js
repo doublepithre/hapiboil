@@ -1174,7 +1174,7 @@ const getAppliedJobs = async (request, h) => {
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
         // Checking if application status is valid
-        const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+        const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interviewed', 'Closed', 'Offered', 'Hired'];
         const isStatusReqValid = (status && isArray(status)) ? (
         status.every( req => validStatus.includes(req))
         ) : validStatus.includes(status);
@@ -1434,7 +1434,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // Checking if application status is valid
-      const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+      const validStatus = ['Applied', 'Shortlisted', 'Interviewed', 'Closed', 'Offered', 'Hired'];
       const isStatusReqValid = (status && isArray(status)) ? (
       status.every( req => validStatus.includes(req))
       ) : validStatus.includes(status);
@@ -1845,6 +1845,88 @@ const deleteApplicationAccessRecord = async (request, h) => {
             actionDescription: `The user of userId ${userId} has deleted the access of the shared application of applicationId ${applicationId} from the user of userId ${fellowRecruiterId}. Now it is unshared with that user`
         });
         return h.response({message: 'Access record deleted'}).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const updateApplicationStatus = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { applicationId } = request.params || {};
+        const { status } = request.payload || {};
+
+        const validUpdateRequests = [ 'status' ];
+        const requestedUpdateOperations = Object.keys(request.payload) || [];
+        const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+        if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+
+        const validStatus = ['Shortlisted', 'Interviewed', 'Closed', 'Offered', 'Hired'];
+        if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status'}).code(400);
+                
+        const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+        
+        const sqlStmt = `select * 
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+            where ja.application_id=:applicationId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const applicationJobDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                applicationId
+            },
+        });
+        const applicationJobDetails = camelizeKeys(applicationJobDetailsSQL)[0];
+        const { applicationId: existingApplicationId, companyId: creatorCompanyId } = applicationJobDetails || {};
+
+        if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
+
+        // can (s)he update this application?
+        const accessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const accessRecordInfo = accessRecord && accessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = accessRecordInfo || {};
+ 
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized to update the application!'}).code(403);         
+        
+        // old application status
+        const oldApplicationRecord = await Jobapplication.findOne({ where: { applicationId }});
+        const oldApplicationInfo = oldApplicationRecord && oldApplicationRecord.toJSON();
+        const { status: oldStatus } = oldApplicationInfo || {};
+
+        if(oldStatus === status) return h.response({ error: true, message: 'Already has this status!'}).code(400);
+          
+        await Jobapplication.update({ status }, { where: { applicationId }});        
+        const updatedRecord = await Jobapplication.findOne({where: {applicationId}});
+
+        await Applicationauditlog.create({ 
+            affectedApplicationId: applicationId,
+            performerUserId: userId,
+            actionName: 'Update the Application Status',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has updated the status of application of applicationId ${applicationId}. Previous status was ${ oldStatus } and current status is ${ status }.`
+        });
+
+        return h.response(updatedRecord).code(201);
     }
     catch (error) {
         console.error(error.stack);
@@ -2297,6 +2379,7 @@ module.exports = {
     shareApplication, 
     updateSharedApplication,
     deleteApplicationAccessRecord,
+    updateApplicationStatus,
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,

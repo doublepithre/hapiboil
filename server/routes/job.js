@@ -21,6 +21,7 @@ import {
     shareApplication, 
     updateSharedApplication,
     deleteApplicationAccessRecord,
+    updateApplicationStatus,
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,
@@ -256,6 +257,16 @@ const xjob = {
             mode: 'try',
           },
           handler: deleteApplicationAccessRecord,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/application-status/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateApplicationStatus,
         },
       });
       server.route({

@@ -1446,7 +1446,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [Applied, Withdrawn, Shortlisted, Interview, Offer, Hired]
+            enum: [Applied, Withdrawn, Shortlisted, Interviewed, Closed, Offered, Hired]
 
         - name: sort
           in: query          
@@ -1546,7 +1546,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [Applied, Withdrawn, Shortlisted, Interview, Offer, Hired]
+            enum: [Applied, Shortlisted, Interviewed, Closed, Offered, Hired]
         
         - name: sort
           in: query          
@@ -1752,7 +1752,6 @@ paths:
                 type: object                
                 $ref: "#/components/schemas/paginatedUsers" 
   
-
   /job/j/talents?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents
