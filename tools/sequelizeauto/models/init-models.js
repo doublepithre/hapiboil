@@ -19,6 +19,7 @@ var _Jobname = require("./jobname");
 var _Job = require("./job");
 var _Jobsquesresponse = require("./jobsquesresponse");
 var _Jobtype = require("./jobtype");
+var _Mentorcandidatemapping = require("./mentorcandidatemapping");
 var _Mentorquesresponse = require("./mentorquesresponse");
 var _Profileauditlog = require("./profileauditlog");
 var _Qaattribute = require("./qaattribute");
@@ -57,6 +58,7 @@ function initModels(sequelize) {
   var Job = _Job(sequelize, DataTypes);
   var Jobsquesresponse = _Jobsquesresponse(sequelize, DataTypes);
   var Jobtype = _Jobtype(sequelize, DataTypes);
+  var Mentorcandidatemapping = _Mentorcandidatemapping(sequelize, DataTypes);
   var Mentorquesresponse = _Mentorquesresponse(sequelize, DataTypes);
   var Profileauditlog = _Profileauditlog(sequelize, DataTypes);
   var Qaattribute = _Qaattribute(sequelize, DataTypes);
@@ -188,6 +190,7 @@ function initModels(sequelize) {
     Job,
     Jobsquesresponse,
     Jobtype,
+    Mentorcandidatemapping,
     Mentorquesresponse,
     Profileauditlog,
     Qaattribute,
