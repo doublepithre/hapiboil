@@ -945,6 +945,26 @@ paths:
                     items:
                       $ref:  "#/components/schemas/Question"
 
+  /account/empauwer-us:
+    get:
+      summary:  Get Empauwer Us Questionnaire
+      tags:
+      - User
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref:  "#/components/schemas/Question"
+
   /account/empauwer-all:
     get:
       summary:  Get Empauwer All Questionnaire  

@@ -292,6 +292,18 @@ const xuser = {
       });
       server.route({
         method: 'GET',
+        path: '/empauwer-us',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getQuestionnaire(request, h, 'empauwer_us')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
         path: '/empauwer-all',
         options: {
           auth: {
