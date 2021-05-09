@@ -23,6 +23,7 @@ import {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
     mentorCandidateLinking,
+    getMentorCandidates,
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,
@@ -278,6 +279,16 @@ const xjob = {
             mode: 'try',
           },
           handler: mentorCandidateLinking,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/mentor-candidate/{mentorId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getMentorCandidates,
         },
       });
       server.route({

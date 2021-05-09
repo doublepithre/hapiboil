@@ -2037,6 +2037,70 @@ const mentorCandidateLinking = async (request, h) => {
     }
 }
 
+const getMentorCandidates = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+        const { mentorId } = request.params || {};
+        const { Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+        
+        // get the company of the mentor (if it's companysuperadmin requesting, they'll be different users, otherwise the mentor and the luser will be the same)
+        const mUserRecord = await Userinfo.findOne({ 
+            where: { userId: mentorId },
+            include: [{
+                model: Usertype,
+                as: 'userType',                
+            }],
+            attributes: { exclude: ['createdAt', 'updatedAt'] 
+        }});
+        const mUserProfileInfo = mUserRecord && mUserRecord.toJSON();
+        const { userId: mUserId, companyId: mentorCompanyId, userType: mUserType } = mUserProfileInfo || {};
+        const { userTypeName: mUserTypeName } = mUserType || {};
+
+        if(mUserTypeName !== 'mentor') return h.response({error:true, message:'The user is not a mentor!'}).code(400);
+        if(!mUserId) return h.response({error:true, message:'No user found for this mentorId!'}).code(400);
+        if(luserCompanyId !== mentorCompanyId) return h.response({error:true, message:'You are not authorized! The mentor is not from the same company!'}).code(403);
+        
+        // find all candidates' records (using SQL to avoid nested ugliness in the response)
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select
+            mcm.mentorcandidatemapping_id, mcm.mentor_id,
+            ut.user_type_name, ur.role_name, ui.*
+        from hris.mentorcandidatemapping mcm
+            inner join hris.userinfo ui on ui.user_id=mcm.candidate_id
+            inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+            inner join hris.userrole ur on ur.role_id=ui.role_id
+        where mcm.mentor_id=:mentorId`;
+
+        const sequelize = db1.sequelize;
+      	const allCandidateInfoSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                mentorId,
+            },
+        });
+        const allCandidateInfo = camelizeKeys(allCandidateInfoSQL);
+        return h.response({ candidates: allCandidateInfo }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const getRecommendedTalents = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
@@ -2484,6 +2548,7 @@ module.exports = {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
     mentorCandidateLinking,
+    getMentorCandidates,
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,
