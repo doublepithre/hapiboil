@@ -1189,7 +1189,7 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/jobDetailedWithIsApplied" 
+                $ref: "#/components/schemas/jobFullDetailsWithQuesRes" 
     patch: 
       summary: Update job by uuid
       tags:
@@ -1995,6 +1995,24 @@ components:
           type: string
         jobLocationName:
           type: string
+
+    recruiterJobDetails:
+      type: object
+      description: This extends the job full details and provides more information.
+      allOf:        
+        - $ref: "#/components/schemas/jobFullDetailed"
+      properties:        
+        accessLevel:
+          type: string
+
+    candidateJobDetails:
+      type: object
+      description: This extends the job full details and provides more information.
+      allOf:        
+        - $ref: "#/components/schemas/jobFullDetailed"
+      properties:        
+        isApplied:
+          type: boolean
       
     jobApplication:
       type: object
@@ -2030,7 +2048,7 @@ components:
         jobId:
           type: number
         
-    jobDetailedWithIsApplied:
+    jobFullDetailsWithQuesRes:
       type: object
       description: This extends the job model and provides more information.
       allOf:
@@ -2063,7 +2081,7 @@ components:
         jobs:
           type: array
           items:
-            $ref: "#/components/schemas/jobDetailedWithIsApplied" 
+            $ref: "#/components/schemas/candidateJobDetails" 
     
     paginatedRecruiterJobs:
       type: object
@@ -2074,7 +2092,7 @@ components:
         jobs:
           type: array
           items:
-            $ref: "#/components/schemas/jobFullDetailed" 
+            $ref: "#/components/schemas/recruiterJobDetails" 
     
     jobShared:
       type: object
