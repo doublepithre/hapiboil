@@ -1118,7 +1118,7 @@ const applyToJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Applied" }
+        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "applied" }
         const { Job, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
         
         const jobInDB = await Job.findOne({ where: { jobId }});
@@ -1174,7 +1174,7 @@ const getAppliedJobs = async (request, h) => {
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
         // Checking if application status is valid
-        const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interviewed', 'Closed', 'Offered', 'Hired'];
+        const validStatus = ['applied', 'withdrawn', 'shortlisted', 'interviewed', 'closed', 'offered', 'hired'];
         const isStatusReqValid = (status && isArray(status)) ? (
         status.every( req => validStatus.includes(req))
         ) : validStatus.includes(status);
@@ -1336,7 +1336,7 @@ const withdrawFromAppliedJob = async (request, h) => {
       }
       
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
-      await Jobapplication.update( { isWithdrawn: true, status: 'Withdrawn' }, { where: { applicationId: applicationId }} );
+      await Jobapplication.update( { isWithdrawn: true, status: 'withdrawn' }, { where: { applicationId: applicationId }} );
       await Applicationauditlog.create({ 
             affectedApplicationId: applicationId,
             performerUserId: luserId,
@@ -1434,7 +1434,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // Checking if application status is valid
-      const validStatus = ['Applied', 'Shortlisted', 'Interviewed', 'Closed', 'Offered', 'Hired'];
+      const validStatus = ['applied', 'shortlisted', 'interviewed', 'closed', 'offered', 'hired'];
       const isStatusReqValid = (status && isArray(status)) ? (
       status.every( req => validStatus.includes(req))
       ) : validStatus.includes(status);
@@ -1872,7 +1872,7 @@ const updateApplicationStatus = async (request, h) => {
         const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
         if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
 
-        const validStatus = ['Shortlisted', 'Interviewed', 'Closed', 'Offered', 'Hired'];
+        const validStatus = ['shortlisted', 'interviewed', 'closed', 'offered', 'hired'];
         if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status'}).code(400);
                 
         const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
@@ -1913,6 +1913,7 @@ const updateApplicationStatus = async (request, h) => {
         const oldApplicationInfo = oldApplicationRecord && oldApplicationRecord.toJSON();
         const { status: oldStatus } = oldApplicationInfo || {};
 
+        if(oldStatus === 'hired') return h.response({ error: true, message: 'Already hired. So the status can not change!'}).code(400);
         if(oldStatus === status) return h.response({ error: true, message: 'Already has this status!'}).code(400);
           
         await Jobapplication.update({ status }, { where: { applicationId }});        
