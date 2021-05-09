@@ -2018,17 +2018,16 @@ const mentorCandidateLinking = async (request, h) => {
         if(recruiterCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
 
         // is already linked
-        const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { mentorId, candidateId }});
+        const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId }});
         const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
         const { mentorcandidatemappingId } = alreadyLinkedInfo || {};
 
-        if(mentorcandidatemappingId) return h.response({ error: true, message: 'Already linked mentor and candidate!'}).code(400);
+        if(mentorcandidatemappingId) return h.response({ error: true, message: 'Already has a mentor!'}).code(400);
 
         const record = await Mentorcandidatemapping.create({
             mentorId,
             candidateId
         });
-
 
         return h.response(record).code(201);
     }
