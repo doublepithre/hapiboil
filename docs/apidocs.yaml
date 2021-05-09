@@ -1748,6 +1748,102 @@ paths:
                     type: string
                     example: Access record deleted
 
+  /job/application-status/{applicationId}:    
+    patch: 
+      summary: Update application status
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: id of application
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobApplication" 
+
+  /job/mentor-candidate/{applicationId}:    
+    post: 
+      summary: Mentor Candidate Linking
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: applicationId
+          in: path
+          description: id of application
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                mentorId:
+                  type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/mentorCandidateMapping" 
+
+  /job/mentor-candidate/{mentorId}:    
+    get: 
+      summary: Get Mentor Candidates
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: mentorId
+          in: path
+          description: id of mentor
+          required: true
+          schema:
+            type: string      
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidates:
+                    type: array
+                    items:
+                      type: object
+                      allOf:                                
+                        - $ref: "#/components/schemas/User"
+                      properties:
+                        mentorcandidatemappingId:
+                          type: number
+                        mentorId:
+                          type: number
+                    
   /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents and applicants
@@ -2038,7 +2134,7 @@ components:
       type: object
       properties:
         applicationId:
-          type: number
+          type: number       
         jobId:
           type: number
         isApplied:
@@ -2174,4 +2270,15 @@ components:
           type: string
         metaValue:
           type: string
+        
+    mentorCandidateMapping:
+      type: object
+      description: This is the schema for mentorCandidateMapping data.      
+      properties:
+        mentorCandidateMappingId:
+          type: number
+        mentorId:
+          type: number
+        candidateId:
+          type: number
         

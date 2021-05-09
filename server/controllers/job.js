@@ -1976,7 +1976,7 @@ const mentorCandidateLinking = async (request, h) => {
 
         if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
-        if(status !== 'Hired') return h.response({error: true, message: `The candidate is NOT hired yet!`}).code(400);
+        if(status !== 'hired') return h.response({error: true, message: `The candidate is NOT hired yet!`}).code(400);
 
         // can (s)he update this application?
         const accessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
