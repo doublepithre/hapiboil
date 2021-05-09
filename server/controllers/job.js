@@ -1934,6 +1934,109 @@ const updateApplicationStatus = async (request, h) => {
     }
 }
 
+const mentorCandidateLinking = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
+        const { applicationId } = request.params || {};
+        const { mentorId } = request.payload || {};
+        if(!mentorId) return h.response({error:true, message:'Please provide a mentorId!'}).code(403);
+                
+        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+        
+        const sqlStmt = `select ja.*, j.company_id 
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+            where ja.application_id=:applicationId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const applicationJobDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                applicationId
+            },
+        });
+        const applicationJobDetails = camelizeKeys(applicationJobDetailsSQL)[0];
+        const { applicationId: existingApplicationId, userId: candidateId, companyId: creatorCompanyId, status } = applicationJobDetails || {};
+
+        if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
+        if(status !== 'Hired') return h.response({error: true, message: `The candidate is NOT hired yet!`}).code(400);
+
+        // can (s)he update this application?
+        const accessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const accessRecordInfo = accessRecord && accessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = accessRecordInfo || {};
+ 
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized to update the application!'}).code(403);         
+        
+        // are they really a mentor and a candidate
+        const [mentorRecord, candidateRecord] = await Promise.all([
+            await Userinfo.findOne({ 
+                where: { userId: mentorId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            }),
+            await Userinfo.findOne({ 
+                where: { userId: candidateId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            })
+        ]);
+        const mentorProfileInfo = mentorRecord && mentorRecord.toJSON();
+        const { userId: mUserId, userType: mUserType, companyId: mCompanyId } = mentorProfileInfo || {};
+        const { userTypeName: mUserTypeName } = mUserType || {};
+        
+        const candidateProfileInfo = candidateRecord && candidateRecord.toJSON();
+        const { userType: cUserType, companyId: cCompanyId } = candidateProfileInfo || {};
+        const { userTypeName: cUserTypeName } = cUserType || {};
+
+        if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
+        if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
+        if(cUserTypeName !== 'candidate') return h.response({error: true, message: 'The user is not a candidate.'}).code(400);
+        if(recruiterCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+
+        // is already linked
+        const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { mentorId, candidateId }});
+        const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
+        const { mentorcandidatemappingId } = alreadyLinkedInfo || {};
+
+        if(mentorcandidatemappingId) return h.response({ error: true, message: 'Already linked mentor and candidate!'}).code(400);
+
+        const record = await Mentorcandidatemapping.create({
+            mentorId,
+            candidateId
+        });
+
+
+        return h.response(record).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const getRecommendedTalents = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
@@ -2380,6 +2483,7 @@ module.exports = {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+    mentorCandidateLinking,
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,

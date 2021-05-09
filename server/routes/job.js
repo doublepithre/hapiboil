@@ -22,6 +22,7 @@ import {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+    mentorCandidateLinking,
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,
@@ -267,6 +268,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateApplicationStatus,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/mentor-candidate/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: mentorCandidateLinking,
         },
       });
       server.route({
