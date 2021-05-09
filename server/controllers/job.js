@@ -705,7 +705,7 @@ const getJobAccessRecords = async (request, h) => {
         const luserAccessRecord = await Jobhiremember.findOne({ where: {jobId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'creator') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'creator' && accessLevel !== 'administrator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -757,9 +757,16 @@ const shareJob = async (request, h) => {
         const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
 
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
+        if(recruiterCompanyId !== creatorCompanyId){
             return h.response({error: true, message: `You are not authorized`}).code(403);
         }
+
+        // can (s)he share this job?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+ 
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // sharing job with fellow recruiter
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -823,7 +830,6 @@ const updateSharedJob = async (request, h) => {
         if(luserTypeName !== 'employer'){
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
-
         const { jobId: rParamsJobId } = request.params || {};
         const { Job, Jobhiremember, Jobauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
@@ -832,8 +838,18 @@ const updateSharedJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobId: rParamsJobId}});
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
+        const existingJobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
+        const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+        const { jobId, companyId: creatorCompanyId } = existingJobInfo || {};
+        if(!jobId) return h.response({error: true, message: `No job found`}).code(403);
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
+        
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+ 
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
         
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
@@ -841,7 +857,7 @@ const updateSharedJob = async (request, h) => {
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
-        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not update this access record!'}).code(400);
 
         // is he really a fellow recruiter
         const fellowUserRecord = await Userinfo.findOne({ 
@@ -905,14 +921,21 @@ const deleteJobAccessRecord = async (request, h) => {
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
-
+ 
         const jobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
+        const { jobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
-
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
-        
+ 
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
+       
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+ 
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+               
         const { userId: fellowRecruiterId } = request.payload || {};
         if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
        
@@ -923,6 +946,7 @@ const deleteJobAccessRecord = async (request, h) => {
 
         if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
         if(accessLevel === 'creator') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
 
         // delete the shared job record
         await Jobhiremember.destroy({ where: { jobId, userId: fellowRecruiterId }});        
@@ -959,18 +983,28 @@ const updateJob = async (request, h) => {
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
         
-        const { Job, Jobname, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobUuid}});
+        const existingJobRecord = await Job.findOne({where: {jobUuid}});
+        const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+        const { jobId, companyId: creatorCompanyId } = existingJobInfo || {};
 
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
-            return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
+        if(!jobId) return h.response({error: true, message: `No job found!`}).code(400);        
+        if(recruiterCompanyId !== creatorCompanyId){
+            return h.response({error: true, message: `You are not authorized!`}).code(403);
         }
 
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+            
         let typeIdOfThisUpdatedJob;
         let durationVal = duration;
         if(!durationVal){
@@ -1004,7 +1038,6 @@ const updateJob = async (request, h) => {
         }
 
         // check if job name already exists
-
         let jobNameIdToSave;
         if(jobName){
             const jobNameRecord = await Jobname.findOne({ where: { jobNameLower: jobName.toLowerCase() }});
@@ -1023,11 +1056,10 @@ const updateJob = async (request, h) => {
                 jobNameIdToSave = oldJobNameId;
             }
         }
-        
+              
         await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});        
         const record = await Job.findOne({where: {jobUuid}});
-        const { jobId } = record;
-        
+                
         await Jobauditlog.create({ 
             affectedJobId: jobId,
             performerUserId: userId,
@@ -1058,7 +1090,21 @@ const createJobQuesResponses = async (request, h) => {
             const record = { questionId, responseVal: {'answer': answer}, jobId }
             responses.push(record);
         }
-        const { Jobsquesresponse } = request.getModels('xpaxr');
+        const { Jobsquesresponse, Job } = request.getModels('xpaxr');
+
+        const existingJobRecord = await Job.findOne({where: {jobId}});
+        const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+        const { jobId: existingJobId } = existingJobInfo || {};
+        
+        if(!existingJobId) return h.response({ error: true, message: 'No Job found!'}).code(400);
+
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId: existingJobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+        
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+         
         const records = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate:["responseVal"]});
 
         // formatting the questionaire response
