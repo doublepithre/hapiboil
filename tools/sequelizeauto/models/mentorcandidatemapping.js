@@ -11,11 +11,25 @@ module.exports = function(sequelize, DataTypes) {
     mentorId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       field: 'mentor_id'
     },
     candidateId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       field: 'candidate_id'
     },
     createdAt: {

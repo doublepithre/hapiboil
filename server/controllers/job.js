@@ -2151,6 +2151,51 @@ const getMentorCandidates = async (request, h) => {
     }
 }
 
+const getAllMentorCandidates = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+              
+        const { Userinfo, Mentorcandidatemapping } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+
+        const allMentors = await Userinfo.findAll({
+            where: { userTypeId: 3, companyId: luserCompanyId},
+            include: [{
+                model: Mentorcandidatemapping,
+                as: 'mentorMentorcandidatemappings',
+                required: true,
+                attributes: ['mentorcandidatemappingId', 'mentorId', 'candidateId'],
+
+                include: {
+                    model: Userinfo,
+                    as: 'candidate',
+                    required: true,
+                    attributes: ['userId', 'email', 'firstName'],
+                }
+            }],
+            attributes: ['userId', 'email', 'firstName'],
+
+        })
+                        
+        return h.response({ mentors: allMentors }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const getRecommendedTalents = async (request, h) => {
     try{
       if (!request.auth.isAuthenticated) {
@@ -2592,13 +2637,17 @@ module.exports = {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    
     getApplicationAccessRecords,
     shareApplication, 
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+
     mentorCandidateLinking,
     getMentorCandidates,
+    getAllMentorCandidates,
+    
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,

@@ -11,11 +11,25 @@ module.exports = (sequelize, DataTypes) => {
     mentorId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       field: 'mentor_id'
     },
     candidateId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
       field: 'candidate_id'
     },
     createdAt: {
@@ -52,7 +66,10 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Mentorcandidatemapping = model.Mentorcandidatemapping;
+  const Userinfo = model.Userinfo;
 
 
+  Mentorcandidatemapping.belongsTo(Userinfo, { as: "candidate", foreignKey: "candidateId"});
+  Mentorcandidatemapping.belongsTo(Userinfo, { as: "mentor", foreignKey: "mentorId"});
 
 }
