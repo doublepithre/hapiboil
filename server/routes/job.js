@@ -26,7 +26,9 @@ import {
     mentorCandidateLinking,
     getMentorCandidates,
     getAllMentorCandidates,
-    
+    replaceMentorForOne,
+    replaceMentorForAll,
+     
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,
@@ -302,6 +304,26 @@ const xjob = {
             mode: 'try',
           },
           handler: getAllMentorCandidates,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/replace-mentor/one/{candidateId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: replaceMentorForOne,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/replace-mentor/all/{oldMentorId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: replaceMentorForAll,
         },
       });
       server.route({
