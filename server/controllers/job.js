@@ -2087,7 +2087,7 @@ const mentorCandidateLinking = async (request, h) => {
     }
 }
 
-const deleteCandidateMentorMappingRecord = async (request, h) => {
+const deleteMentorCandidateMappingRecord = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
@@ -2125,7 +2125,7 @@ const deleteCandidateMentorMappingRecord = async (request, h) => {
 
         const record = await Mentorcandidatemapping.destroy({ where: { candidateId, mentorId } });
 
-        return h.response(record).code(201);
+        return h.response({ message: `Record deletion successful!`}).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -2193,10 +2193,10 @@ const replaceMentorForOne = async (request, h) => {
         const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
         const { mentorcandidatemappingId } = alreadyLinkedInfo || {};
 
-        if(!mentorcandidatemappingId) return h.response({ error: true, message: 'This mentor is not mentoring this candidate!'}).code(400);
+        if(mentorcandidatemappingId) return h.response({ error: true, message: 'This mentor is already mentoring this candidate!'}).code(400);
 
-        const record = await Mentorcandidatemapping.update({ mentorId }, { where: { candidateId } });
-        return h.response(record).code(201);
+        await Mentorcandidatemapping.update({ mentorId }, { where: { candidateId } });
+        return h.response({ message: `Mentor replacing successful!`}).code(201);
     }
     catch (error) {
         console.error(error.stack);
@@ -2256,9 +2256,9 @@ const replaceMentorForAll = async (request, h) => {
             type: QueryTypes.SELECT,
             replacements: { newMentorId, oldMentorId },
         });
-        const replacedMentorRes = camelizeKeys(replacedMentorResSQL)[0];
+        
                
-        return h.response(replacedMentorRes).code(201);
+        return h.response({ message: `Mentor replacing successful!`}).code(201);
     }
     catch (error) {
         console.error(error.stack);
@@ -2845,7 +2845,7 @@ module.exports = {
     getAllMentorCandidates,
     replaceMentorForOne,
     replaceMentorForAll,
-    deleteCandidateMentorMappingRecord,
+    deleteMentorCandidateMappingRecord,
     
     getRecommendedTalents,
     getTalentsAndApplicants,

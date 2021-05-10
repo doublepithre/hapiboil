@@ -28,7 +28,7 @@ import {
     getAllMentorCandidates,
     replaceMentorForOne,
     replaceMentorForAll,
-    deleteCandidateMentorMappingRecord,
+    deleteMentorCandidateMappingRecord,
      
     getRecommendedTalents,
     getTalentsAndApplicants,
@@ -314,7 +314,7 @@ const xjob = {
           auth: {
             mode: 'try',
           },
-          handler: deleteCandidateMentorMappingRecord,
+          handler: deleteMentorCandidateMappingRecord,
         },
       });     
       server.route({
