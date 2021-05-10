@@ -1810,9 +1810,11 @@ const updateSharedApplication = async (request, h) => {
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { applicationHireMemberId, accessLevel: oldAccessLevel } = alreadySharedInfo || {};
+        const { applicationHireMemberId, accessLevel: oldAccessLevel, userId: accessLevelUserId } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+        if(oldAccessLevel === 'jobcreator') return h.response({ error: true, message: 'This record can not be updated!'}).code(400);
+        if(userId === accessLevelUserId) return h.response({ error: true, message: 'Can not update your own access record!'}).code(400);
         if(oldAccessLevel === accessLevel) return h.response({ error: true, message: 'Already given this access to this user!'}).code(400);
 
         // update the shared job          
@@ -1876,11 +1878,12 @@ const deleteApplicationAccessRecord = async (request, h) => {
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { applicationHireMemberId, accessLevel } = alreadySharedInfo || {};
+        const { applicationHireMemberId, accessLevel, userId: accessLevelUserId } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
         if(accessLevel === 'jobcreator' || accessLevel === 'candidate') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);        
-        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not delete your own access record!'}).code(400);        
+        if(userId === accessLevelUserId) return h.response({ error: true, message: 'Can not delete your own access record!'}).code(400);        
+        
 
         // delete the shared job record
         await Applicationhiremember.destroy({ where: { applicationId, userId: fellowRecruiterId }});        
