@@ -1634,7 +1634,7 @@ const getApplicationAccessRecords = async (request, h) => {
         const luserAccessRecord = await Applicationhiremember.findOne({ where: {applicationId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'jobcreator') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'jobcreator' && accessLevel !== 'administrator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -1690,12 +1690,12 @@ const shareApplication = async (request, h) => {
             return h.response({error: true, message: `You are not authorized`}).code(403);
         }
 
-        // can he share this application?
-        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
-        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
-        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
-
-        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+          
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // sharing job with fellow recruiter
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -1776,12 +1776,12 @@ const updateSharedApplication = async (request, h) => {
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
         
-        // can he share this application?
-        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
-        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
-        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
-
-        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+          
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // update the shared application access
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -1790,7 +1790,7 @@ const updateSharedApplication = async (request, h) => {
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
-        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not update your own access record!'}).code(400);
 
         // is he really a fellow recruiter
         const fellowUserRecord = await Userinfo.findOne({ 
@@ -1863,13 +1863,13 @@ const deleteApplicationAccessRecord = async (request, h) => {
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
         
-        // can he share this application?
-        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
-        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
-        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
-
-        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
-        
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+          
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+  
         const { userId: fellowRecruiterId } = request.payload || {};
         if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
@@ -1880,6 +1880,7 @@ const deleteApplicationAccessRecord = async (request, h) => {
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
         if(accessLevel === 'jobcreator' || accessLevel === 'candidate') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);        
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not delete your own access record!'}).code(400);        
 
         // delete the shared job record
         await Applicationhiremember.destroy({ where: { applicationId, userId: fellowRecruiterId }});        
