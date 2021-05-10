@@ -2169,7 +2169,7 @@ const getAllMentorCandidates = async (request, h) => {
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: luserCompanyId } = luserProfileInfo || {};
 
-        const allMentors = await Userinfo.findAll({
+        const allMentorsRaw = await Userinfo.findAll({
             where: { userTypeId: 3, companyId: luserCompanyId},
             include: [{
                 model: Mentorcandidatemapping,
@@ -2187,7 +2187,24 @@ const getAllMentorCandidates = async (request, h) => {
             attributes: ['userId', 'email', 'firstName'],
 
         })
-                        
+        
+        
+        const allMentors = [];
+        for(let i=0; i<allMentorsRaw.length; i++){
+            const mentorRecord = allMentorsRaw[i] && allMentorsRaw[i].toJSON();
+            const { mentorMentorcandidatemappings: mcmappings } = mentorRecord || {};
+            const allCandidates = [];
+            
+            for(let j=0; j<mcmappings.length; j++){
+                const { candidate } = mcmappings[j] || {};
+                allCandidates.push(candidate);
+            }
+            
+            mentorRecord.candidates = allCandidates;
+            delete mentorRecord.mentorMentorcandidatemappings;            
+            allMentors.push(mentorRecord);
+        }        
+
         return h.response({ mentors: allMentors }).code(200);
     }
     catch (error) {
