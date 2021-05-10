@@ -1812,7 +1812,7 @@ paths:
 
   /job/mentor-candidate/{mentorId}:    
     get: 
-      summary: Get Mentor Candidates
+      summary: Get One Mentor's Candidates
       tags:
         - Job
       security:
@@ -1843,6 +1843,44 @@ paths:
                           type: number
                         mentorId:
                           type: number
+                    
+  /job/mentor-candidates/all:    
+    get: 
+      summary: Get All Mentors' Candidates
+      tags:
+        - Job
+      security:
+      - bearerAuth: []     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  mentors:
+                    type: array
+                    items:
+                      type: object                      
+                      properties:
+                        userId:
+                          type: number
+                        email:
+                          type: string
+                        firstName:
+                          type: string
+                        candidates:
+                          type: array
+                          items:
+                            type: object                      
+                            properties:
+                              userId:
+                                type: number
+                              email:
+                                type: string
+                              firstName:
+                                type: string
                     
   /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
