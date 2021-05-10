@@ -1844,6 +1844,32 @@ paths:
                         mentorId:
                           type: number
                     
+  /job/mentor-candidate/{candidateId}:    
+    delete: 
+      summary: Delete mentor-candidate mapping Record
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: candidateId
+          in: path
+          description: id of candidate
+          required: true
+          schema:
+            type: string      
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Record deletion successful!
+                    
   /job/mentor-candidates/all:    
     get: 
       summary: Get All Mentors' Candidates
@@ -1881,7 +1907,88 @@ paths:
                                 type: string
                               firstName:
                                 type: string
-                    
+  
+  /job/replace-mentor/all/{oldMentorId}:    
+    patch: 
+      summary: Replace Mentor for all
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: oldMentorId
+          in: path
+          description: id of old mentor whom to replace
+          required: true
+          schema:
+            type: string   
+            
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                mentorId:
+                  type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidates:
+                    type: array
+                    items:
+                      type: object                      
+                      properties:
+                        message:
+                          type: string
+                          example: Mentor replacing successful!                          
+  
+  /job/replace-mentor/one/{candidateId}:    
+    patch: 
+      summary: Replace Mentor for one
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: oldMentorId
+          in: path
+          description: id of candidate whose to replace
+          required: true
+          schema:
+            type: string   
+            
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                mentorId:
+                  type: number
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  candidates:
+                    type: array
+                    items:
+                      type: object                      
+                      properties:
+                        message:
+                          type: string
+                          example: Mentor replacing successful!                          
+  
   /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents and applicants
