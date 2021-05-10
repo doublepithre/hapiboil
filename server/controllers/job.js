@@ -2087,6 +2087,52 @@ const mentorCandidateLinking = async (request, h) => {
     }
 }
 
+const deleteCandidateMentorMappingRecord = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
+        const { candidateId } = request.params || {};        
+                
+        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};        
+                   
+        // is already linked
+        const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId }});
+        const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
+        const { mentorcandidatemappingId, mentorId } = alreadyLinkedInfo || {};
+
+        if(!mentorcandidatemappingId) return h.response({ error: true, message: `This candidate doesn't have a mentor!`}).code(400);
+
+        // is the mentor from same company
+        const mentorRecord = await Userinfo.findOne({ where: { userId: mentorId } });
+        const mentorProfileInfo = mentorRecord && mentorRecord.toJSON();
+        const { userId: mUserId, companyId: mCompanyId } = mentorProfileInfo || {};
+        
+        if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
+        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+
+        const record = await Mentorcandidatemapping.destroy({ where: { candidateId, mentorId } });
+
+        return h.response(record).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const replaceMentorForOne = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -2799,6 +2845,7 @@ module.exports = {
     getAllMentorCandidates,
     replaceMentorForOne,
     replaceMentorForAll,
+    deleteCandidateMentorMappingRecord,
     
     getRecommendedTalents,
     getTalentsAndApplicants,

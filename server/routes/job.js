@@ -28,6 +28,7 @@ import {
     getAllMentorCandidates,
     replaceMentorForOne,
     replaceMentorForAll,
+    deleteCandidateMentorMappingRecord,
      
     getRecommendedTalents,
     getTalentsAndApplicants,
@@ -288,6 +289,16 @@ const xjob = {
       });
       server.route({
         method: 'GET',
+        path: '/mentor-candidates/all',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllMentorCandidates,
+        },
+      });
+      server.route({
+        method: 'GET',
         path: '/mentor-candidate/{mentorId}',
         options: {
           auth: {
@@ -297,15 +308,15 @@ const xjob = {
         },
       });
       server.route({
-        method: 'GET',
-        path: '/mentor-candidates/all',
+        method: 'DELETE',
+        path: '/mentor-candidate/{candidateId}',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: getAllMentorCandidates,
+          handler: deleteCandidateMentorMappingRecord,
         },
-      });
+      });     
       server.route({
         method: 'PATCH',
         path: '/replace-mentor/one/{candidateId}',
@@ -325,7 +336,7 @@ const xjob = {
           },
           handler: replaceMentorForAll,
         },
-      });
+      });      
       server.route({
         method: 'GET',
         path: '/j/talents/{jobId}',
