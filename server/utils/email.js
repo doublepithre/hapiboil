@@ -815,6 +815,19 @@ const sendEmailAsync = async (edata, additionalEData) => {
 
     if (!compiledHtmlBody || !compiledTextBody) {
       console.log("Email body text is empty", templateName);
+      await recordSentEmail({
+        templateName,
+        ownerId,
+        appId,
+        status: "error",
+        message: "Email body text is empty",
+        toAddresses: toAddresses.join(","),
+        ccAddresses: ccAddresses.join(","),
+        bccAddresses: bccAddresses.join(","),
+        emailMeta: null,
+        profileId: metaProfileId || null,
+        displayName: tdisplayName,
+      }, additionalEData);
       return {
         error: {
           message: "Either html email body or text email body is empty",
