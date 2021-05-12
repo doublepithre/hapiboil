@@ -72,8 +72,9 @@ const sequelize = new Sequelize(
       });      
 
       const rJobUuidsRes = await client.query(`
-        SELECT j.job_uuid 
+        SELECT j.job_uuid, jn.job_name 
         from hris.jobs j
+          inner join hris.jobname jn on jn.job_name_id=j.job_name_id
         where j.job_id in(${rJobIdStr})
       `);
       const rJobUuids = rJobUuidsRes.rows
@@ -81,11 +82,11 @@ const sequelize = new Sequelize(
 
       let allJobsLinks = '';
       for(let item of rJobUuids){
-        const jobLink = `${ getDomainURL() }/u/job/${item.job_uuid}`
+        const jobLink = `${ getDomainURL() }/job/${item.job_uuid}`
         allJobsLinks += `
-        <a href="${ jobLink }">
-          ${ jobLink }
-        </a>`
+        <li><a href="${ jobLink }">
+          ${ item.job_name }
+        </a></li>`
 
       }
       // style="-webkit-text-size-adjust: none; background: #3d70b2; border-width: 2px; border-color: transparent; color: #ffffff; display: inline-block; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: bold; letter-spacing: normal; margin: 0 auto; padding: 12px 44px; text-align: center; text-decoration: none; width: auto !important"
