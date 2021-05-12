@@ -1,53 +1,43 @@
+const envVar = process.env.NODE_ENV;
 
-
-// From here starts the cron logic to send email weekly to all candidates
-// const cron = require('node-cron');
-
-// '0 9 * * mon' DATE CONFIRMED
-// cron.schedule('47 3 * * *', () => {
-//   console.log('running a task every minute');
-// }, {
-//   timezone: 'Europe/London'
-// });
-
+const config = require(`../../config/${ envVar }.json`);
 
 const { Client } = require('pg');
 const { sendEmailAsync } = require('../utils/email');
 const { getDomainURL } = require('../utils/toolbox');
-const axios = require('axios')
-const config = require('config');
+const axios = require('axios');
+const cron = require('node-cron');
 
-
+const { DataTypes, Sequelize } = require('sequelize');
+// DB models
 const Emailtemplate = require('../../tools/sequelizeauto/models/emailtemplate');
 const Userinfo = require('../../tools/sequelizeauto/models/userinfo');
 const Companyinfo = require('../../tools/sequelizeauto/models/companyinfo');
 const Emaillog = require('../../tools/sequelizeauto/models/emaillog');
 
-const { DataTypes, Sequelize } = require('sequelize');
 
 const sequelize = new Sequelize(
-    'canopus', 'postgres', '$ilven1eaf', 
+  config.scriptDB.database, config.scriptDB.user, config.scriptDB.password, 
     { 
-      host: 'localhost', 
+      host: config.scriptDB.host, 
       dialect: 'postgres'
     }
 );
 
-// (async ()=>{
-//   let Emaillogger = Userinfo(sequelize, DataTypes);
-//   const record = await Emaillogger.findOne({ where: { userId: 167 } });
-//   const response = record && record.toJSON();
-//   console.log(response);
-// })()
+// '0 9 * * mon' ---->every monday at 09:00 am (in London time) this function will run
+cron.schedule('0 9 * * mon', () => {
+  sendJobAlertEmailsToAllCandidates();
+}, {
+  timezone: 'Europe/London'
+});
 
 
-
-(async()=>{
+async function sendJobAlertEmailsToAllCandidates(){
     const client = new Client({
-        host: "localhost",
-        user: "postgres",
-        password: "$ilven1eaf",
-        database: "canopus",
+        host: config.scriptDB.host, //"localhost",
+        user: config.scriptDB.user,
+        password: config.scriptDB.password,
+        database: config.scriptDB.database,
     });
     await client.connect();
     const allCandidatesRes = await client.query(`
@@ -55,15 +45,12 @@ const sequelize = new Sequelize(
       from hris.userinfo ui 
       where ui.user_type_id=1 and ui.user_id in (160, 161, 162, 163, 164, 165, 166, 167)
     `);
-    // console.log(allCandidatesRes.rows)    
-    // await client.end();
     const allCandidates = allCandidatesRes.rows;
     console.log(allCandidates)
 
     for(let user of allCandidates){      
-      const recommendationRes = await axios.get(`http://localhost:8000/user/recommendation`,{ params: { userId: user.user_id, limit: 5 } })
-      
-      // // const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: user.user_id } })
+      const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { userId: user.user_id, limit: 5 } })
+
       const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
       let rJobIdStr = '';
       recommendations.forEach((item, index)=>{
@@ -88,8 +75,7 @@ const sequelize = new Sequelize(
           ${ item.job_name }
         </a></li>`
 
-      }
-      // style="-webkit-text-size-adjust: none; background: #3d70b2; border-width: 2px; border-color: transparent; color: #ffffff; display: inline-block; font-family: 'Helvetica Neue', Helvetica, Arial, sans-serif; font-size: 17px; font-weight: bold; letter-spacing: normal; margin: 0 auto; padding: 12px 44px; text-align: center; text-decoration: none; width: auto !important"
+      }      
         
       // ----------------start of sending emails
       const emailData = {
@@ -109,12 +95,12 @@ const sequelize = new Sequelize(
         Emaillog: Emaillog(sequelize, DataTypes),
       };
       sendEmailAsync(emailData, additionalEData);
-      // ----------------end of sending emails
-      break;
+      // ----------------end of sending emails      
 
+      // break; //for testing purpose send to only one candidate;
     }
     
     await client.end();  
 
 
-})()
+}
