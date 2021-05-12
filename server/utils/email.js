@@ -169,6 +169,7 @@ const getEmailTemplateDataAsync = async (
       "account-creation-reset-password",
       "account-creation-verify-email",
       "company-account-creation",
+      "job-alert-email",
     ];
     if(!knownEmailTemplates.includes(templateName)) {
       isUserCustomTemplate = true;
@@ -651,6 +652,7 @@ const sendEmailAsync = async (edata, additionalEData) => {
     const {
       email = "sriharsha@x0pa.com",
       password,
+      allJobsLink,
       emails,
       ccEmails,
       templateName,
@@ -698,7 +700,7 @@ const sendEmailAsync = async (edata, additionalEData) => {
         console.log("PROXYING CC EMAILS:", ccEmails);
         toAddresses = [
           "manash@x0pa.com",
-          "ambareesh@x0pa.com"
+          // "ambareesh@x0pa.com"
         ];
       } else {
         console.log("PROXYING EMAIL:", email);
