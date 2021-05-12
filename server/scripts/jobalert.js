@@ -1,20 +1,18 @@
 const envVar = process.env.NODE_ENV;
-
 const config = require(`../../config/${ envVar }.json`);
 
 const { Client } = require('pg');
+const { DataTypes, Sequelize } = require('sequelize');
 const { sendEmailAsync } = require('../utils/email');
 const { getDomainURL } = require('../utils/toolbox');
 const axios = require('axios');
 const cron = require('node-cron');
 
-const { DataTypes, Sequelize } = require('sequelize');
 // DB models
 const Emailtemplate = require('../../tools/sequelizeauto/models/emailtemplate');
 const Userinfo = require('../../tools/sequelizeauto/models/userinfo');
 const Companyinfo = require('../../tools/sequelizeauto/models/companyinfo');
 const Emaillog = require('../../tools/sequelizeauto/models/emaillog');
-
 
 const sequelize = new Sequelize(
   config.scriptDB.database, config.scriptDB.user, config.scriptDB.password, 
@@ -30,7 +28,6 @@ cron.schedule('0 9 * * mon', () => {
 }, {
   timezone: 'Europe/London'
 });
-
 
 async function sendJobAlertEmailsToAllCandidates(){
     const client = new Client({
@@ -74,7 +71,6 @@ async function sendJobAlertEmailsToAllCandidates(){
         <li><a href="${ jobLink }">
           ${ item.job_name }
         </a></li>`
-
       }      
         
       // ----------------start of sending emails
@@ -98,9 +94,6 @@ async function sendJobAlertEmailsToAllCandidates(){
       // ----------------end of sending emails      
 
       // break; //for testing purpose send to only one candidate;
-    }
-    
+    }    
     await client.end();  
-
-
 }
