@@ -283,13 +283,13 @@ const getAllCompanyBySuperadmin = async (request, h) => {
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-      if (!sortType && sortBy === 'created_at') sortType = 'DESC';
-      if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+      if (!sortType && sortBy === 'created_at') sortType = 'desc';
+      if (!sortType && sortBy !== 'created_at') sortType = 'asc';
       
       const validSortTypes = ['asc', 'desc'];
-      const sortByLower = sortBy.toLowerCase();
-      const isSortTypeReqValid = validSortTypes.includes(sortByLower);
+      const sortTypeLower = sortType.toLowerCase();
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
       
       const validSorts = ['company_id', 'company_name', 'created_at'];
       const isSortReqValid = validSorts.includes(sortBy);
@@ -400,15 +400,15 @@ const getAllUsersBySuperadmin = async (request, h) => {
     if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
     
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'ASC'];
-      if (!sortType) sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'asc'];
+      if (!sortType) sortType = 'asc';
 
       const validSorts = ['company_name', 'first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       const validSortTypes = ['asc', 'desc'];
-      const sortByLower = sortBy.toLowerCase();
-      const isSortTypeReqValid = validSortTypes.includes(sortByLower);
+      const sortTypeLower = sortType.toLowerCase();
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
@@ -979,21 +979,23 @@ const getCompanyStaff = async (request, h) => {
     
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'ASC'];
-      if (!sortType) sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+      if (!sortType) sortType = 'asc';
       const validSorts = ['first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
-
+      
+      const sortTypeLower = sortType.toLowerCase();
+      const validSortTypes = ['asc', 'desc'];
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
         return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       }       
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       
-
       const db1 = request.getDb('xpaxr');
 
       // get sql statement for getting all company staff or its count        
@@ -1091,16 +1093,19 @@ const getFellowCompanyStaff = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'ASC'];
-      if (!sortType) sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+      if (!sortType) sortType = 'asc';
       const validSorts = ['first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
+      
+      const sortTypeLower = sortType.toLowerCase();
+      const validSortTypes = ['asc', 'desc'];
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
       
       const validUserTypeFilters = ['employer', 'mentor'];
       const isUserTypeReqValid = validUserTypeFilters.includes(userType);
 
-
-      if(!isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       if(userType && !isUserTypeReqValid) return h.response({error: true, message: 'Invalid userType query parameter!'}).code(400);
 
       const db1 = request.getDb('xpaxr');

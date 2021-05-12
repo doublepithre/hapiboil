@@ -306,14 +306,14 @@ const getAllJobs = async (request, h) => {
         const recommendedVal = recommended ? Number(recommended) : 1;
 
         // sort query
-        let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
-        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'desc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';
         
         const validSorts = [ 'score', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
         const validSortTypes = [ 'asc', 'desc'];
-        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
 
         const validRecommendedVal = [ 0, 1];
         const isRecommendedValReqValid = validRecommendedVal.includes(recommendedVal);
@@ -536,15 +536,15 @@ const getRecruiterJobs = async (request, h) => {
         const ownJobsVal = ownJobs ? Number(ownJobs) : 0;
 
         // sort query
-        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
-        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';
         
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         const validSortTypes = [ 'asc', 'desc'];
-        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
         
         const validOwnJobsVal = [ 0, 1 ];
         const isOwnJobsReqValid = validOwnJobsVal.includes(ownJobsVal);
@@ -1227,15 +1227,15 @@ const getAppliedJobs = async (request, h) => {
         if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
 
         // sort query
-        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
-        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';
 
         const validSorts = ['status', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         const validSortTypes = [ 'asc', 'desc'];
-        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
 
         // pagination
         const limitNum = limit ? Number(limit) : 10;
@@ -1487,15 +1487,15 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
     
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'DESC'];
-      if (!sortType && sortBy !== 'application_date') sortType = 'ASC';
-      if (!sortType && sortBy === 'application_date') sortType = 'DESC';      
+      let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'desc'];
+      if (!sortType && sortBy !== 'application_date') sortType = 'asc';
+      if (!sortType && sortBy === 'application_date') sortType = 'desc';      
       
       const validSorts = ['first_name', 'last_name', 'application_date', 'status'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       const validSortTypes = [ 'asc', 'desc'];
-      const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+      const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
@@ -2446,7 +2446,7 @@ const getRecommendedTalents = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'ASC'];
+      let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'asc'];
       const validSorts = ['score', 'first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
 
