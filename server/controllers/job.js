@@ -1082,6 +1082,9 @@ const createJobQuesResponses = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
         const { jobId } = request.params || {};
         const questionResponses= request.payload || {};
 
@@ -1091,7 +1094,7 @@ const createJobQuesResponses = async (request, h) => {
             const record = { questionId, responseVal: {'answer': answer}, jobId }
             responses.push(record);
         }
-        const { Jobsquesresponse, Job } = request.getModels('xpaxr');
+        const { Jobsquesresponse, Jobhiremember, Job } = request.getModels('xpaxr');
 
         const existingJobRecord = await Job.findOne({where: {jobId}});
         const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
