@@ -2008,18 +2008,24 @@ const updateApplicationStatus = async (request, h) => {
         const validStatus = ['shortlisted', 'interview', 'closed', 'offer', 'hired'];
         if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status'}).code(400);
                 
-        const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+        const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+        const { companyId: recruiterCompanyId, firstName: luserFirstName } = userProfileInfo || {};        
         
-        const sqlStmt = `select * 
+        const sqlStmt = `select  
+                ui.first_name as candidate_first_name, ui.email as candidate_email, c.display_name as company_name,
+                ja.application_id, ja.job_id, ja.status,
+                jn.job_name, j.user_id as creator_id, j.company_id
             from hris.jobapplications ja
                 inner join hris.jobs j on j.job_id=ja.job_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.userinfo ui on ui.user_id=ja.user_id
+				inner join  hris.company c on c.company_id=j.company_id
             where ja.application_id=:applicationId`;
-
+        
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
         const applicationJobDetailsSQL = await sequelize.query(sqlStmt, {
@@ -2029,7 +2035,7 @@ const updateApplicationStatus = async (request, h) => {
             },
         });
         const applicationJobDetails = camelizeKeys(applicationJobDetailsSQL)[0];
-        const { applicationId: existingApplicationId, companyId: creatorCompanyId } = applicationJobDetails || {};
+        const { applicationId: existingApplicationId, companyId: creatorCompanyId, candidateEmail, candidateFirstName, companyName, jobName, status: oldStatus } = applicationJobDetails || {};
 
         if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
@@ -2041,11 +2047,6 @@ const updateApplicationStatus = async (request, h) => {
  
         if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized to update the application!'}).code(403);         
         
-        // old application status
-        const oldApplicationRecord = await Jobapplication.findOne({ where: { applicationId }});
-        const oldApplicationInfo = oldApplicationRecord && oldApplicationRecord.toJSON();
-        const { status: oldStatus } = oldApplicationInfo || {};
-
         if(oldStatus === 'hired') return h.response({ error: true, message: 'Already hired. So the status can not change!'}).code(400);
         if(oldStatus === status) return h.response({ error: true, message: 'Already has this status!'}).code(400);
           
@@ -2059,6 +2060,33 @@ const updateApplicationStatus = async (request, h) => {
             actionType: 'UPDATE',
             actionDescription: `The user of userId ${userId} has updated the status of application of applicationId ${applicationId}. Previous status was ${ oldStatus } and current status is ${ status }.`
         });
+
+          // ----------------start of sending emails
+          const templateName =  `default-application-${ status }-email`;
+          
+          const emailData = {
+            emails: [candidateEmail],
+            email: candidateEmail,
+            ccEmails: [],
+            templateName,
+            isX0PATemplate: true,
+
+            companyName: companyName,
+            candidateFirstName,
+            recruiterFirstName: luserFirstName,
+            jobName: jobName,            
+        };
+
+        const additionalEData = {
+            userId,
+            Emailtemplate,
+            Userinfo,
+            Companyinfo,
+            Emaillog,
+        };
+        sendEmailAsync(emailData, additionalEData);
+        // ----------------end of sending emails     
+    
 
         return h.response(updatedRecord).code(201);
     }
