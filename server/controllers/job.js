@@ -1422,7 +1422,7 @@ const withdrawFromAppliedJob = async (request, h) => {
       const { credentials } = request.auth || {};
       const { id: luserId } = credentials || {};
 
-      const { Job, Jobname, Jobapplication, Applicationauditlog, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
+      const { Userinfo, Companyinfo, Job, Jobname, Jobapplication, Applicationauditlog, Emailtemplate, Emaillog } = request.getModels('xpaxr');            
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: luserId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
@@ -1431,7 +1431,12 @@ const withdrawFromAppliedJob = async (request, h) => {
       if(requestedForApplication.isWithdrawn){
         return h.response({ error: true, message: 'Bad request! Already withdrawn!' }).code(400);    
       }
-      
+
+        // candidate details
+        const luserRecord = await Userinfo.findOne({ where: { userId: luserId }});
+        const luserInfo = luserRecord && luserRecord.toJSON();
+        const { firstName: luserFirstName, email: luserEmail } = luserInfo || {};
+            
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
       await Jobapplication.update( { isWithdrawn: true, status: 'withdrawn' }, { where: { applicationId: applicationId }} );
       await Applicationauditlog.create({ 
@@ -1444,16 +1449,19 @@ const withdrawFromAppliedJob = async (request, h) => {
 
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select  
+                ui.first_name as recruiter_first_name, c.display_name as company_name,
                 ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
                 jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id
             from hris.jobapplications ja
                 inner join hris.jobs j on j.job_id=ja.job_id
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
-                
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                inner join hris.userinfo ui on ui.user_id=j.user_id
+				inner join  hris.company c on c.company_id=j.company_id
+                                
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where ja.application_id=:applicationId`;
         
         const sequelize = db1.sequelize;
@@ -1462,7 +1470,30 @@ const withdrawFromAppliedJob = async (request, h) => {
             replacements: { applicationId },
         });
         const updatedApplicationData = camelizeKeys(ares)[0];
-        
+
+        // ----------------start of sending emails
+        const emailData = {
+            emails: [luserEmail],
+            email: luserEmail,
+            ccEmails: [],
+            templateName: 'default-application-withdrawn-email',
+            isX0PATemplate: true,
+
+            companyName: updatedApplicationData.companyName,
+            candidateFirstName: luserFirstName,
+            recruiterFirstName: updatedApplicationData.recruiterFirstName,
+            jobName: updatedApplicationData.jobName,            
+        };
+
+        const additionalEData = {
+            userId: luserId,
+            Emailtemplate,
+            Userinfo,
+            Companyinfo,
+            Emaillog,
+        };
+        sendEmailAsync(emailData, additionalEData);
+        // ----------------end of sending emails     
     
         return h.response(updatedApplicationData).code(200);
     }

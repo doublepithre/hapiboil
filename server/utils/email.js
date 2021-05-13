@@ -171,6 +171,7 @@ const getEmailTemplateDataAsync = async (
       "company-account-creation",
       "job-alert-email",
       "default-application-applied-email",
+      "default-application-withdrawn-email",
     ];
     if(!knownEmailTemplates.includes(templateName)) {
       isUserCustomTemplate = true;
