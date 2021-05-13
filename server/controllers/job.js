@@ -1,5 +1,6 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
-import {camelizeKeys} from '../utils/camelizeKeys'
+import { camelizeKeys } from '../utils/camelizeKeys'
+import { sendEmailAsync } from '../utils/email'
 import formatQueryRes from '../utils/index'
 import { isArray } from 'lodash';
 const axios = require('axios')
@@ -1165,20 +1166,45 @@ const applyToJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "applied" }
-        const { Job, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+        const { Companyinfo, Userinfo, Job, Jobapplication, Applicationhiremember, Applicationauditlog, Emailtemplate, Emaillog } = request.getModels('xpaxr');
         
-        const jobInDB = await Job.findOne({ where: { jobId }});
-        const {jobId: jobInDbId} = jobInDB || {};
-        if(!jobInDbId) return h.response({error: true, message: 'Bad request! No job found!'}).code(400);
-        
+        // candidate details
+        const luserRecord = await Userinfo.findOne({ where: { userId }});
+        const luserInfo = luserRecord && luserRecord.toJSON();
+        const { firstName: luserFirstName, email: luserEmail } = luserInfo || {};
+
+        // Job Details
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select
+                j.job_id, jn.job_name, 
+                c.display_name as company_name,
+                ui.first_name as recruiter_first_name,
+                j.user_id
+            from hris.jobs j
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.userinfo ui on ui.user_id=j.user_id
+            where j.job_id=:jobId`;
+
+        const sequelize = db1.sequelize;
+      	const appliedJobDetailsRAW = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+        const appliedJobDetails = camelizeKeys(appliedJobDetailsRAW)[0];
+        const { jobId: jobIdinTheDB, userId: employerId } = appliedJobDetails || {};
+
+        if(!jobIdinTheDB) return h.response({error: true, message: 'No job found!'}).code(400);
+
         const alreadyAppliedRecord = await Jobapplication.findOne({ where: { jobId, userId, isApplied: true }});
         const {applicationId: alreadyAppliedApplicationId} = alreadyAppliedRecord || {};
         if(alreadyAppliedApplicationId) return h.response({error: true, message: 'Already applied!'}).code(400);
         
         const [recordRes] = await Jobapplication.upsert(record);
         const recordResponse = recordRes && recordRes.toJSON();
-        const { applicationId } = recordRes;
-        const { userId: employerId } = await Job.findOne({ where: { jobId }})
+        const { applicationId } = recordRes;         
         
         await Promise.all([
             Applicationhiremember.create({ applicationId, userId, accessLevel: 'candidate', }),
@@ -1190,7 +1216,32 @@ const applyToJob = async (request, h) => {
                 actionType: 'CREATE',
                 actionDescription: `The user of userId ${userId} has applied to the job of jobId ${jobId}`
             })
-        ]);            
+        ]);
+        
+        // ----------------start of sending emails
+        const emailData = {
+            emails: [luserEmail],
+            email: luserEmail,
+            ccEmails: [],
+            templateName: 'default-application-applied-email',            
+            isX0PATemplate: true,
+
+            companyName: appliedJobDetails.companyName,
+            candidateFirstName: luserFirstName,
+            recruiterFirstName: appliedJobDetails.recruiterFirstName,
+            jobName: appliedJobDetails.jobName,
+            timeFrame: 'in the next 3 weeks',
+        };
+
+        const additionalEData = {
+            userId,
+            Emailtemplate,
+            Userinfo,
+            Companyinfo,
+            Emaillog,
+        };
+        sendEmailAsync(emailData, additionalEData);
+        // ----------------end of sending emails      
 
         delete recordResponse.createdAt;
         delete recordResponse.updatedAt;
@@ -1411,6 +1462,7 @@ const withdrawFromAppliedJob = async (request, h) => {
             replacements: { applicationId },
         });
         const updatedApplicationData = camelizeKeys(ares)[0];
+        
     
         return h.response(updatedApplicationData).code(200);
     }

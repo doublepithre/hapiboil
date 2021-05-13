@@ -170,6 +170,7 @@ const getEmailTemplateDataAsync = async (
       "account-creation-verify-email",
       "company-account-creation",
       "job-alert-email",
+      "default-application-applied-email",
     ];
     if(!knownEmailTemplates.includes(templateName)) {
       isUserCustomTemplate = true;
@@ -651,8 +652,15 @@ const sendEmailAsync = async (edata, additionalEData) => {
   try {
     const {
       email = "sriharsha@x0pa.com",
+      
       password,
       allJobsLink,
+      companyName,
+      candidateFirstName,
+      recruiterFirstName,
+      jobName,
+      timeFrame,
+
       emails,
       ccEmails,
       templateName,
