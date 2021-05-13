@@ -1271,7 +1271,7 @@ const getAppliedJobs = async (request, h) => {
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
         // Checking if application status is valid
-        const validStatus = ['applied', 'withdrawn', 'shortlisted', 'interviewed', 'closed', 'offered', 'hired'];
+        const validStatus = ['applied', 'withdrawn', 'shortlisted', 'interview', 'closed', 'offer', 'hired'];
         const isStatusReqValid = (status && isArray(status)) ? (
         status.every( req => validStatus.includes(req))
         ) : validStatus.includes(status);
@@ -1563,7 +1563,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // Checking if application status is valid
-      const validStatus = ['applied', 'shortlisted', 'interviewed', 'closed', 'offered', 'hired'];
+      const validStatus = ['applied', 'shortlisted', 'interview', 'closed', 'offer', 'hired'];
       const isStatusReqValid = (status && isArray(status)) ? (
       status.every( req => validStatus.includes(req))
       ) : validStatus.includes(status);
@@ -2005,7 +2005,7 @@ const updateApplicationStatus = async (request, h) => {
         const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
         if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
 
-        const validStatus = ['shortlisted', 'interviewed', 'closed', 'offered', 'hired'];
+        const validStatus = ['shortlisted', 'interview', 'closed', 'offer', 'hired'];
         if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status'}).code(400);
                 
         const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');

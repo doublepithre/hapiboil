@@ -1466,7 +1466,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [applied, withdrawn, shortlisted, interviewed, closed, offered, hired]
+            enum: [applied, withdrawn, shortlisted, interview, closed, offer, hired]
 
         - name: sort
           in: query          
@@ -1566,7 +1566,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [applied, shortlisted, interviewed, closed, offered, hired]
+            enum: [applied, shortlisted, interview, closed, offer, hired]
         
         - name: sort
           in: query          
