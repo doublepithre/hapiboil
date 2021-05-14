@@ -22,6 +22,7 @@ import {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+    maintainCompanyEmailTemplates,
 
     mentorCandidateLinking,
     getMentorCandidates,
@@ -275,6 +276,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateApplicationStatus,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/customize-email-template/{templateName}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: maintainCompanyEmailTemplates,
         },
       });
       server.route({

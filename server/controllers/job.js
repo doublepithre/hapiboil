@@ -1180,7 +1180,7 @@ const applyToJob = async (request, h) => {
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select
                 j.job_id, jn.job_name, 
-                c.display_name as company_name,
+                c.display_name as company_name, j.company_Id,
                 j.user_id
             from hris.jobs j
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
@@ -1195,7 +1195,7 @@ const applyToJob = async (request, h) => {
             },
         });
         const appliedJobDetails = camelizeKeys(appliedJobDetailsRAW)[0];
-        const { jobId: jobIdinTheDB, userId: employerId } = appliedJobDetails || {};
+        const { jobId: jobIdinTheDB, userId: employerId, companyId: creatorCompanyId } = appliedJobDetails || {};
 
         if(!jobIdinTheDB) return h.response({error: true, message: 'No job found!'}).code(400);
 
@@ -1257,23 +1257,29 @@ const applyToJob = async (request, h) => {
         const { firstName: earliestAdministratorFirstName } = earliestAdministratorRecord || {};
 
         const recruiterFirstName = jobCreatorFirstName || earliestAdministratorFirstName;
+        
         // ----------------start of sending emails        
+        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-applied-email`, companyId: creatorCompanyId, status: 'active' }})
+        const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
+        const { id: customTemplateId } = customTemplateInfo || {};
+        const templateName = customTemplateId ? `application-applied-email` : `default-application-applied-email`;
+        const isX0PATemplate = customTemplateId ? false : true;
+        
         const emailData = {
             emails: [luserEmail],
             email: luserEmail,
             ccEmails: [],
-            templateName: 'default-application-applied-email',            
-            isX0PATemplate: true,
+            templateName,
+            isX0PATemplate,
 
             companyName: appliedJobDetails.companyName,
             candidateFirstName: luserFirstName,
             recruiterFirstName,
-            jobName: appliedJobDetails.jobName,
-            timeFrame: 'in the next 3 weeks',
+            jobName: appliedJobDetails.jobName,    
         };
 
         const additionalEData = {
-            userId,
+            userId: employerId,
             Emailtemplate,
             Userinfo,
             Companyinfo,
@@ -1511,7 +1517,7 @@ const withdrawFromAppliedJob = async (request, h) => {
 
         // get creator if still exists or else get the earliest administrator firstName
         const sqlStmt2 = `select 
-                jhm.access_level, ui.active, ui.first_name
+                jhm.access_level, ui.active, ui.first_name, ui.user_id
             from hris.jobhiremember jhm
                 inner join hris.userinfo ui on jhm.user_id=ui.user_id
             where jhm.access_level='creator' and ui.active=true
@@ -1526,7 +1532,7 @@ const withdrawFromAppliedJob = async (request, h) => {
 
         // get administrators
         const sqlStmt3 = `select 
-                jhm.access_level, ui.active, ui.first_name
+                jhm.access_level, ui.active, ui.first_name, ui.user_id
             from hris.jobhiremember jhm
                 inner join hris.userinfo ui on jhm.user_id=ui.user_id
             where jhm.access_level='administrator' and ui.active=true
@@ -1541,19 +1547,27 @@ const withdrawFromAppliedJob = async (request, h) => {
         });
 
         const creatorRecord = camelizeKeys(creatorRAW)[0];
-        const { firstName: jobCreatorFirstName } = creatorRecord || {};
+        const { firstName: jobCreatorFirstName, userId: creatorId } = creatorRecord || {};
         
         const earliestAdministratorRecord = camelizeKeys(administratorsRAW)[0];
-        const { firstName: earliestAdministratorFirstName } = earliestAdministratorRecord || {};
+        const { firstName: earliestAdministratorFirstName, userId: administratorId } = earliestAdministratorRecord || {};
 
         const recruiterFirstName = jobCreatorFirstName || earliestAdministratorFirstName;
+        const employerId = creatorId || administratorId;
+        
         // ----------------start of sending emails
+        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-withdrawn-email`, companyId: updatedApplicationData.companyId, status: 'active' }})
+        const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
+        const { id: customTemplateId } = customTemplateInfo || {};
+        const templateName = customTemplateId ? `application-withdrawn-email` : `default-application-withdrawn-email`;
+        const isX0PATemplate = customTemplateId ? false : true;
+
         const emailData = {
             emails: [luserEmail],
             email: luserEmail,
             ccEmails: [],
-            templateName: 'default-application-withdrawn-email',
-            isX0PATemplate: true,
+            templateName,
+            isX0PATemplate,
 
             companyName: updatedApplicationData.companyName,
             candidateFirstName: luserFirstName,
@@ -1562,7 +1576,7 @@ const withdrawFromAppliedJob = async (request, h) => {
         };
 
         const additionalEData = {
-            userId: luserId,
+            userId: employerId,
             Emailtemplate,
             Userinfo,
             Companyinfo,
@@ -2138,14 +2152,18 @@ const updateApplicationStatus = async (request, h) => {
         });
 
           // ----------------start of sending emails
-          const templateName =  `default-application-${ status }-email`;
+          const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-${ status }-email`, companyId: recruiterCompanyId, status: 'active' }})
+          const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
+          const { id: customTemplateId } = customTemplateInfo || {};
+          const templateName = customTemplateId ? `application-${ status }-email` : `default-application-${ status }-email`;
+          const isX0PATemplate = customTemplateId ? false : true;
           
           const emailData = {
             emails: [candidateEmail],
             email: candidateEmail,
             ccEmails: [],
             templateName,
-            isX0PATemplate: true,
+            isX0PATemplate,
 
             companyName: companyName,
             candidateFirstName,
@@ -2164,6 +2182,61 @@ const updateApplicationStatus = async (request, h) => {
         // ----------------end of sending emails     
     
 
+        return h.response(updatedRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const maintainCompanyEmailTemplates = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { templateName } = request.params || {};
+        const customizedData = request.payload || {};     
+
+        const validUpdateRequests = [ 'status', 'subject', 'desc', 'displayName', 'emailBody', 'emailFooter', 'productName' ];
+        const requestedUpdateOperations = Object.keys(customizedData) || [];
+        const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+        if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+
+        const { Userinfo, Emailtemplate } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+
+        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `default-${ templateName }` }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId'] }});
+        const defaultTemplateInfo = defaultTemplateRecord && defaultTemplateRecord.toJSON();
+        const { id: defaultTemplateId, ...rest } = defaultTemplateInfo || {};
+
+        // find if this company already has the customized template
+        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, companyId: luserCompanyId }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
+        const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
+        const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
+
+        if(!defaultTemplateId) return h.response({ error: true, message: 'No default template found!'}).code(400);
+        // if(!existingCustomizedTemplateId) return h.response({ error: true, message: 'No customized template found!'}).code(400);
+        // if(!existingCustomizedTemplateId) return h.response(rest).code(200);
+        
+        if(!existingCustomizedTemplateId) {            
+            await Emailtemplate.create({ ...rest, isUserTemplate: true, companyId: luserCompanyId, templateName, ownerId: userId });
+        } else {
+            await Emailtemplate.update(customizedData, { where: { templateName, companyId: luserCompanyId }});
+        }
+        
+        const updatedRecord = await Emailtemplate.findOne({ where: { templateName: templateName, companyId: luserCompanyId }});
         return h.response(updatedRecord).code(201);
     }
     catch (error) {
@@ -3026,6 +3099,7 @@ module.exports = {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+    maintainCompanyEmailTemplates,
 
     mentorCandidateLinking,
     getMentorCandidates,
