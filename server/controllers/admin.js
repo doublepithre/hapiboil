@@ -337,7 +337,9 @@ const getAttributes = async (request, h) => {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Attributeset } = request.getModels('xpaxr');
-        let attributes = await Attributeset.findAll();
+        let attributes = await Attributeset.findAll({
+            order:[["attributeId","ASC"]]
+        });
         return h.response(attributes).code(200);
     }
 }

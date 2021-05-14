@@ -28,6 +28,7 @@ var _Questionnaire = require("./questionnaire");
 var _Questionnaireanswer = require("./questionnaireanswer");
 var _Questiontarget = require("./questiontarget");
 var _Questiontype = require("./questiontype");
+var _Report = require("./report");
 var _Requesttoken = require("./requesttoken");
 var _User = require("./user");
 var _Userinfo = require("./userinfo");
@@ -66,6 +67,7 @@ function initModels(sequelize) {
   var Questionnaireanswer = _Questionnaireanswer(sequelize, DataTypes);
   var Questiontarget = _Questiontarget(sequelize, DataTypes);
   var Questiontype = _Questiontype(sequelize, DataTypes);
+  var Report = _Report(sequelize, DataTypes);
   var Requesttoken = _Requesttoken(sequelize, DataTypes);
   var User = _User(sequelize, DataTypes);
   var Userinfo = _Userinfo(sequelize, DataTypes);
@@ -124,6 +126,8 @@ function initModels(sequelize) {
   Questionnaire.hasMany(Questionmapping, { as: "empauwerMeQQuestionmappings", foreignKey: "empauwerMeQid"});
   Questionnaireanswer.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Questionnaire.hasMany(Questionnaireanswer, { as: "questionnaireanswers", foreignKey: "questionId"});
+  Report.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
+  Questionnaire.hasMany(Report, { as: "reports", foreignKey: "questionId"});
   Userquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Questionnaire.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "questionId"});
   Qaattribute.belongsTo(Questionnaireanswer, { as: "answer", foreignKey: "answerId"});
@@ -197,6 +201,7 @@ function initModels(sequelize) {
     Questionnaireanswer,
     Questiontarget,
     Questiontype,
+    Report,
     Requesttoken,
     User,
     Userinfo,
