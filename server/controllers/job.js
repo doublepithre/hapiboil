@@ -1181,12 +1181,10 @@ const applyToJob = async (request, h) => {
         const sqlStmt = `select
                 j.job_id, jn.job_name, 
                 c.display_name as company_name,
-                ui.first_name as recruiter_first_name,
                 j.user_id
             from hris.jobs j
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 inner join hris.company c on c.company_id=j.company_id
-                inner join hris.userinfo ui on ui.user_id=j.user_id
             where j.job_id=:jobId`;
 
         const sequelize = db1.sequelize;
@@ -1221,7 +1219,45 @@ const applyToJob = async (request, h) => {
             })
         ]);
         
-        // ----------------start of sending emails
+        // get creator if still exists or else get the earliest administrator firstName
+        const sqlStmt2 = `select 
+                jhm.access_level, ui.active, ui.first_name
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='creator' and ui.active=true
+                and jhm.job_id=:jobId`;
+        
+      	const creatorRAW = await sequelize.query(sqlStmt2, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        // get administrators
+        const sqlStmt3 = `select 
+                jhm.access_level, ui.active, ui.first_name
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='administrator' and ui.active=true
+                and jhm.job_id=34
+            order by jhm.created_at asc`;
+
+      	const administratorsRAW = await sequelize.query(sqlStmt3, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        const creatorRecord = camelizeKeys(creatorRAW)[0];
+        const { firstName: jobCreatorFirstName } = creatorRecord || {};
+        
+        const earliestAdministratorRecord = camelizeKeys(administratorsRAW)[0];
+        const { firstName: earliestAdministratorFirstName } = earliestAdministratorRecord || {};
+
+        const recruiterFirstName = jobCreatorFirstName || earliestAdministratorFirstName;
+        // ----------------start of sending emails        
         const emailData = {
             emails: [luserEmail],
             email: luserEmail,
@@ -1231,7 +1267,7 @@ const applyToJob = async (request, h) => {
 
             companyName: appliedJobDetails.companyName,
             candidateFirstName: luserFirstName,
-            recruiterFirstName: appliedJobDetails.recruiterFirstName,
+            recruiterFirstName,
             jobName: appliedJobDetails.jobName,
             timeFrame: 'in the next 3 weeks',
         };
@@ -1452,13 +1488,12 @@ const withdrawFromAppliedJob = async (request, h) => {
 
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select  
-                ui.first_name as recruiter_first_name, c.display_name as company_name,
+                c.display_name as company_name,
                 ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
                 jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id
             from hris.jobapplications ja
                 inner join hris.jobs j on j.job_id=ja.job_id
-                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
-                inner join hris.userinfo ui on ui.user_id=j.user_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id                
 				inner join  hris.company c on c.company_id=j.company_id
                                 
                 inner join hris.jobtype jt on jt.job_type_id=j.job_type_id
@@ -1474,6 +1509,44 @@ const withdrawFromAppliedJob = async (request, h) => {
         });
         const updatedApplicationData = camelizeKeys(ares)[0];
 
+        // get creator if still exists or else get the earliest administrator firstName
+        const sqlStmt2 = `select 
+                jhm.access_level, ui.active, ui.first_name
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='creator' and ui.active=true
+                and jhm.job_id=:jobId`;
+            
+        const creatorRAW = await sequelize.query(sqlStmt2, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        // get administrators
+        const sqlStmt3 = `select 
+                jhm.access_level, ui.active, ui.first_name
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='administrator' and ui.active=true
+                and jhm.job_id=34
+            order by jhm.created_at asc`;
+
+            const administratorsRAW = await sequelize.query(sqlStmt3, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        const creatorRecord = camelizeKeys(creatorRAW)[0];
+        const { firstName: jobCreatorFirstName } = creatorRecord || {};
+        
+        const earliestAdministratorRecord = camelizeKeys(administratorsRAW)[0];
+        const { firstName: earliestAdministratorFirstName } = earliestAdministratorRecord || {};
+
+        const recruiterFirstName = jobCreatorFirstName || earliestAdministratorFirstName;
         // ----------------start of sending emails
         const emailData = {
             emails: [luserEmail],
@@ -1484,7 +1557,7 @@ const withdrawFromAppliedJob = async (request, h) => {
 
             companyName: updatedApplicationData.companyName,
             candidateFirstName: luserFirstName,
-            recruiterFirstName: updatedApplicationData.recruiterFirstName,
+            recruiterFirstName: recruiterFirstName,
             jobName: updatedApplicationData.jobName,            
         };
 
