@@ -389,15 +389,14 @@ const getAllUsersBySuperadmin = async (request, h) => {
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // filters
-    const userTypeLower = userType ? (isArray(userType) ? userType.map(ut => ut.toLowerCase()) : userType.toLowerCase()) : null;
-    const companyNameLower = companyName ? (isArray(companyName) ? companyName.map(cn => cn.toLowerCase()) : companyName.toLowerCase()) : null;
+    const userTypeLower = userType ? (isArray(userType) ? userType.map(ut => ut.toLowerCase()) : userType.toLowerCase()) : null;    
 
     // Checking user type
     const validAccountTypes = ['candidate', 'employer', 'mentor', 'companysuperadmin', 'superadmin'];
-    const isUserTypeQueryValid = (userType && isArray(userType)) ? (
-      userType.every( req => validAccountTypes.includes(req))
-    ) : validAccountTypes.includes(userType);
-    if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
+    const isUserTypeQueryValid = (userTypeLower && isArray(userTypeLower)) ? (
+      userTypeLower.every( req => validAccountTypes.includes(req))
+    ) : validAccountTypes.includes(userTypeLower);
+    if (userTypeLower && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
     
       // sort query
       let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'asc'];
@@ -421,9 +420,9 @@ const getAllUsersBySuperadmin = async (request, h) => {
       const db1 = request.getDb('xpaxr');
 
       // get sql statement for getting all users or its count        
-      const filters = { search, sortBy, sortType, userTypeLower, companyNameLower, companyId }
+      const filters = { search, sortBy, sortType, userTypeLower, companyId }
       function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userTypeLower, companyNameLower, companyId } = obj;
+          const { search, sortBy, sortType, userTypeLower, companyId } = obj;
           let sqlStmt;
           const type = queryType && queryType.toLowerCase();
           if(type === 'count'){
@@ -443,10 +442,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
           // filters
           if(userTypeLower){
             sqlStmt += isArray(userTypeLower) ? ` and ut.user_type_name in (:userTypeLower)` : ` and ut.user_type_name=:userTypeLower`;
-          }
-          if(companyNameLower){
-            sqlStmt += isArray(companyNameLower) ? ` and c.company_name in (:companyNameLower)` : ` and c.company_name=:companyNameLower`;
-          }
+          }          
           if(companyId){
             sqlStmt += isArray(companyId) ? ` and ui.company_id in (:companyId)` : ` and ui.company_id=:companyId`;
           }
@@ -474,8 +470,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
             type: QueryTypes.SELECT,
             replacements: {                 
                 userTypeLower,
-                companyId,
-                companyNameLower,
+                companyId,                
                 limitNum, offsetNum,
                 searchVal,                
             },
@@ -485,7 +480,6 @@ const getAllUsersBySuperadmin = async (request, h) => {
             replacements: {                 
                 userTypeLower,
                 companyId,
-                companyNameLower,
                 limitNum, offsetNum,
                 searchVal,                
             },
