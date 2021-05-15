@@ -2236,6 +2236,13 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         // if(!existingCustomizedTemplateId) return h.response({ error: true, message: 'No customized template found!'}).code(400);
         // if(!existingCustomizedTemplateId) return h.response(rest).code(200);
         
+        // is status req valid
+        const { status } = customizedData;
+        const validStatus = ['active', 'inactive'];
+        const isStatusReqValid = validStatus.includes(status);
+        
+        if(status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status request!'}).code(400);
+
         if(!existingCustomizedTemplateId) {            
             await Emailtemplate.create({ ...rest, isUserTemplate: true, companyId: luserCompanyId, templateName, ownerId: userId });
         } else {
