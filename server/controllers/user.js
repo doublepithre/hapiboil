@@ -1802,14 +1802,18 @@ const getProfile = async (request, h) => {
     
     let quesResponses = [];
     let targetId = 1;
-    if(userType === 'mentor') {
-      quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
-      targetId = 3;
-    } 
+    let answerTable = 'userquesresponses';
+    
     if(userType === 'candidate') {
       quesResponses = await Userquesresponse.findAll({ where: { userId }});
       targetId = 1;
+      answerTable = 'userquesresponses';
     }    
+    if(userType === 'mentor') {
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
+      targetId = 3;
+      answerTable = 'mentorquesresponses';
+    } 
 
     const responses = [];
     for (let response of quesResponses) {
@@ -1836,13 +1840,13 @@ const getProfile = async (request, h) => {
     const userQuesCount = allSQLUserQuesCount[0].count;
     
     const sqlStmtForUserRes = `select count(*) 
-      from hris.userquesresponses uqr
+      from hris.${ answerTable } uqr
       where uqr.user_id=:userId`;        
 
     const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
         type: QueryTypes.SELECT,
         replacements: { 
-          userId,            
+          userId, 
         },
     });
     const userResCount = allSQLUserResCount[0].count;
