@@ -17,18 +17,7 @@ const getAbout = async (request, h) => {
         if (userTypeName === "employer"){
             // check if talent has at applied to at least 1 job posted by employer(userId)
             let sequelize = db.sequelize;
-            let {talentId} = request.query;
-            let sqlStmt = `select * from hris.applicationhiremember ahm 
-            join hris.applicationhiremember ahm1 on ahm.application_id = ahm1.application_id
-            where ahm.user_id = :userId and ahm.access_level='jobcreator' and ahm1.user_id=:talentId limit 1;`
-            let result = await sequelize.query(sqlStmt,{
-                type: QueryTypes.SELECT,
-                replacements: { 
-                    userId,                 
-                    talentId
-                },
-            });
-            if (result.length>0){//authorized
+            if (await checkReportAccess(sequelize,userId,talentId)){//authorized
                 //find directly from questions
                 let res = await Userquesresponse.findAll({
                     required:true,
@@ -85,7 +74,7 @@ const getAbout = async (request, h) => {
                     }
                     if (response["question.reports.questionKey"]==="hobbies"){
                         answer = response.responseVal.answer;
-                        about.people_interaction = {
+                        about.hobbies = {
                             displayName:response["question.reports.displayName"],
                             displayText:answer
                         };
@@ -108,19 +97,147 @@ const getAbout = async (request, h) => {
                     displayName:"Lights",
                     displayText:(Number(talentProfile.attributes.Lights)<=0.5) ? "Not Sensitive" : "Sensitive"
                 }
-                return h.response({jobCharacteristics,about}).code(201);  
-            }
 
+                //get top3 attributes here ignoring lights and sound
+                let attributesArray = []
+                for (let [key, value] of Object.entries(talentProfile.attributes)) {
+                    if (key==="Lights" || key==="Sound") continue;
+                    attributesArray.push({"attributeName":key,"attributeValue":value});
+                }
+                attributesArray.sort((a,b)=>b.attributeValue-a.attributeValue);
+                
+                return h.response({jobCharacteristics,about,keyStrengths:attributesArray.slice(0,3)}).code(200);  
+            }
         }else{
             return h.response({error:true,message:"Not authorized"}).code(401);
         }
-
-        return h.response({}).code(201);        
     }
     catch (error) {
         console.error(error.stack);
         return h.response({error: true, message: 'Bad Request'}).code(400);
     }
+}
+
+const getUserStats = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let userTypeName = request.auth.artifacts.decoded.userTypeName;   
+        let userId = request.auth.credentials.id;
+        let db = request.getDb('xpaxr');
+        const { Attributeset } = request.getModels('xpaxr');
+        if (userTypeName === "employer"){
+            // check if talent has at applied to at least 1 job posted by employer(userId)
+            let sequelize = db.sequelize;
+            let {talentId} = request.query;
+            if (await checkReportAccess(sequelize,userId,talentId)){//authorized
+                let talentProfile = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/profile`,{ params: { user_id: talentId } });
+                talentProfile = talentProfile.data;
+                //get top3 attributes here ignoring lights and sound
+                let attributesArray = []
+                for (let [key, value] of Object.entries(talentProfile.attributes)) {
+                    if (key==="Lights" || key==="Sound") continue;
+                    attributesArray.push({"attributeName":key,"attributeValue":value});
+                }
+                attributesArray.sort((a,b)=>b.attributeValue-a.attributeValue);
+                
+                let attributes = await Attributeset.findAll(); //find all since only small set of attributes
+                
+                let attr_map = {};
+                for (let attr of attributes){
+                    attr_map[attr.attributeName] = attr
+                }
+                
+                for(let attr of attributesArray){
+                    attr.description = attr_map[attr.attributeName].description;
+                    attr.lowText = attr_map[attr.attributeName].lowText;
+                    attr.highText = attr_map[attr.attributeName].highText;
+                }
+
+                return h.response({userStatistics:attributesArray.slice(0,8).slice(-5)}).code(200);//take last 5 elements of first 8 elements if exists
+            }
+        }else{
+            return h.response({error:true,message:"Not authorized"}).code(401);
+        }
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const getCompatibility = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let userTypeName = request.auth.artifacts.decoded.userTypeName;   
+        let userId = request.auth.credentials.id;
+        let db = request.getDb('xpaxr');
+        const { Attributeset,Jobhiremember } = request.getModels('xpaxr');
+        if (userTypeName === "employer"){
+            let {talentId,jobId} = request.query;
+            let rec = await Jobhiremember.findOne({where:{jobId,userId},attributes:["accessLevel"]});
+            if (!rec || !(rec.accessLevel==="creator" || rec.accessLevel==="viewer")){
+                return h.response({error:true,message:"Not authorized"}).code(401);
+            }
+            // check if talent has at applied to at least 1 job posted by employer(userId)
+            let sequelize = db.sequelize;
+            if (await checkReportAccess(sequelize,userId,talentId)){//authorized
+                let talentCompatibility = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/compatibility`,{ params: { user_id: talentId,job_id:jobId } }); //user_id here refers to candidate
+                console.log(talentCompatibility.data);
+                let attributesArray = []
+                for (let [key, value] of Object.entries(talentCompatibility.data.compatibility)) {
+                    if (key==="Lights" || key==="Sound") continue;
+                    attributesArray.push({"attributeName":key,"attributeValue":value});
+                }
+                attributesArray.sort((a,b)=>b.attributeValue-a.attributeValue);
+
+                let attributes = await Attributeset.findAll(); //find all since only small set of attributes
+                let attr_map = {};
+                for (let attr of attributes){
+                    attr_map[attr.attributeName] = attr
+                }
+                
+                for(let attr of attributesArray){
+                    attr.description = attr_map[attr.attributeName].description;
+                    attr.lowText = attr_map[attr.attributeName].lowText;
+                    attr.highText = attr_map[attr.attributeName].highText;
+                }
+                return h.response({compatibility:attributesArray}).code(200);
+            }
+        }else{
+            return h.response({error:true,message:"Not authorized"}).code(401);
+        }
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+/**
+ * 
+ * @param {Sequelize} sequelize sequelize object
+ * @param {Number} userId employer id
+ * @param {Number} talentId candidate id
+ * @returns employer has access to candidate data
+ */
+const checkReportAccess = async(sequelize,userId,talentId) =>{
+    let sqlStmt = `select * from hris.applicationhiremember ahm 
+    join hris.applicationhiremember ahm1 on ahm.application_id = ahm1.application_id
+    where ahm.user_id = :userId and ahm.access_level='jobcreator' and ahm1.user_id=:talentId limit 1;`
+    let result = await sequelize.query(sqlStmt,{
+        type: QueryTypes.SELECT,
+        replacements: { 
+            userId,                 
+            talentId
+        },
+    });
+    return result.length > 0;
 }
 
 const getAnswer = (optionId,options) =>{
@@ -142,5 +259,7 @@ const getAnswer = (optionId,options) =>{
 }
 
 module.exports = {
-    getAbout
+    getAbout,
+    getUserStats,
+    getCompatibility
 }

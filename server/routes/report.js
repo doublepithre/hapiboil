@@ -1,5 +1,7 @@
 import { 
-    getAbout
+    getAbout,
+    getUserStats,
+    getCompatibility
 } from "../controllers/report";
 
 const report = {
@@ -16,6 +18,26 @@ const report = {
             mode: 'try',
           },
           handler: getAbout
+        },
+      });   
+      server.route({
+        method: 'GET',
+        path: '/stats',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getUserStats
+        },
+      });   
+      server.route({
+        method: 'GET',
+        path: '/compatibility',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getCompatibility
         },
       });   
     } 
