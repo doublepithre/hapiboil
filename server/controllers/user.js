@@ -1800,9 +1800,12 @@ const getProfile = async (request, h) => {
     const { id: userId } = credentials || {};
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
     let quesResponses = [];
-    if(userType === 'mentor') quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
-    if(userType === 'candidate') quesResponses = await Userquesresponse.findAll({ where: { userId }});
-    else quesResponses = await Userquesresponse.findAll({ where: { userId }});
+    if(userType === 'mentor') {
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
+    } 
+    if(userType === 'candidate') {
+      quesResponses = await Userquesresponse.findAll({ where: { userId }});
+    }    
 
     const responses = [];
     for (let response of quesResponses) {
