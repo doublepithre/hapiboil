@@ -1795,6 +1795,7 @@ const getProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    let userType = request.auth.artifacts.decoded.userTypeName;   
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
