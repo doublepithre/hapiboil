@@ -118,7 +118,7 @@ const getAutoComplete = async (request, h) => {
         if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
         
-        const validTypes = [ 'jobName', 'jobIndustry', 'jobFunction', 'company'];
+        const validTypes = [ 'jobName', 'jobIndustry', 'jobFunction'];
         const isTypeReqValid = validTypes.includes(type);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
@@ -138,13 +138,11 @@ const getAutoComplete = async (request, h) => {
                 if(type === 'jobName') sqlStmt += ` jn.job_name_id, jn.job_name`;
                 if(type === 'jobIndustry') sqlStmt += `  ji.job_industry_id, ji.job_industry_name`;
                 if(type === 'jobFunction') sqlStmt += ` jf.job_function_id, jf.job_function_name`;
-                if(type === 'company') sqlStmt += ` c.company_id, c.display_name as company_name`;
             }
                         
             if(type === 'jobName') sqlStmt += ` from hris.jobname jn where jn.job_name ilike :searchVal`;
             if(type === 'jobIndustry') sqlStmt += ` from hris.jobindustry ji where ji.job_industry_name ilike :searchVal`;
             if(type === 'jobFunction') sqlStmt += ` from hris.jobfunction jf where jf.job_function_name ilike :searchVal`;
-            if(type === 'company') sqlStmt += ` from hris.company c where c.company_name ilike :searchVal`;
             
             if(queryTypeLower !== 'count') sqlStmt += ` limit 10`
             return sqlStmt;
