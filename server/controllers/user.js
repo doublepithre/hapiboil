@@ -1799,12 +1799,16 @@ const getProfile = async (request, h) => {
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    
     let quesResponses = [];
+    let targetId = 1;
     if(userType === 'mentor') {
       quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
+      targetId = 3;
     } 
     if(userType === 'candidate') {
       quesResponses = await Userquesresponse.findAll({ where: { userId }});
+      targetId = 1;
     }    
 
     const responses = [];
@@ -1817,9 +1821,7 @@ const getProfile = async (request, h) => {
 
     // attaching isComplete property
     const db1 = request.getDb('xpaxr');
-    const sequelize = db1.sequelize;
-
-    const targetId = 1;
+    const sequelize = db1.sequelize;    
 
     const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
     inner join hris.questiontarget qt on qt.target_id=q.question_target_id
