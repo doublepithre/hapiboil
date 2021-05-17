@@ -3,6 +3,7 @@ import {
   createUser, 
 
   createCompanySuperAdmin,
+  getAllCompanyNames,
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
@@ -70,6 +71,16 @@ const xuser = {
             mode: 'try',
           },
           handler: createCompanySuperAdmin,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company-names',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllCompanyNames,
         },
       });
       server.route({

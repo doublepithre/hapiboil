@@ -267,6 +267,34 @@ const createCompanySuperAdmin = async (request, h) => {
   }
 };
 
+const getAllCompanyNames = async (request, h) => {
+  try{
+      if (!request.auth.isAuthenticated) {
+          return h.response({ message: 'Forbidden'}).code(403);
+      }
+      const db1 = request.getDb('xpaxr');
+
+      // get sql statement for getting jobs or jobs count
+      const sqlStmt = `
+        select 
+          c.company_id, c.display_name as company_name
+        from hris.company c`;
+
+      const sequelize = db1.sequelize;
+      const allCompaniesRAW = await sequelize.query(sqlStmt, {
+          type: QueryTypes.SELECT,
+      });
+      
+      const allCompanies = camelizeKeys(allCompaniesRAW);
+      
+      return h.response({ companies: allCompanies }).code(200);
+  }
+  catch (error) {
+      console.error(error.stack);
+      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
 const getAllCompanyBySuperadmin = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -2045,6 +2073,7 @@ module.exports = {
   createUser,
 
   createCompanySuperAdmin,
+  getAllCompanyNames,
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
