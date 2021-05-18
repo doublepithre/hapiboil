@@ -295,6 +295,24 @@ const getAllCompanyNames = async (request, h) => {
   }
 }
 
+const getCompanyOptions = async (request, h) => {
+  try{
+      if (!request.auth.isAuthenticated) {
+          return h.response({ message: 'Forbidden'}).code(403);
+      }
+      const { Companyindustry } = request.getModels('xpaxr');
+      const companyIndustries = await Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName']});
+      const responses = {
+          industry: companyIndustries,
+      };
+      return h.response(responses).code(200);
+  }
+  catch (error) {
+      console.error(error.stack);
+      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
 const getAllCompanyBySuperadmin = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -696,22 +714,6 @@ const updateUserBySuperadmin = async (request, h) => {
   catch(error) {
     console.log(error.stack);
     return h.response({ error: true, message: 'Internal Server Error' }).code(500);
-  }
-}
-
-const getCompanyIndustryOptions = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
-      }
-      const { Companyindustry } = request.getModels('xpaxr');
-      const companyIndustries = await Companyindustry.findAll({});
-      
-      return h.response({ industry: companyIndustries}).code(200);
-  }
-  catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
   }
 }
 
@@ -2088,12 +2090,12 @@ module.exports = {
 
   createCompanySuperAdmin,
   getAllCompanyNames,
+  getCompanyOptions,
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
-
-  getCompanyIndustryOptions,
+ 
   updateCompanyProfile,
   createCompanyStaff,
   getCompanyStaff,

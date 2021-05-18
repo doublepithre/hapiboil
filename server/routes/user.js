@@ -4,12 +4,12 @@ import {
 
   createCompanySuperAdmin,
   getAllCompanyNames,
+  getCompanyOptions,
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
-  
-  getCompanyIndustryOptions,
+    
   createCompanyStaff,
   updateCompanyProfile,
   updateCompanyStaff,
@@ -130,7 +130,7 @@ const xuser = {
           auth: {
             mode: 'try',
           },
-          handler: getCompanyIndustryOptions,
+          handler: getCompanyOptions,
         },
       });
       server.route({
