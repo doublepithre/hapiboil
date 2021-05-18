@@ -125,7 +125,7 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/company/industries',
+        path: '/company-options',
         options: {
           auth: {
             mode: 'try',
