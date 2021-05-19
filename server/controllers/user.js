@@ -1677,7 +1677,7 @@ const forgotPassword = async (request, h) => {
       emails: [email],
       email,
       ccEmails: [],
-      templateName: 'reset-passwordXXX',
+      templateName: 'reset-password',
       resetLink,
       isX0PATemplate: true,
     };
