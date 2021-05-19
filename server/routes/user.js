@@ -10,8 +10,10 @@ import {
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
     
-  createCompanyStaff,
+  getOwnCompanyInfo,
+  getAnyCompanyInfo,
   updateCompanyProfile,
+  createCompanyStaff,
   updateCompanyStaff,
   getCompanyStaff,
   getFellowCompanyStaff,
@@ -133,6 +135,26 @@ const xuser = {
           handler: getCompanyOptions,
         },
       });
+      server.route({
+        method: 'GET',
+        path: '/company-profile',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getOwnCompanyInfo,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company/{companyId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAnyCompanyInfo,
+        },
+      });      
       server.route({
         method: 'PATCH',
         path: '/company/{companyUuid}',

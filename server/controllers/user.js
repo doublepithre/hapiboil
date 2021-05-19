@@ -838,6 +838,86 @@ const updateCompanyProfile = async (request, h) => {
   }
 };
 
+const getAnyCompanyInfo = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }            
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { companyId } = request.params;
+
+    const db1 = request.getDb('xpaxr');
+    
+    const sqlStmt = `select 	
+        ci.logo, ci.email_bg, ci.banner, c.*
+      from hris.company c
+        inner join hris.companyinfo ci on c.company_id=ci.company_id
+      where c.company_id=:companyId`;      
+        
+    const sequelize = db1.sequelize;
+    const companyInfoRAW = await sequelize.query(sqlStmt, {
+        type: QueryTypes.SELECT,
+        replacements: {                 
+          companyId,                
+        },
+    });    
+    const companyInfo = camelizeKeys(companyInfoRAW)[0];
+    const { companyId: foundCompanyId} = companyInfo || {};
+    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
+
+    return h.response(companyInfo).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
+const getOwnCompanyInfo = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+
+    const { Userinfo } = request.getModels('xpaxr');
+
+    // get the company of the companysuperadmin
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userProfileInfo = userRecord && userRecord.toJSON();
+    const { companyId: luserCompanyId } = userProfileInfo || {};    
+
+    const sqlStmt = `select 	
+        ci.logo, ci.email_bg, ci.banner, c.*
+      from hris.company c
+        inner join hris.companyinfo ci on c.company_id=ci.company_id
+      where c.company_id=:luserCompanyId`;      
+        
+    const sequelize = db1.sequelize;
+    const companyInfoRAW = await sequelize.query(sqlStmt, {
+        type: QueryTypes.SELECT,
+        replacements: {                 
+            luserCompanyId,                
+        },
+    });    
+    const companyInfo = camelizeKeys(companyInfoRAW)[0];
+    const { companyId: foundCompanyId} = companyInfo || {};
+    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
+    
+    return h.response(companyInfo).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
 const createCompanyStaff = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
@@ -2095,13 +2175,15 @@ module.exports = {
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
- 
+
+  getOwnCompanyInfo,
+  getAnyCompanyInfo,
   updateCompanyProfile,
   createCompanyStaff,
   getCompanyStaff,
   getFellowCompanyStaff,
   updateCompanyStaff,
-
+  
   getUser,
   updateUser,
   updatePassword,
