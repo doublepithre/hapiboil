@@ -343,6 +343,45 @@ paths:
                         companyName:
                           type: string
   
+  /account/company-profile: 
+    get:
+      summary: Get own Company info
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+     
+      responses:
+        '200':
+          description: Successfully retrived own Company info
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/CompanyFullDetails"
+        
+  /account/company/{companyId}/: 
+    get:
+      summary: Get Company info
+      parameters:
+        - name: companyId
+          in: path
+          description: ID of Company
+          required: true
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+     
+      responses:
+        '200':
+          description: Successfully retrived Company info
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/CompanyFullDetails"
+        
   /account/company/{companyUuid}/: 
     patch:
       summary: Update Company info
