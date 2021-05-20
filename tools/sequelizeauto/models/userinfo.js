@@ -140,6 +140,12 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: false,
       field: 'in_talent_pool'
+    },
+    allowSendEmail: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'allow_send_email'
     }
   }, {
     sequelize,
