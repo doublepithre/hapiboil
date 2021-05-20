@@ -2200,7 +2200,6 @@ const updateApplicationStatus = async (request, h) => {
     }
 }
 
-// get all default templates
 const getAllEmailTemplates = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -2214,20 +2213,25 @@ const getAllEmailTemplates = async (request, h) => {
         
         const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
         
-        // get the company of the companysuperadmin
+        // get the company of the luser
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};    
 
-        const { type='default' } = request.query;
+        const { type } = request.query;
+
+        const typeVal = type ? type.toLowerCase() : 'default';
+        const validTypes = ['default', 'custom'];
+        const isTypeReqValid = validTypes.includes(typeVal);
+        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
         
         const whereQuery = {};
-        if(type === 'default'){
+        if(typeVal === 'default'){
             whereQuery.isDefaultTemplate = true;
             whereQuery.companyId = null;
             whereQuery.ownerId = null;
         }
-        if(type === 'custom'){
+        if(typeVal === 'custom'){
             whereQuery.isDefaultTemplate = false;
             whereQuery.companyId = luserCompanyId;
         }
@@ -2241,12 +2245,55 @@ const getAllEmailTemplates = async (request, h) => {
     }
 }
 
+const getEmailTemplateInfo = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
+        
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};    
 
+        const { templateName } = request.params;
+        const { type } = request.query;
 
+        const typeVal = type ? type.toLowerCase() : 'default';
+        const validTypes = ['default', 'custom'];
+        const isTypeReqValid = validTypes.includes(typeVal);
+        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
+        
+        const whereQuery = {};
+        if(typeVal === 'default'){
+            whereQuery.isDefaultTemplate = true;
+            whereQuery.companyId = null;
+            whereQuery.ownerId = null;
+        }
+        if(typeVal === 'custom'){
+            whereQuery.isDefaultTemplate = false;
+            whereQuery.companyId = luserCompanyId;
+        }
 
+        const emailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
+        const emailTemplateInfo = emailTemplateRecord && emailTemplateRecord.toJSON();
+        const { id: existingEmailTemplateId } = emailTemplateInfo || {};
+        if(!existingEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
 
-
-
+        return h.response(emailTemplateInfo).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
 
 const maintainCompanyEmailTemplates = async (request, h) => {
     try{
@@ -3164,6 +3211,7 @@ module.exports = {
     updateApplicationStatus,
  
     getAllEmailTemplates,
+    getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
 
     mentorCandidateLinking,

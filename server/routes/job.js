@@ -24,6 +24,7 @@ import {
     updateApplicationStatus,
 
     getAllEmailTemplates,
+    getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
 
     mentorCandidateLinking,
@@ -288,6 +289,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getAllEmailTemplates,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/email-template-info/{templateName}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getEmailTemplateInfo,
         },
       });
       server.route({
