@@ -1263,7 +1263,7 @@ const applyToJob = async (request, h) => {
         const recruiterFirstName = jobCreatorFirstName || earliestAdministratorFirstName;
         
         // ----------------start of sending emails        
-        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-applied-email`, companyId: creatorCompanyId, status: 'active' }})
+        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-applied-email`, isDefaultTemplate: false, companyId: creatorCompanyId, status: 'active' }})
         const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
         const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
         const templateName = `application-applied-email`;
@@ -1562,7 +1562,7 @@ const withdrawFromAppliedJob = async (request, h) => {
         const employerId = creatorId || administratorId;
         
         // ----------------start of sending emails
-        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-withdrawn-email`, companyId: updatedApplicationData.companyId, status: 'active' }})
+        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-withdrawn-email`, isDefaultTemplate: false, companyId: updatedApplicationData.companyId, status: 'active' }})
         const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
         const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
         const templateName = `application-withdrawn-email`;
@@ -2160,7 +2160,7 @@ const updateApplicationStatus = async (request, h) => {
         });
 
           // ----------------start of sending emails
-          const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-${ status }-email`, companyId: recruiterCompanyId, status: 'active' }})
+          const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-${ status }-email`, isDefaultTemplate: false, companyId: recruiterCompanyId, status: 'active' }})
           const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
           const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
           const templateName =  `application-${ status }-email`;
@@ -2200,6 +2200,54 @@ const updateApplicationStatus = async (request, h) => {
     }
 }
 
+// get all default templates
+const getAllEmailTemplates = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
+        
+        // get the company of the companysuperadmin
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};    
+
+        const { type='default' } = request.query;
+        
+        const whereQuery = {};
+        if(type === 'default'){
+            whereQuery.isDefaultTemplate = true;
+            whereQuery.companyId = null;
+            whereQuery.ownerId = null;
+        }
+        if(type === 'custom'){
+            whereQuery.isDefaultTemplate = false;
+            whereQuery.companyId = luserCompanyId;
+        }
+
+        const emailTemplates = await Emailtemplate.findAll({ where: { ...whereQuery }});        
+        return h.response({ emailTemplates }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
+
+
+
+
+
+
+
 const maintainCompanyEmailTemplates = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -2227,12 +2275,12 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: luserCompanyId } = luserProfileInfo || {};
 
-        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: templateName, ownerId: null, companyId: null }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId'] }});
+        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: templateName, ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId', 'isDefaultTemplate'] }});
         const defaultTemplateInfo = defaultTemplateRecord && defaultTemplateRecord.toJSON();
         const { id: defaultTemplateId, ...rest } = defaultTemplateInfo || {};
 
         // find if this company already has the customized template
-        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, companyId: luserCompanyId, ownerId: { [Op.not]: null } }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
+        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, isDefaultTemplate: false, companyId: luserCompanyId, ownerId: { [Op.not]: null } }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
         const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
         const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
 
@@ -2246,7 +2294,7 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         if(status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status request!'}).code(400);
 
         if(!existingCustomizedTemplateId) {            
-            await Emailtemplate.create({ ...rest, companyId: luserCompanyId, templateName, ownerId: userId });
+            await Emailtemplate.create({ ...rest, isDefaultTemplate: false, companyId: luserCompanyId, templateName, ownerId: userId });
         } else {
             await Emailtemplate.update(customizedData, { where: { templateName, companyId: luserCompanyId }});
         }
@@ -3114,6 +3162,8 @@ module.exports = {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+ 
+    getAllEmailTemplates,
     maintainCompanyEmailTemplates,
 
     mentorCandidateLinking,
