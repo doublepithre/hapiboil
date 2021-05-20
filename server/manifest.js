@@ -43,6 +43,12 @@ const manifest = {
         },
       }, 
       {
+        plugin: require('./routes/nylas'),
+        routes: {
+          prefix: `${apiRootPrefix}/nylas`,
+        },
+      }, 
+      {
         plugin: require('./routes/login'),
         routes: {
           prefix: `${apiRootPrefix}/login`,
