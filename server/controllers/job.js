@@ -1265,8 +1265,9 @@ const applyToJob = async (request, h) => {
         // ----------------start of sending emails        
         const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-applied-email`, companyId: creatorCompanyId, status: 'active' }})
         const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
-        const { id: customTemplateId } = customTemplateInfo || {};
-        const templateName = customTemplateId ? `application-applied-email` : `default-application-applied-email`;
+        const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
+        const templateName = `application-applied-email`;
+        const ownerId = customTemplateId ? cTemplateOwnerId : null;
         const isX0PATemplate = customTemplateId ? false : true;
         
         const emailData = {
@@ -1274,6 +1275,7 @@ const applyToJob = async (request, h) => {
             email: luserEmail,
             ccEmails: [],
             templateName,
+            ownerId,
             isX0PATemplate,
 
             companyName: appliedJobDetails.companyName,
@@ -1562,8 +1564,9 @@ const withdrawFromAppliedJob = async (request, h) => {
         // ----------------start of sending emails
         const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-withdrawn-email`, companyId: updatedApplicationData.companyId, status: 'active' }})
         const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
-        const { id: customTemplateId } = customTemplateInfo || {};
-        const templateName = customTemplateId ? `application-withdrawn-email` : `default-application-withdrawn-email`;
+        const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
+        const templateName = `application-withdrawn-email`;
+        const ownerId = customTemplateId ? cTemplateOwnerId : null;
         const isX0PATemplate = customTemplateId ? false : true;
 
         const emailData = {
@@ -1571,6 +1574,7 @@ const withdrawFromAppliedJob = async (request, h) => {
             email: luserEmail,
             ccEmails: [],
             templateName,
+            ownerId,
             isX0PATemplate,
 
             companyName: updatedApplicationData.companyName,
@@ -2158,8 +2162,9 @@ const updateApplicationStatus = async (request, h) => {
           // ----------------start of sending emails
           const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-${ status }-email`, companyId: recruiterCompanyId, status: 'active' }})
           const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
-          const { id: customTemplateId } = customTemplateInfo || {};
-          const templateName = customTemplateId ? `application-${ status }-email` : `default-application-${ status }-email`;
+          const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
+          const templateName =  `application-${ status }-email`;
+          const ownerId = customTemplateId ? cTemplateOwnerId : null;
           const isX0PATemplate = customTemplateId ? false : true;
           
           const emailData = {
@@ -2167,6 +2172,7 @@ const updateApplicationStatus = async (request, h) => {
             email: candidateEmail,
             ccEmails: [],
             templateName,
+            ownerId,
             isX0PATemplate,
 
             companyName: companyName,
@@ -2201,7 +2207,7 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(luserTypeName !== 'companysuperadmin' && luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
@@ -2221,18 +2227,16 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: luserCompanyId } = luserProfileInfo || {};
 
-        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `default-${ templateName }` }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId'] }});
+        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: templateName, ownerId: null, companyId: null }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId'] }});
         const defaultTemplateInfo = defaultTemplateRecord && defaultTemplateRecord.toJSON();
         const { id: defaultTemplateId, ...rest } = defaultTemplateInfo || {};
 
         // find if this company already has the customized template
-        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, companyId: luserCompanyId }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
+        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, companyId: luserCompanyId, ownerId: { [Op.not]: null } }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
         const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
         const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
 
         if(!defaultTemplateId) return h.response({ error: true, message: 'No default template found!'}).code(400);
-        // if(!existingCustomizedTemplateId) return h.response({ error: true, message: 'No customized template found!'}).code(400);
-        // if(!existingCustomizedTemplateId) return h.response(rest).code(200);
         
         // is status req valid
         const { status } = customizedData;
@@ -2242,7 +2246,7 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         if(status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status request!'}).code(400);
 
         if(!existingCustomizedTemplateId) {            
-            await Emailtemplate.create({ ...rest, isUserTemplate: true, companyId: luserCompanyId, templateName, ownerId: userId });
+            await Emailtemplate.create({ ...rest, companyId: luserCompanyId, templateName, ownerId: userId });
         } else {
             await Emailtemplate.update(customizedData, { where: { templateName, companyId: luserCompanyId }});
         }

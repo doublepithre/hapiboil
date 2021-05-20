@@ -169,16 +169,8 @@ const getEmailTemplateDataAsync = async (
       "account-creation-reset-password",
       "account-creation-verify-email",
       "company-account-creation",
-      "job-alert-email",
-      
-      "default-application-applied-email",
-      "default-application-withdrawn-email",
-      "default-application-shortlisted-email",
-      "default-application-interview-email",
-      "default-application-offer-email",
-      "default-application-hired-email",
-      "default-application-closed-email",
-      
+      "job-alert-email",     
+           
       "application-applied-email",
       "application-withdrawn-email",
       "application-shortlisted-email",
@@ -722,8 +714,8 @@ const sendEmailAsync = async (edata, additionalEData) => {
         console.log("PROXYING CC EMAILS:", ccEmails);
         toAddresses = [
           "manash@x0pa.com",
-          "ambareesh@x0pa.com",
-          "ted@x0pa.com",
+          // "ambareesh@x0pa.com",
+          // "ted@x0pa.com",
         ];
       } else {
         console.log("PROXYING EMAIL:", email);
