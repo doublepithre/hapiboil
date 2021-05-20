@@ -785,10 +785,11 @@ const updateCompanyProfile = async (request, h) => {
       const isHexCode = RegEx.test(emailBg);
       if(!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!'}).code(400);
     }
-    
+
+        
     await Company.update(
       {
-        companyName: companyName.toLowerCase().trim(),
+        companyName: companyName?.toLowerCase().trim(),
         displayName: companyName,
         website, description, companyIndustryId, 
         noOfEmployees, foundedYear        
@@ -819,6 +820,8 @@ const updateCompanyProfile = async (request, h) => {
         },
     });
     const responses = camelizeKeys(SQLcompanyInfo)[0];
+    delete responses.companyName;
+    delete responses.active;
 
     // await Profileauditlog.create({ 
     //   affectedUserId: rForUserId,
@@ -894,7 +897,7 @@ const getOwnCompanyInfo = async (request, h) => {
     const { companyId: luserCompanyId } = userProfileInfo || {};    
 
     const db1 = request.getDb('xpaxr');
-    
+
     const sqlStmt = `select 	
         ci.logo, ci.email_bg, ci.banner, c.*
       from hris.company c
