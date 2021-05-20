@@ -893,6 +893,8 @@ const getOwnCompanyInfo = async (request, h) => {
     const userProfileInfo = userRecord && userRecord.toJSON();
     const { companyId: luserCompanyId } = userProfileInfo || {};    
 
+    const db1 = request.getDb('xpaxr');
+    
     const sqlStmt = `select 	
         ci.logo, ci.email_bg, ci.banner, c.*
       from hris.company c
