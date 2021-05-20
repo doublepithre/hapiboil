@@ -1,5 +1,6 @@
 import { 
   requestNyToken,
+  revokeNyAccount,
 } from "../controllers/nylas";
 
 const xnylas = {
@@ -16,6 +17,16 @@ register: async (server, options) => {
           mode: 'try',
         },
         handler: requestNyToken,
+      },
+    });
+    server.route({
+      method: 'POST',
+      path: '/revoke-account',
+      options: {
+        auth: {
+          mode: 'try',
+        },
+        handler: revokeNyAccount,
       },
     });
     // other routes
