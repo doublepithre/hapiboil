@@ -2,21 +2,32 @@
 const axios = require('axios');
 const Nylas = require('nylas');
 
-let config = {};
+const config = require('config');
+
+// let config = {};
+let nylasConfig = {};
 try {
-  config = require(`../../server/config.${process.env.NODE_ENV.trim()}.json`);
+  // config = require(`../../server/config.${process.env.NODE_ENV.trim()}.json`);
+  nylasConfig = config.get('nylas') || '';
 } catch (err) {
   console.error(err);
 }
 
 const {
-  nylas: {
-    NY_API_URL,
-    NY_CLIENT_ID,
-    NY_CLIENT_SECRET,
-    NY_REDIRECT_URI,
-  } = {},
-} = config || {};
+  NY_API_URL,
+  NY_CLIENT_ID,
+  NY_CLIENT_SECRET,
+  NY_REDIRECT_URI,
+} = nylasConfig || {};
+
+// const {
+//   nylas: {
+//     NY_API_URL,
+//     NY_CLIENT_ID,
+//     NY_CLIENT_SECRET,
+//     NY_REDIRECT_URI,
+//   } = {},
+// } = config || {};
 
 Nylas.config({
   clientId: NY_CLIENT_ID,
