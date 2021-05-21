@@ -1617,7 +1617,7 @@ const getApplicantProfile = async (request, h) => {
       // get the applicant's profile
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `select 
-            ja.application_id,
+            ja.application_id, ja.status,
             ui.*, ut.user_type_name, ur.role_name
         from hris.userinfo ui
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
