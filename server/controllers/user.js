@@ -1236,7 +1236,7 @@ const getFellowCompanyStaff = async (request, h) => {
               from hris.userinfo ui
                 inner join hris.userrole ur on ur.role_id=ui.role_id
                 inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
-              where ui.company_id=:companyId`;
+              where ui.company_id=:companyId and not ui.user_id=:userId`;
            
           // filters
           if(userType){
@@ -1265,6 +1265,7 @@ const getFellowCompanyStaff = async (request, h) => {
       	const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: { 
+                userId,
                 companyId,
                 userType,                
                 searchVal,                
