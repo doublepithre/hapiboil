@@ -3,14 +3,17 @@ import {
   createUser, 
 
   createCompanySuperAdmin,
+  getAllCompanyNames,
+  getCompanyOptions,
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
-  
-  getCompanyIndustryOptions,
-  createCompanyStaff,
+    
+  getOwnCompanyInfo,
+  getAnyCompanyInfo,
   updateCompanyProfile,
+  createCompanyStaff,
   updateCompanyStaff,
   getCompanyStaff,
   getFellowCompanyStaff,
@@ -74,6 +77,16 @@ const xuser = {
       });
       server.route({
         method: 'GET',
+        path: '/company-names',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllCompanyNames,
+        },
+      });
+      server.route({
+        method: 'GET',
         path: '/companies',
         options: {
           auth: {
@@ -114,14 +127,34 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/company/industries',
+        path: '/company-options',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: getCompanyIndustryOptions,
+          handler: getCompanyOptions,
         },
       });
+      server.route({
+        method: 'GET',
+        path: '/company-profile',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getOwnCompanyInfo,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company/{companyId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAnyCompanyInfo,
+        },
+      });      
       server.route({
         method: 'PATCH',
         path: '/company/{companyUuid}',
@@ -287,6 +320,18 @@ const xuser = {
           },
           handler: async (request, h) => {
             return await getQuestionnaire(request, h, 'empauwer_me')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/empauwer-us',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getQuestionnaire(request, h, 'empauwer_us')
           },
         },
       });

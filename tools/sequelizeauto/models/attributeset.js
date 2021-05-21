@@ -13,6 +13,20 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       unique: "attribute_name_unique",
       field: 'attribute_name'
+    },
+    description: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    lowText: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'low_text'
+    },
+    highText: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'high_text'
     }
   }, {
     sequelize,

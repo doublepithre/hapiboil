@@ -267,6 +267,52 @@ const createCompanySuperAdmin = async (request, h) => {
   }
 };
 
+const getAllCompanyNames = async (request, h) => {
+  try{
+      if (!request.auth.isAuthenticated) {
+          return h.response({ message: 'Forbidden'}).code(403);
+      }
+      const db1 = request.getDb('xpaxr');
+
+      // get sql statement for getting jobs or jobs count
+      const sqlStmt = `
+        select 
+          c.company_id, c.display_name as company_name
+        from hris.company c`;
+
+      const sequelize = db1.sequelize;
+      const allCompaniesRAW = await sequelize.query(sqlStmt, {
+          type: QueryTypes.SELECT,
+      });
+      
+      const allCompanies = camelizeKeys(allCompaniesRAW);
+      
+      return h.response({ companies: allCompanies }).code(200);
+  }
+  catch (error) {
+      console.error(error.stack);
+      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
+const getCompanyOptions = async (request, h) => {
+  try{
+      if (!request.auth.isAuthenticated) {
+          return h.response({ message: 'Forbidden'}).code(403);
+      }
+      const { Companyindustry } = request.getModels('xpaxr');
+      const companyIndustries = await Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName']});
+      const responses = {
+          industry: companyIndustries,
+      };
+      return h.response(responses).code(200);
+  }
+  catch (error) {
+      console.error(error.stack);
+      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
 const getAllCompanyBySuperadmin = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -283,13 +329,13 @@ const getAllCompanyBySuperadmin = async (request, h) => {
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-      if (!sortType && sortBy === 'created_at') sortType = 'DESC';
-      if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+      if (!sortType && sortBy === 'created_at') sortType = 'desc';
+      if (!sortType && sortBy !== 'created_at') sortType = 'asc';
       
       const validSortTypes = ['asc', 'desc'];
-      const sortByLower = sortBy.toLowerCase();
-      const isSortTypeReqValid = validSortTypes.includes(sortByLower);
+      const sortTypeLower = sortType.toLowerCase();
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
       
       const validSorts = ['company_id', 'company_name', 'created_at'];
       const isSortReqValid = validSorts.includes(sortBy);
@@ -389,26 +435,25 @@ const getAllUsersBySuperadmin = async (request, h) => {
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // filters
-    const userTypeLower = userType ? (isArray(userType) ? userType.map(ut => ut.toLowerCase()) : userType.toLowerCase()) : null;
-    const companyNameLower = companyName ? (isArray(companyName) ? companyName.map(cn => cn.toLowerCase()) : companyName.toLowerCase()) : null;
+    const userTypeLower = userType ? (isArray(userType) ? userType.map(ut => ut.toLowerCase()) : userType.toLowerCase()) : null;    
 
     // Checking user type
     const validAccountTypes = ['candidate', 'employer', 'mentor', 'companysuperadmin', 'superadmin'];
-    const isUserTypeQueryValid = (userType && isArray(userType)) ? (
-      userType.every( req => validAccountTypes.includes(req))
-    ) : validAccountTypes.includes(userType);
-    if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
+    const isUserTypeQueryValid = (userTypeLower && isArray(userTypeLower)) ? (
+      userTypeLower.every( req => validAccountTypes.includes(req))
+    ) : validAccountTypes.includes(userTypeLower);
+    if (userTypeLower && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
     
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'ASC'];
-      if (!sortType) sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['company_name', 'asc'];
+      if (!sortType) sortType = 'asc';
 
       const validSorts = ['company_name', 'first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       const validSortTypes = ['asc', 'desc'];
-      const sortByLower = sortBy.toLowerCase();
-      const isSortTypeReqValid = validSortTypes.includes(sortByLower);
+      const sortTypeLower = sortType.toLowerCase();
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
@@ -421,9 +466,9 @@ const getAllUsersBySuperadmin = async (request, h) => {
       const db1 = request.getDb('xpaxr');
 
       // get sql statement for getting all users or its count        
-      const filters = { search, sortBy, sortType, userTypeLower, companyNameLower, companyId }
+      const filters = { search, sortBy, sortType, userTypeLower, companyId }
       function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userTypeLower, companyNameLower, companyId } = obj;
+          const { search, sortBy, sortType, userTypeLower, companyId } = obj;
           let sqlStmt;
           const type = queryType && queryType.toLowerCase();
           if(type === 'count'){
@@ -443,10 +488,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
           // filters
           if(userTypeLower){
             sqlStmt += isArray(userTypeLower) ? ` and ut.user_type_name in (:userTypeLower)` : ` and ut.user_type_name=:userTypeLower`;
-          }
-          if(companyNameLower){
-            sqlStmt += isArray(companyNameLower) ? ` and c.company_name in (:companyNameLower)` : ` and c.company_name=:companyNameLower`;
-          }
+          }          
           if(companyId){
             sqlStmt += isArray(companyId) ? ` and ui.company_id in (:companyId)` : ` and ui.company_id=:companyId`;
           }
@@ -474,8 +516,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
             type: QueryTypes.SELECT,
             replacements: {                 
                 userTypeLower,
-                companyId,
-                companyNameLower,
+                companyId,                
                 limitNum, offsetNum,
                 searchVal,                
             },
@@ -485,7 +526,6 @@ const getAllUsersBySuperadmin = async (request, h) => {
             replacements: {                 
                 userTypeLower,
                 companyId,
-                companyNameLower,
                 limitNum, offsetNum,
                 searchVal,                
             },
@@ -677,22 +717,6 @@ const updateUserBySuperadmin = async (request, h) => {
   }
 }
 
-const getCompanyIndustryOptions = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
-      }
-      const { Companyindustry } = request.getModels('xpaxr');
-      const companyIndustries = await Companyindustry.findAll({});
-      
-      return h.response({ industry: companyIndustries}).code(200);
-  }
-  catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
-  }
-}
-
 const updateCompanyProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
@@ -761,10 +785,11 @@ const updateCompanyProfile = async (request, h) => {
       const isHexCode = RegEx.test(emailBg);
       if(!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!'}).code(400);
     }
-    
+
+        
     await Company.update(
       {
-        companyName: companyName.toLowerCase().trim(),
+        companyName: companyName?.toLowerCase().trim(),
         displayName: companyName,
         website, description, companyIndustryId, 
         noOfEmployees, foundedYear        
@@ -795,6 +820,8 @@ const updateCompanyProfile = async (request, h) => {
         },
     });
     const responses = camelizeKeys(SQLcompanyInfo)[0];
+    delete responses.companyName;
+    delete responses.active;
 
     // await Profileauditlog.create({ 
     //   affectedUserId: rForUserId,
@@ -813,6 +840,88 @@ const updateCompanyProfile = async (request, h) => {
     }).code(400);
   }
 };
+
+const getAnyCompanyInfo = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }            
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { companyId } = request.params;
+
+    const db1 = request.getDb('xpaxr');
+    
+    const sqlStmt = `select 	
+        ci.logo, ci.email_bg, ci.banner, c.*
+      from hris.company c
+        inner join hris.companyinfo ci on c.company_id=ci.company_id
+      where c.company_id=:companyId`;      
+        
+    const sequelize = db1.sequelize;
+    const companyInfoRAW = await sequelize.query(sqlStmt, {
+        type: QueryTypes.SELECT,
+        replacements: {                 
+          companyId,                
+        },
+    });    
+    const companyInfo = camelizeKeys(companyInfoRAW)[0];
+    const { companyId: foundCompanyId} = companyInfo || {};
+    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
+
+    return h.response(companyInfo).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
+const getOwnCompanyInfo = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+
+    const { Userinfo } = request.getModels('xpaxr');
+
+    // get the company of the companysuperadmin
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userProfileInfo = userRecord && userRecord.toJSON();
+    const { companyId: luserCompanyId } = userProfileInfo || {};    
+
+    const db1 = request.getDb('xpaxr');
+
+    const sqlStmt = `select 	
+        ci.logo, ci.email_bg, ci.banner, c.*
+      from hris.company c
+        inner join hris.companyinfo ci on c.company_id=ci.company_id
+      where c.company_id=:luserCompanyId`;      
+        
+    const sequelize = db1.sequelize;
+    const companyInfoRAW = await sequelize.query(sqlStmt, {
+        type: QueryTypes.SELECT,
+        replacements: {                 
+            luserCompanyId,                
+        },
+    });    
+    const companyInfo = camelizeKeys(companyInfoRAW)[0];
+    const { companyId: foundCompanyId} = companyInfo || {};
+    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
+    
+    return h.response(companyInfo).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
 
 const createCompanyStaff = async (request, h) => {
   try {
@@ -979,21 +1088,23 @@ const getCompanyStaff = async (request, h) => {
     
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'ASC'];
-      if (!sortType) sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+      if (!sortType) sortType = 'asc';
       const validSorts = ['first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
-
+      
+      const sortTypeLower = sortType.toLowerCase();
+      const validSortTypes = ['asc', 'desc'];
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid){
+       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
         return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       }       
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       
-
       const db1 = request.getDb('xpaxr');
 
       // get sql statement for getting all company staff or its count        
@@ -1091,16 +1202,19 @@ const getFellowCompanyStaff = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'ASC'];
-      if (!sortType) sortType = 'ASC';
+      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+      if (!sortType) sortType = 'asc';
       const validSorts = ['first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
+      
+      const sortTypeLower = sortType.toLowerCase();
+      const validSortTypes = ['asc', 'desc'];
+      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
       
       const validUserTypeFilters = ['employer', 'mentor'];
       const isUserTypeReqValid = validUserTypeFilters.includes(userType);
 
-
-      if(!isSortReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
+      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
       if(userType && !isUserTypeReqValid) return h.response({error: true, message: 'Invalid userType query parameter!'}).code(400);
 
       const db1 = request.getDb('xpaxr');
@@ -1122,7 +1236,7 @@ const getFellowCompanyStaff = async (request, h) => {
               from hris.userinfo ui
                 inner join hris.userrole ur on ur.role_id=ui.role_id
                 inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
-              where ui.company_id=:companyId`;
+              where ui.company_id=:companyId and not ui.user_id=:userId and ui.active=true`;
            
           // filters
           if(userType){
@@ -1151,6 +1265,7 @@ const getFellowCompanyStaff = async (request, h) => {
       	const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: { 
+                userId,
                 companyId,
                 userType,                
                 searchVal,                
@@ -1768,10 +1883,26 @@ const getProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    let userType = request.auth.artifacts.decoded.userTypeName;   
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    const { Userquesresponse } = request.getModels('xpaxr');
-    const quesResponses = await Userquesresponse.findAll({ where: { userId }});
+    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    
+    let quesResponses = [];
+    let targetId = 1;
+    let answerTable = 'userquesresponses';
+    
+    if(userType === 'candidate') {
+      quesResponses = await Userquesresponse.findAll({ where: { userId }});
+      targetId = 1;
+      answerTable = 'userquesresponses';
+    }    
+    if(userType === 'mentor') {
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
+      targetId = 3;
+      answerTable = 'mentorquesresponses';
+    } 
+
     const responses = [];
     for (let response of quesResponses) {
       response = response && response.toJSON();
@@ -1782,9 +1913,7 @@ const getProfile = async (request, h) => {
 
     // attaching isComplete property
     const db1 = request.getDb('xpaxr');
-    const sequelize = db1.sequelize;
-
-    const targetId = 1;
+    const sequelize = db1.sequelize;    
 
     const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
     inner join hris.questiontarget qt on qt.target_id=q.question_target_id
@@ -1799,13 +1928,13 @@ const getProfile = async (request, h) => {
     const userQuesCount = allSQLUserQuesCount[0].count;
     
     const sqlStmtForUserRes = `select count(*) 
-      from hris.userquesresponses uqr
+      from hris.${ answerTable } uqr
       where uqr.user_id=:userId`;        
 
     const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
         type: QueryTypes.SELECT,
         replacements: { 
-          userId,            
+          userId, 
         },
     });
     const userResCount = allSQLUserResCount[0].count;
@@ -2046,18 +2175,21 @@ module.exports = {
   createUser,
 
   createCompanySuperAdmin,
+  getAllCompanyNames,
+  getCompanyOptions,
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
 
-  getCompanyIndustryOptions,
+  getOwnCompanyInfo,
+  getAnyCompanyInfo,
   updateCompanyProfile,
   createCompanyStaff,
   getCompanyStaff,
   getFellowCompanyStaff,
   updateCompanyStaff,
-
+  
   getUser,
   updateUser,
   updatePassword,

@@ -21,6 +21,19 @@ import {
     shareApplication, 
     updateSharedApplication,
     deleteApplicationAccessRecord,
+    updateApplicationStatus,
+
+    getAllEmailTemplates,
+    getEmailTemplateInfo,
+    maintainCompanyEmailTemplates,
+
+    mentorCandidateLinking,
+    getMentorCandidates,
+    getAllMentorCandidates,
+    replaceMentorForOne,
+    replaceMentorForAll,
+    deleteMentorCandidateMappingRecord,
+     
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,
@@ -258,6 +271,106 @@ const xjob = {
           handler: deleteApplicationAccessRecord,
         },
       });
+      server.route({
+        method: 'PATCH',
+        path: '/application-status/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateApplicationStatus,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/email-template/all',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllEmailTemplates,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/email-template-info/{templateName}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getEmailTemplateInfo,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/customize-email-template/{templateName}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: maintainCompanyEmailTemplates,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/mentor-candidate/{applicationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: mentorCandidateLinking,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/mentor-candidates/all',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllMentorCandidates,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/mentor-candidate/{mentorId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getMentorCandidates,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/mentor-candidate/{candidateId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteMentorCandidateMappingRecord,
+        },
+      });     
+      server.route({
+        method: 'PATCH',
+        path: '/replace-mentor/one/{candidateId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: replaceMentorForOne,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/replace-mentor/all/{oldMentorId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: replaceMentorForAll,
+        },
+      });      
       server.route({
         method: 'GET',
         path: '/j/talents/{jobId}',

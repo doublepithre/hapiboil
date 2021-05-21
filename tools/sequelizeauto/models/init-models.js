@@ -7,6 +7,8 @@ var _Company = require("./company");
 var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
+var _Cronofy = require("./cronofy");
+var _Cronofytoken = require("./cronofytoken");
 var _Emaillog = require("./emaillog");
 var _Emailtemplate = require("./emailtemplate");
 var _Jobapplication = require("./jobapplication");
@@ -19,6 +21,7 @@ var _Jobname = require("./jobname");
 var _Job = require("./job");
 var _Jobsquesresponse = require("./jobsquesresponse");
 var _Jobtype = require("./jobtype");
+var _Mentorcandidatemapping = require("./mentorcandidatemapping");
 var _Mentorquesresponse = require("./mentorquesresponse");
 var _Profileauditlog = require("./profileauditlog");
 var _Qaattribute = require("./qaattribute");
@@ -28,6 +31,7 @@ var _Questionnaire = require("./questionnaire");
 var _Questionnaireanswer = require("./questionnaireanswer");
 var _Questiontarget = require("./questiontarget");
 var _Questiontype = require("./questiontype");
+var _Report = require("./report");
 var _Requesttoken = require("./requesttoken");
 var _User = require("./user");
 var _Userinfo = require("./userinfo");
@@ -45,6 +49,8 @@ function initModels(sequelize) {
   var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
+  var Cronofy = _Cronofy(sequelize, DataTypes);
+  var Cronofytoken = _Cronofytoken(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
   var Emailtemplate = _Emailtemplate(sequelize, DataTypes);
   var Jobapplication = _Jobapplication(sequelize, DataTypes);
@@ -57,6 +63,7 @@ function initModels(sequelize) {
   var Job = _Job(sequelize, DataTypes);
   var Jobsquesresponse = _Jobsquesresponse(sequelize, DataTypes);
   var Jobtype = _Jobtype(sequelize, DataTypes);
+  var Mentorcandidatemapping = _Mentorcandidatemapping(sequelize, DataTypes);
   var Mentorquesresponse = _Mentorquesresponse(sequelize, DataTypes);
   var Profileauditlog = _Profileauditlog(sequelize, DataTypes);
   var Qaattribute = _Qaattribute(sequelize, DataTypes);
@@ -66,6 +73,7 @@ function initModels(sequelize) {
   var Questionnaireanswer = _Questionnaireanswer(sequelize, DataTypes);
   var Questiontarget = _Questiontarget(sequelize, DataTypes);
   var Questiontype = _Questiontype(sequelize, DataTypes);
+  var Report = _Report(sequelize, DataTypes);
   var Requesttoken = _Requesttoken(sequelize, DataTypes);
   var User = _User(sequelize, DataTypes);
   var Userinfo = _Userinfo(sequelize, DataTypes);
@@ -124,6 +132,8 @@ function initModels(sequelize) {
   Questionnaire.hasMany(Questionmapping, { as: "empauwerMeQQuestionmappings", foreignKey: "empauwerMeQid"});
   Questionnaireanswer.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Questionnaire.hasMany(Questionnaireanswer, { as: "questionnaireanswers", foreignKey: "questionId"});
+  Report.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
+  Questionnaire.hasMany(Report, { as: "reports", foreignKey: "questionId"});
   Userquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Questionnaire.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "questionId"});
   Qaattribute.belongsTo(Questionnaireanswer, { as: "answer", foreignKey: "answerId"});
@@ -144,12 +154,20 @@ function initModels(sequelize) {
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Companyauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
   Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
+  Cronofy.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasOne(Cronofy, { as: "cronofy", foreignKey: "userId"});
+  Cronofytoken.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Cronofytoken, { as: "cronofytokens", foreignKey: "userId"});
   Jobapplication.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Jobauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "performerUserId"});
   Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Mentorcandidatemapping.belongsTo(Userinfo, { as: "candidate", foreignKey: "candidateId"});
+  Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorcandidatemappings", foreignKey: "candidateId"});
+  Mentorcandidatemapping.belongsTo(Userinfo, { as: "mentor", foreignKey: "mentorId"});
+  Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorMentorcandidatemappings", foreignKey: "mentorId"});
   Mentorquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
   Profileauditlog.belongsTo(Userinfo, { as: "affectedUser", foreignKey: "affectedUserId"});
@@ -176,6 +194,8 @@ function initModels(sequelize) {
     Companyauditlog,
     Companyindustry,
     Companyinfo,
+    Cronofy,
+    Cronofytoken,
     Emaillog,
     Emailtemplate,
     Jobapplication,
@@ -188,6 +208,7 @@ function initModels(sequelize) {
     Job,
     Jobsquesresponse,
     Jobtype,
+    Mentorcandidatemapping,
     Mentorquesresponse,
     Profileauditlog,
     Qaattribute,
@@ -197,6 +218,7 @@ function initModels(sequelize) {
     Questionnaireanswer,
     Questiontarget,
     Questiontype,
+    Report,
     Requesttoken,
     User,
     Userinfo,

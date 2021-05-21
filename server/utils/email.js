@@ -169,6 +169,15 @@ const getEmailTemplateDataAsync = async (
       "account-creation-reset-password",
       "account-creation-verify-email",
       "company-account-creation",
+      "job-alert-email",     
+           
+      "application-applied-email",
+      "application-withdrawn-email",
+      "application-shortlisted-email",
+      "application-interview-email",
+      "application-offer-email",
+      "application-hired-email",
+      "application-closed-email",
     ];
     if(!knownEmailTemplates.includes(templateName)) {
       isUserCustomTemplate = true;
@@ -650,7 +659,14 @@ const sendEmailAsync = async (edata, additionalEData) => {
   try {
     const {
       email = "sriharsha@x0pa.com",
+      
       password,
+      allJobsLink,
+      companyName,
+      candidateFirstName,
+      recruiterFirstName,
+      jobName,      
+
       emails,
       ccEmails,
       templateName,
@@ -698,7 +714,8 @@ const sendEmailAsync = async (edata, additionalEData) => {
         console.log("PROXYING CC EMAILS:", ccEmails);
         toAddresses = [
           "manash@x0pa.com",
-          "ambareesh@x0pa.com"
+          "ambareesh@x0pa.com",
+          "ted@x0pa.com",
         ];
       } else {
         console.log("PROXYING EMAIL:", email);
@@ -815,6 +832,19 @@ const sendEmailAsync = async (edata, additionalEData) => {
 
     if (!compiledHtmlBody || !compiledTextBody) {
       console.log("Email body text is empty", templateName);
+      await recordSentEmail({
+        templateName,
+        ownerId,
+        appId,
+        status: "error",
+        message: "Email body text is empty",
+        toAddresses: toAddresses.join(","),
+        ccAddresses: ccAddresses.join(","),
+        bccAddresses: bccAddresses.join(","),
+        emailMeta: null,
+        profileId: metaProfileId || null,
+        displayName: tdisplayName,
+      }, additionalEData);
       return {
         error: {
           message: "Either html email body or text email body is empty",
