@@ -1236,7 +1236,7 @@ const getFellowCompanyStaff = async (request, h) => {
               from hris.userinfo ui
                 inner join hris.userrole ur on ur.role_id=ui.role_id
                 inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
-              where ui.company_id=:companyId and not ui.user_id=:userId`;
+              where ui.company_id=:companyId and not ui.user_id=:userId and ui.active=true`;
            
           // filters
           if(userType){
