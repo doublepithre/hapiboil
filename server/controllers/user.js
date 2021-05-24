@@ -1198,7 +1198,7 @@ const getFellowCompanyStaff = async (request, h) => {
     const userProfileInfo = userRecord && userRecord.toJSON();
     const { companyId } = userProfileInfo || {};
 
-    const { sort, search, userType } = request.query;            
+    const { sort, search, userType, exclude } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
@@ -1220,9 +1220,9 @@ const getFellowCompanyStaff = async (request, h) => {
       const db1 = request.getDb('xpaxr');
 
       // get sql statement for getting all company staff or its count        
-      const filters = { search, sortBy, sortType, userType }
+      const filters = { search, sortBy, sortType, userType, exclude }
       function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userType } = obj;
+          const { search, sortBy, sortType, userType, exclude } = obj;
           let sqlStmt;
           const type = queryType && queryType.toLowerCase();
           if(type === 'count'){
@@ -1239,6 +1239,9 @@ const getFellowCompanyStaff = async (request, h) => {
               where ui.company_id=:companyId and not ui.user_id=:userId and ui.active=true`;
            
           // filters
+          if(exclude){
+            sqlStmt += isArray(exclude) ? ` and not ui.user_id in (:exclude)` : ` and not ui.user_id=:exclude`;
+          }
           if(userType){
             sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
           } else {
@@ -1269,6 +1272,7 @@ const getFellowCompanyStaff = async (request, h) => {
                 companyId,
                 userType,                
                 searchVal,                
+                exclude,
             },
         });
         const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
