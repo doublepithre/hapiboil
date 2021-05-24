@@ -571,7 +571,7 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/fellow-staff?search={searchTEXT}&userType={userType}&sort={sort}:
+  /account/fellow-staff?search={searchTEXT}&userType={userType}&sort={sort}&exclude={excludeUserId}:
     get: 
         summary: Get all fellow company staff
         tags:
@@ -592,6 +592,14 @@ paths:
           schema:
             type: string
             enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
+        
+        - name: exclude
+          description: userId to exclude
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: 143
         
         responses:
           '200':
