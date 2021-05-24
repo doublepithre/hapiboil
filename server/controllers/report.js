@@ -14,9 +14,10 @@ const getAbout = async (request, h) => {
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
         const { Report,Questionnaire,Userquesresponse } = request.getModels('xpaxr');
-        if (userTypeName === "employer"){
+        if (userTypeName === "employer" || userTypeName==="mentor"){
             // check if talent has at applied to at least 1 job posted by employer(userId)
             let sequelize = db.sequelize;
+            let {talentId} = request.query;
             if (await checkReportAccess(sequelize,userId,talentId)){//authorized
                 //find directly from questions
                 let res = await Userquesresponse.findAll({
@@ -128,7 +129,7 @@ const getUserStats = async (request, h) => {
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
         const { Attributeset } = request.getModels('xpaxr');
-        if (userTypeName === "employer"){
+        if (userTypeName === "employer" || userTypeName==="mentor"){
             // check if talent has at applied to at least 1 job posted by employer(userId)
             let sequelize = db.sequelize;
             let {talentId} = request.query;
