@@ -1695,6 +1695,10 @@ paths:
                 properties:
                   applicationId:
                     type: number
+                  status:
+                    type: string
+                  mentorId:
+                    type: number
 
   /job/j/share-application/{applicationId}:
     get: 
