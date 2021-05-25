@@ -1187,7 +1187,7 @@ const getFellowCompanyStaff = async (request, h) => {
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
     const { credentials } = request.auth || {};
     const userId = credentials.id;
