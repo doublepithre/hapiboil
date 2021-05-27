@@ -333,7 +333,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/mentor-candidate/{mentorId}',
+        path: '/mentor-candidate/me',
         options: {
           auth: {
             mode: 'try',

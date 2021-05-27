@@ -2651,34 +2651,11 @@ const getMentorCandidates = async (request, h) => {
         const { id: userId } = credentials || {};        
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-        if(luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin'){
+        if(luserTypeName !== 'mentor'){
             return h.response({error:true, message:'You are not authorized!'}).code(403);
-        }
-        const { mentorId } = request.params || {};
-        const { Userinfo, Usertype } = request.getModels('xpaxr');
-
-        // get the company of the luser
-        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-        const luserProfileInfo = luserRecord && luserRecord.toJSON();
-        const { companyId: luserCompanyId } = luserProfileInfo || {};
-        
-        // get the company of the mentor (if it's companysuperadmin requesting, they'll be different users, otherwise the mentor and the luser will be the same)
-        const mUserRecord = await Userinfo.findOne({ 
-            where: { userId: mentorId },
-            include: [{
-                model: Usertype,
-                as: 'userType',                
-            }],
-            attributes: { exclude: ['createdAt', 'updatedAt'] 
-        }});
-        const mUserProfileInfo = mUserRecord && mUserRecord.toJSON();
-        const { userId: mUserId, companyId: mentorCompanyId, userType: mUserType } = mUserProfileInfo || {};
-        const { userTypeName: mUserTypeName } = mUserType || {};
-
-        if(mUserTypeName !== 'mentor') return h.response({error:true, message:'The user is not a mentor!'}).code(400);
-        if(!mUserId) return h.response({error:true, message:'No user found for this mentorId!'}).code(400);
-        if(luserCompanyId !== mentorCompanyId) return h.response({error:true, message:'You are not authorized! The mentor is not from the same company!'}).code(403);
-        
+        }        
+        const mentorId = userId;
+            
         // find all candidates' records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select

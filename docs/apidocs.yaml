@@ -1935,20 +1935,14 @@ paths:
                 type: object
                 $ref: "#/components/schemas/mentorCandidateMapping" 
 
-  /job/mentor-candidate/{mentorId}:    
+  /job/mentor-candidate/me:    
     get: 
       summary: Get One Mentor's Candidates
       tags:
         - Job
       security:
       - bearerAuth: []
-      parameters:
-        - name: mentorId
-          in: path
-          description: id of mentor
-          required: true
-          schema:
-            type: string      
+      
       responses:
         '200':
           description: OK
