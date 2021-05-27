@@ -1616,13 +1616,17 @@ const getApplicantProfile = async (request, h) => {
 
       // get the applicant's profile
       const db1 = request.getDb('xpaxr');
-      const sqlStmt = `select 
+      const sqlStmt = `select
+            jn.job_name,
+            j.job_uuid,  
             ja.application_id, ja.status, mcm.mentor_id,
             ui.*, ut.user_type_name, ur.role_name
         from hris.userinfo ui
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
             inner join hris.userrole ur on ur.role_id=ui.role_id
             inner join hris.jobapplications ja on ja.user_id=ui.user_id
+            inner join hris.jobs j on j.job_id=:jobId
+            inner join hris.jobname jn on jn.job_name_id=j.job_name_id
             
             left join hris.mentorcandidatemapping mcm on mcm.candidate_id=ui.user_id
         where ui.user_id=:userId and ja.job_id=:jobId`;
