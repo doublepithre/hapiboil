@@ -1699,6 +1699,10 @@ paths:
                     type: string
                   mentorId:
                     type: number
+                  jobName:
+                    type: string
+                  jobUuid:
+                    type: string
 
   /job/j/share-application/{applicationId}:
     get: 
