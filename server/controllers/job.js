@@ -2272,8 +2272,8 @@ const getEmailTemplateInfo = async (request, h) => {
         const { templateName } = request.params;
         const { type } = request.query;
 
-        const typeVal = type ? type.toLowerCase() : 'default';
-        const validTypes = ['default', 'custom'];
+        const typeVal = type ? type.toLowerCase() : 'customordefault';
+        const validTypes = ['default', 'custom', 'customordefault'];
         const isTypeReqValid = validTypes.includes(typeVal);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
         
@@ -2287,13 +2287,32 @@ const getEmailTemplateInfo = async (request, h) => {
             whereQuery.isDefaultTemplate = false;
             whereQuery.companyId = luserCompanyId;
         }
+        let responses;
+        if(typeVal !== 'customordefault'){ //get either custom or default based on the TYPE query parameter
+            const emailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
+            const emailTemplateInfo = emailTemplateRecord && emailTemplateRecord.toJSON();
+            const { id: existingEmailTemplateId } = emailTemplateInfo || {};
+            if(!existingEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
+            responses = emailTemplateInfo;
 
-        const emailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
-        const emailTemplateInfo = emailTemplateRecord && emailTemplateRecord.toJSON();
-        const { id: existingEmailTemplateId } = emailTemplateInfo || {};
-        if(!existingEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
+        } else { //if TYPE query parameter not given, first look for custom template, if exists, get it, if not, get default template info
+            const cEmailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
+            const cEmailTemplateInfo = cEmailTemplateRecord && cEmailTemplateRecord.toJSON();
+            const { id: existingCustomEmailTemplateId } = cEmailTemplateInfo || {};
 
-        return h.response(emailTemplateInfo).code(200);
+            if(!existingCustomEmailTemplateId) { //if custom template does not exist, get default
+                const dEmailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, isDefaultTemplate: true, companyId: null, ownerId: null }});
+                const dEmailTemplateInfo = dEmailTemplateRecord && dEmailTemplateRecord.toJSON();
+                const { id: existingDefaultEmailTemplateId } = dEmailTemplateInfo || {};
+                
+                if(!existingDefaultEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
+                responses = dEmailTemplateInfo;
+            } else { //if custom template exists, get custom
+                responses = cEmailTemplateInfo;
+            }
+        }
+
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
