@@ -2224,26 +2224,20 @@ const getAllEmailTemplates = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};    
 
-        const { type } = request.query;
-
-        const typeVal = type ? type.toLowerCase() : 'default';
-        const validTypes = ['default', 'custom'];
-        const isTypeReqValid = validTypes.includes(typeVal);
-        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
+        const allDefaultTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' }});        
+        const allCustomTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: false, companyId: luserCompanyId, status: 'active' }});        
         
-        const whereQuery = {};
-        if(typeVal === 'default'){
-            whereQuery.isDefaultTemplate = true;
-            whereQuery.companyId = null;
-            whereQuery.ownerId = null;
-        }
-        if(typeVal === 'custom'){
-            whereQuery.isDefaultTemplate = false;
-            whereQuery.companyId = luserCompanyId;
-        }
-
-        const emailTemplates = await Emailtemplate.findAll({ where: { ...whereQuery }});        
-        return h.response({ emailTemplates }).code(200);
+        const cTemplateNames = [];
+        allCustomTemplates.forEach(item => cTemplateNames.push(item.templateName));
+        
+        const pureDefaultTemplates = allDefaultTemplates.filter(item =>{
+            const record = item.toJSON();
+            const doesCustomTemplateExist = cTemplateNames.includes(record.templateName);
+            return !doesCustomTemplateExist;
+        });
+        
+        const refinedTemplates = [...allCustomTemplates, ...pureDefaultTemplates];
+        return h.response({ emailTemplates: refinedTemplates }).code(200);
     }
     catch (error) {
         console.error(error.stack);

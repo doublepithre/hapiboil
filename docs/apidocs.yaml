@@ -1937,23 +1937,13 @@ paths:
                 type: object
                 $ref: "#/components/schemas/Emailtemplate" 
 
-  /job/email-template/all?type={customOrDefault}:    
+  /job/email-template/all:    
     get: 
       summary: Get All Email Templates
       tags:
         - Job
       security:
-      - bearerAuth: []
-      parameters:
-        - name: type
-          in: query
-          description: type of the email template. If no type given, it'll fetch all default templates.
-          required: true
-          schema:
-            type: string
-            enum: [custom, default]
-            required: false
-            
+      - bearerAuth: []   
       responses:
         '200':
           description: OK
