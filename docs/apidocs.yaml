@@ -612,7 +612,20 @@ paths:
                     staff:
                       type: array
                       items:
-                        $ref: "#/components/schemas/companyUser"                      
+                        type: object
+                        properties:
+                          firstName:
+                            type: string
+                          lastName:
+                            type: string
+                          email:
+                            type: string
+                          userId:
+                            type: number
+                          roleName:
+                            type: string
+                          userTypeName:
+                            type: string            
 
   /login:
     post:

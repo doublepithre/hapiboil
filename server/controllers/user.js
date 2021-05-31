@@ -1229,7 +1229,7 @@ const getFellowCompanyStaff = async (request, h) => {
               sqlStmt = `select count(*)`;
           } else {
               sqlStmt = `select
-                ui.email, ui.user_id, ur.role_name, ut.user_type_name`;
+                ui.first_name, ui.last_name, ui.email, ui.user_id, ur.role_name, ut.user_type_name`;
           }
 
           sqlStmt += `
