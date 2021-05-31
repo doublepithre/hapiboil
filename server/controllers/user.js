@@ -349,6 +349,7 @@ const getAllCompanyBySuperadmin = async (request, h) => {
       if(!isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
       if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
                           
+      if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       
       const db1 = request.getDb('xpaxr');
