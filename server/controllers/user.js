@@ -337,15 +337,18 @@ const getAllCompanyBySuperadmin = async (request, h) => {
       const sortTypeLower = sortType.toLowerCase();
       const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
       
-      const validSorts = ['company_id', 'company_name', 'created_at'];
+      const validSorts = ['company_name', 'created_at'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-      if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
-        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      }       
+
+      if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
+      if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
+      if(!isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
+      if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
+                          
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       
       const db1 = request.getDb('xpaxr');
