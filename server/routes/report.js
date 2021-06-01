@@ -1,7 +1,8 @@
 import { 
     getAbout,
     getUserStats,
-    getCompatibility
+    getCompatibility,
+    getMentorRecommendations
 } from "../controllers/report";
 
 const report = {
@@ -38,6 +39,16 @@ const report = {
             mode: 'try',
           },
           handler: getCompatibility
+        },
+      });   
+      server.route({
+        method: 'GET',
+        path: '/mentor/recommendations',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getMentorRecommendations
         },
       });   
     } 
