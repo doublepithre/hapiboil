@@ -179,7 +179,7 @@ const createCompanySuperAdmin = async (request, h) => {
       actionType: 'CREATE',
       actionDescription: `The user of userId ${luserId} has created the company of companyId ${companyId}`,
     });
-
+    
     // creating company superadmin user
     const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
     const userTypeRecord = await Usertype.findOne({
@@ -219,6 +219,13 @@ const createCompanySuperAdmin = async (request, h) => {
       actionType: 'CREATE',
       actionDescription: `The user of userId ${luserId} has created the user of userId ${userId}, with the accountType of ${accountType}`
     });
+
+    // creating company custom email templates (copying the default ones)
+    const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate'] }});  
+    for(let record of allDefaultTemplatesRecord){
+      const defaultData = record.toJSON();
+      Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, companyId: companyId, templateName: defaultData.templateName, ownerId: userId });
+    }
 
     // SENDING THE VERIFICATION EMAIL (confirmation email)
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
