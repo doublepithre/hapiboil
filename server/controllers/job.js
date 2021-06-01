@@ -2206,7 +2206,7 @@ const updateApplicationStatus = async (request, h) => {
     }
 }
 
-const getAllEmailTemplates = async (request, h) => {
+const getAllCustomEmailTemplates = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
@@ -2224,20 +2224,30 @@ const getAllEmailTemplates = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};    
 
-        const allDefaultTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' }});        
         const allCustomTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: false, companyId: luserCompanyId, status: 'active' }});        
+        return h.response({ emailTemplates: allCustomTemplates }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
+const getAllDefaultEmailTemplates = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
-        const cTemplateNames = [];
-        allCustomTemplates.forEach(item => cTemplateNames.push(item.templateName));
+        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
+        const allDefaultTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' }});                
         
-        const pureDefaultTemplates = allDefaultTemplates.filter(item =>{
-            const record = item.toJSON();
-            const doesCustomTemplateExist = cTemplateNames.includes(record.templateName);
-            return !doesCustomTemplateExist;
-        });
-        
-        const refinedTemplates = [...allCustomTemplates, ...pureDefaultTemplates];
-        return h.response({ emailTemplates: refinedTemplates }).code(200);
+        return h.response({ emailTemplates: allDefaultTemplates }).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -3206,7 +3216,8 @@ module.exports = {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
  
-    getAllEmailTemplates,
+    getAllDefaultEmailTemplates,
+    getAllCustomEmailTemplates,
     getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
 

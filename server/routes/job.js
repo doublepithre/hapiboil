@@ -23,7 +23,8 @@ import {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
 
-    getAllEmailTemplates,
+    getAllDefaultEmailTemplates,
+    getAllCustomEmailTemplates,
     getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
 
@@ -283,12 +284,22 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/email-template/all',
+        path: '/email-template/default',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: getAllEmailTemplates,
+          handler: getAllDefaultEmailTemplates,          
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/email-template/custom',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllCustomEmailTemplates,          
         },
       });
       server.route({
