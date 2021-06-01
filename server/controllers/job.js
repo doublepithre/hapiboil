@@ -2273,7 +2273,7 @@ const getEmailTemplateInfo = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};    
 
-        const { templateName } = request.params;
+        const { templateId } = request.params;
         const { type } = request.query;
 
         const typeVal = type ? type.toLowerCase() : 'customordefault';
@@ -2281,42 +2281,15 @@ const getEmailTemplateInfo = async (request, h) => {
         const isTypeReqValid = validTypes.includes(typeVal);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
         
-        const whereQuery = {};
-        if(typeVal === 'default'){
-            whereQuery.isDefaultTemplate = true;
-            whereQuery.companyId = null;
-            whereQuery.ownerId = null;
-        }
-        if(typeVal === 'custom'){
-            whereQuery.isDefaultTemplate = false;
-            whereQuery.companyId = luserCompanyId;
-        }
-        let responses;
-        if(typeVal !== 'customordefault'){ //get either custom or default based on the TYPE query parameter
-            const emailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
-            const emailTemplateInfo = emailTemplateRecord && emailTemplateRecord.toJSON();
-            const { id: existingEmailTemplateId } = emailTemplateInfo || {};
-            if(!existingEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
-            responses = emailTemplateInfo;
+        const emailRecord = await Emailtemplate.findOne({ where: { id: templateId }});
+        const emailInfo = emailRecord && emailRecord.toJSON();
+        const { id: existingEmailTemplateId, companyId: templateCompanyId, isDefaultTemplate } = emailInfo || {};
 
-        } else { //if TYPE query parameter not given, first look for custom template, if exists, get it, if not, get default template info
-            const cEmailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
-            const cEmailTemplateInfo = cEmailTemplateRecord && cEmailTemplateRecord.toJSON();
-            const { id: existingCustomEmailTemplateId } = cEmailTemplateInfo || {};
-
-            if(!existingCustomEmailTemplateId) { //if custom template does not exist, get default
-                const dEmailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, isDefaultTemplate: true, companyId: null, ownerId: null }});
-                const dEmailTemplateInfo = dEmailTemplateRecord && dEmailTemplateRecord.toJSON();
-                const { id: existingDefaultEmailTemplateId } = dEmailTemplateInfo || {};
-                
-                if(!existingDefaultEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
-                responses = dEmailTemplateInfo;
-            } else { //if custom template exists, get custom
-                responses = cEmailTemplateInfo;
-            }
-        }
-
-        return h.response(responses).code(200);
+        if(!existingEmailTemplateId) return h.response({ error: true, message: 'No email template found!'}).code(400);
+        if(isDefaultTemplate === false && templateCompanyId && templateCompanyId !== luserCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(400);        
+        if(isDefaultTemplate === null) return h.response({ error: true, message: 'You are not authorized!'}).code(400);        
+        
+        return h.response(emailInfo).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -2336,7 +2309,7 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { templateName } = request.params || {};
+        const { templateId } = request.params || {};
         const customizedData = request.payload || {};     
 
         const validUpdateRequests = [ 'status', 'subject', 'desc', 'displayName', 'emailBody', 'emailFooter', 'productName' ];
@@ -2344,37 +2317,27 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
         if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
 
-        const { Userinfo, Emailtemplate } = request.getModels('xpaxr');
-
-        // get the company of the luser
-        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-        const luserProfileInfo = luserRecord && luserRecord.toJSON();
-        const { companyId: luserCompanyId } = luserProfileInfo || {};
-
-        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: templateName, ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId', 'isDefaultTemplate'] }});
-        const defaultTemplateInfo = defaultTemplateRecord && defaultTemplateRecord.toJSON();
-        const { id: defaultTemplateId, ...rest } = defaultTemplateInfo || {};
-
-        // find if this company already has the customized template
-        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, isDefaultTemplate: false, companyId: luserCompanyId, ownerId: { [Op.not]: null } }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
-        const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
-        const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
-
-        if(!defaultTemplateId) return h.response({ error: true, message: 'No default template found!'}).code(400);
-        
         // is status req valid
         const { status } = customizedData;
         const validStatus = ['active', 'inactive'];
         const isStatusReqValid = validStatus.includes(status);
         
         if(status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status request!'}).code(400);
-
-        if(!existingCustomizedTemplateId) {            
-            await Emailtemplate.create({ ...rest, isDefaultTemplate: false, companyId: luserCompanyId, templateName, ownerId: userId });
-        } else {
-            await Emailtemplate.update(customizedData, { where: { templateName, companyId: luserCompanyId }});
-        }
         
+        const { Userinfo, Emailtemplate } = request.getModels('xpaxr');
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+
+        // find if this company already has the customized template
+        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { id: templateId }});
+        const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
+        const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
+
+        if(!existingCustomizedTemplateId) return h.response({ error: true, message: 'No email template found!'}).code(400);
+        
+        await Emailtemplate.update(customizedData, { where: { id: templateId }});
         const updatedRecord = await Emailtemplate.findOne({ where: { templateName: templateName, companyId: luserCompanyId }});
         return h.response(updatedRecord).code(201);
     }

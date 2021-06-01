@@ -304,7 +304,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/email-template-info/{templateName}',
+        path: '/email-template-info/{templateId}',
         options: {
           auth: {
             mode: 'try',
@@ -314,7 +314,7 @@ const xjob = {
       });
       server.route({
         method: 'PATCH',
-        path: '/customize-email-template/{templateName}',
+        path: '/customize-email-template/{templateId}',
         options: {
           auth: {
             mode: 'try',
