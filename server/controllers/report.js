@@ -9,7 +9,6 @@ const getAbout = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        // Checking user type from jwt
         let userTypeName = request.auth.artifacts.decoded.userTypeName;   
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
@@ -36,7 +35,6 @@ const getUserStats = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        // Checking user type from jwt
         let userTypeName = request.auth.artifacts.decoded.userTypeName;   
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
@@ -62,7 +60,6 @@ const getCompatibility = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        // Checking user type from jwt
         let userTypeName = request.auth.artifacts.decoded.userTypeName;   
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
@@ -91,7 +88,6 @@ const getMentorRecommendations = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        // Checking user type from jwt
         let userTypeName = request.auth.artifacts.decoded.userTypeName;   
         let userId = request.auth.credentials.id;
         let {talentId,jobId} = request.query;

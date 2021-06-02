@@ -18,7 +18,6 @@ const createJob = async (request, h) => {
         }
 
         const jobDetails = request.payload || {};
-        console.log(jobDetails);
         const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration } = jobDetails;
         if(!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp)){
             return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
