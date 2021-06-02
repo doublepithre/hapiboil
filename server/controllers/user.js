@@ -679,7 +679,7 @@ const updateUserBySuperadmin = async (request, h) => {
     const { Userinfo, Profileauditlog } = request.getModels('xpaxr');
 
     const { userUuid } = request.params || {};
-    const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
+    const requestedForUser = await Userinfo.findOne({ where: { userUuid }});
     const ruserInfo = requestedForUser && requestedForUser.toJSON();
     const { userId: ruserId, active: oldActive } = ruserInfo || {};
 
@@ -720,7 +720,7 @@ const updateUserBySuperadmin = async (request, h) => {
   }
   catch(error) {
     console.log(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
