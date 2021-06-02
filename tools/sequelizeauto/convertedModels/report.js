@@ -8,7 +8,8 @@ module.exports = (sequelize, DataTypes) => {
     },
     questionKey: {
       type: DataTypes.STRING,
-      allowNull: true,
+      allowNull: false,
+      primaryKey: true,
       field: 'question_key'
     },
     questionId: {
@@ -27,7 +28,16 @@ module.exports = (sequelize, DataTypes) => {
     sequelize,
     tableName: 'report',
     schema: 'hris',
-    timestamps: false
+    timestamps: false,
+    indexes: [
+      {
+        name: "report_pkey",
+        unique: true,
+        fields: [
+          { name: "question_key" },
+        ]
+      },
+    ]
   });
   Report.associate = function(model) {
     initRelations(model);
