@@ -1,5 +1,6 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
-import {camelizeKeys} from '../utils/camelizeKeys'
+import { camelizeKeys } from '../utils/camelizeKeys'
+import { sendEmailAsync } from '../utils/email'
 import formatQueryRes from '../utils/index'
 import { isArray } from 'lodash';
 const axios = require('axios')
@@ -133,7 +134,11 @@ const getAutoComplete = async (request, h) => {
             if(queryTypeLower === 'count'){
                 sqlStmt = `select count(*)`;
             } else {
-                sqlStmt = `select *`;
+                sqlStmt = `select`;
+            
+                if(type === 'jobName') sqlStmt += ` jn.job_name_id, jn.job_name`;
+                if(type === 'jobIndustry') sqlStmt += `  ji.job_industry_id, ji.job_industry_name`;
+                if(type === 'jobFunction') sqlStmt += ` jf.job_function_id, jf.job_function_name`;
             }
                         
             if(type === 'jobName') sqlStmt += ` from hris.jobname jn where jn.job_name ilike :searchVal`;
@@ -307,14 +312,14 @@ const getAllJobs = async (request, h) => {
         const recommendedVal = recommended ? Number(recommended) : 1;
 
         // sort query
-        let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
-        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'desc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';
         
         const validSorts = [ 'score', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
         const validSortTypes = [ 'asc', 'desc'];
-        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
 
         const validRecommendedVal = [ 0, 1];
         const isRecommendedValReqValid = validRecommendedVal.includes(recommendedVal);
@@ -349,38 +354,41 @@ const getAllJobs = async (request, h) => {
             const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
             if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
         }
-
-        let recommendations;
+        
         const jobIdArray = [];
         // GET RECOMMENDED JOBS FROM DATA SCIENCE SERVER
         if(recommendedVal === 1){
             /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
 
-            // let model = request.getModels('xpaxr');
-            // if (!await isUserQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-            // recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
-            // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
+            let model = request.getModels('xpaxr');
+            if (!await isUserQuestionnaireDone(userId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
             
+            try {
+                const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/user/recommendation`,{ params: { user_id: userId } })
+                const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+                if(!isArray(recommendations) || (isArray(recommendations) && !recommendations.length)) return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+                
+                // storing all the jobIds in the given order            
+                recommendations.forEach(item =>{
+                    jobIdArray.push(item.job_id);
+                });
+            } catch (error) {
+                return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+            }
             
-
             // FAKE RECOMMENDED DATA (delete it when going for staging)
-            const recommendations = [
-                { job_id: '25', score: '10' },
-                { job_id: '27', score: '9' },
-                { job_id: '30', score: '8' },
-                { job_id: '28', score: '7' },
-                { job_id: '33', score: '6' },
-                { job_id: '31', score: '5' },
-                { job_id: '26', score: '4' },
-                { job_id: '34', score: '3' },
-                { job_id: '32', score: '2' },
-                { job_id: '29', score: '1' },
-            ]
-        
-            // storing all the jobIds in the given order            
-            recommendations.forEach(item =>{
-                jobIdArray.push(item.job_id);
-            });
+            // const recommendations = [
+            //     { job_id: '25', score: '10' },
+            //     { job_id: '27', score: '9' },
+            //     { job_id: '30', score: '8' },
+            //     { job_id: '28', score: '7' },
+            //     { job_id: '33', score: '6' },
+            //     { job_id: '31', score: '5' },
+            //     { job_id: '26', score: '4' },
+            //     { job_id: '34', score: '3' },
+            //     { job_id: '32', score: '2' },
+            //     { job_id: '29', score: '1' },
+            // ]                   
         }
 
         const db1 = request.getDb('xpaxr');
@@ -534,15 +542,15 @@ const getRecruiterJobs = async (request, h) => {
         const ownJobsVal = ownJobs ? Number(ownJobs) : 0;
 
         // sort query
-        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
-        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';
         
         const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         const validSortTypes = [ 'asc', 'desc'];
-        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
         
         const validOwnJobsVal = [ 0, 1 ];
         const isOwnJobsReqValid = validOwnJobsVal.includes(ownJobsVal);
@@ -703,7 +711,7 @@ const getJobAccessRecords = async (request, h) => {
         const luserAccessRecord = await Jobhiremember.findOne({ where: {jobId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'creator') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'creator' && accessLevel !== 'administrator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -755,9 +763,16 @@ const shareJob = async (request, h) => {
         const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
 
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
+        if(recruiterCompanyId !== creatorCompanyId){
             return h.response({error: true, message: `You are not authorized`}).code(403);
         }
+
+        // can (s)he share this job?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+ 
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // sharing job with fellow recruiter
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -821,7 +836,6 @@ const updateSharedJob = async (request, h) => {
         if(luserTypeName !== 'employer'){
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }
-
         const { jobId: rParamsJobId } = request.params || {};
         const { Job, Jobhiremember, Jobauditlog, Userinfo, Usertype } = request.getModels('xpaxr');
 
@@ -830,8 +844,18 @@ const updateSharedJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobId: rParamsJobId}});
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
+        const existingJobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
+        const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+        const { jobId, companyId: creatorCompanyId } = existingJobInfo || {};
+        if(!jobId) return h.response({error: true, message: `No job found`}).code(403);
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
+        
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+ 
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
         
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
         if(!(accessLevel && fellowRecruiterId)) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
@@ -839,7 +863,7 @@ const updateSharedJob = async (request, h) => {
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
-        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not update this access record!'}).code(400);
 
         // is he really a fellow recruiter
         const fellowUserRecord = await Userinfo.findOne({ 
@@ -903,14 +927,21 @@ const deleteJobAccessRecord = async (request, h) => {
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
-
+ 
         const jobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
-        const { jobId, userId: jobCreatorId, companyId: creatorCompanyId } = jobRecordInfo || {};  
+        const { jobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
-
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)) return h.response({error: true, message: `You are not authorized`}).code(403);
-        
+ 
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
+       
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+ 
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+               
         const { userId: fellowRecruiterId } = request.payload || {};
         if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
        
@@ -921,6 +952,7 @@ const deleteJobAccessRecord = async (request, h) => {
 
         if(!jobHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
         if(accessLevel === 'creator') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);
 
         // delete the shared job record
         await Jobhiremember.destroy({ where: { jobId, userId: fellowRecruiterId }});        
@@ -957,18 +989,28 @@ const updateJob = async (request, h) => {
         const { jobUuid } = request.params || {};
         const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
         
-        const { Job, Jobname, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const { userId: jobCreatorId, companyId: creatorCompanyId } = await Job.findOne({where: {jobUuid}});
+        const existingJobRecord = await Job.findOne({where: {jobUuid}});
+        const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+        const { jobId, companyId: creatorCompanyId } = existingJobInfo || {};
 
-        if(!(userId === jobCreatorId && recruiterCompanyId === creatorCompanyId)){
-            return h.response({error: true, message: `You are not authorized to update the job`}).code(403);
+        if(!jobId) return h.response({error: true, message: `No job found!`}).code(400);        
+        if(recruiterCompanyId !== creatorCompanyId){
+            return h.response({error: true, message: `You are not authorized!`}).code(403);
         }
 
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+            
         let typeIdOfThisUpdatedJob;
         let durationVal = duration;
         if(!durationVal){
@@ -1002,7 +1044,6 @@ const updateJob = async (request, h) => {
         }
 
         // check if job name already exists
-
         let jobNameIdToSave;
         if(jobName){
             const jobNameRecord = await Jobname.findOne({ where: { jobNameLower: jobName.toLowerCase() }});
@@ -1021,11 +1062,10 @@ const updateJob = async (request, h) => {
                 jobNameIdToSave = oldJobNameId;
             }
         }
-        
+              
         await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});        
         const record = await Job.findOne({where: {jobUuid}});
-        const { jobId } = record;
-        
+                
         await Jobauditlog.create({ 
             affectedJobId: jobId,
             performerUserId: userId,
@@ -1047,6 +1087,9 @@ const createJobQuesResponses = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
         const { jobId } = request.params || {};
         const questionResponses= request.payload || {};
 
@@ -1056,7 +1099,21 @@ const createJobQuesResponses = async (request, h) => {
             const record = { questionId, responseVal: {'answer': answer}, jobId }
             responses.push(record);
         }
-        const { Jobsquesresponse } = request.getModels('xpaxr');
+        const { Jobsquesresponse, Jobhiremember, Job } = request.getModels('xpaxr');
+
+        const existingJobRecord = await Job.findOne({where: {jobId}});
+        const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+        const { jobId: existingJobId } = existingJobInfo || {};
+        
+        if(!existingJobId) return h.response({ error: true, message: 'No Job found!'}).code(400);
+
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId: existingJobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+        
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+         
         const records = await Jobsquesresponse.bulkCreate(responses, {updateOnDuplicate:["responseVal"]});
 
         // formatting the questionaire response
@@ -1116,21 +1173,44 @@ const applyToJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "Applied" }
-        const { Job, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "applied" }
+        const { Companyinfo, Userinfo, Job, Jobapplication, Applicationhiremember, Applicationauditlog, Emailtemplate, Emaillog } = request.getModels('xpaxr');
         
-        const jobInDB = await Job.findOne({ where: { jobId }});
-        const {jobId: jobInDbId} = jobInDB || {};
-        if(!jobInDbId) return h.response({error: true, message: 'Bad request! No job found!'}).code(400);
-        
+        // candidate details
+        const luserRecord = await Userinfo.findOne({ where: { userId }});
+        const luserInfo = luserRecord && luserRecord.toJSON();
+        const { firstName: luserFirstName, email: luserEmail } = luserInfo || {};
+
+        // Job Details
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select
+                j.job_id, jn.job_name, 
+                c.display_name as company_name, j.company_Id,
+                j.user_id
+            from hris.jobs j
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.company c on c.company_id=j.company_id
+            where j.job_id=:jobId`;
+
+        const sequelize = db1.sequelize;
+      	const appliedJobDetailsRAW = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+        const appliedJobDetails = camelizeKeys(appliedJobDetailsRAW)[0];
+        const { jobId: jobIdinTheDB, userId: employerId, companyId: creatorCompanyId } = appliedJobDetails || {};
+
+        if(!jobIdinTheDB) return h.response({error: true, message: 'No job found!'}).code(400);
+
         const alreadyAppliedRecord = await Jobapplication.findOne({ where: { jobId, userId, isApplied: true }});
         const {applicationId: alreadyAppliedApplicationId} = alreadyAppliedRecord || {};
         if(alreadyAppliedApplicationId) return h.response({error: true, message: 'Already applied!'}).code(400);
         
         const [recordRes] = await Jobapplication.upsert(record);
         const recordResponse = recordRes && recordRes.toJSON();
-        const { applicationId } = recordRes;
-        const { userId: employerId } = await Job.findOne({ where: { jobId }})
+        const { applicationId } = recordRes;         
         
         await Promise.all([
             Applicationhiremember.create({ applicationId, userId, accessLevel: 'candidate', }),
@@ -1142,7 +1222,78 @@ const applyToJob = async (request, h) => {
                 actionType: 'CREATE',
                 actionDescription: `The user of userId ${userId} has applied to the job of jobId ${jobId}`
             })
-        ]);            
+        ]);
+        
+        // get creator if still exists or else get the earliest administrator firstName
+        const sqlStmt2 = `select 
+                jhm.access_level, ui.active, ui.first_name
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='creator' and ui.active=true
+                and jhm.job_id=:jobId`;
+        
+      	const creatorRAW = await sequelize.query(sqlStmt2, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        // get administrators
+        const sqlStmt3 = `select 
+                jhm.access_level, ui.active, ui.first_name
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='administrator' and ui.active=true
+                and jhm.job_id=34
+            order by jhm.created_at asc`;
+
+      	const administratorsRAW = await sequelize.query(sqlStmt3, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        const creatorRecord = camelizeKeys(creatorRAW)[0];
+        const { firstName: jobCreatorFirstName } = creatorRecord || {};
+        
+        const earliestAdministratorRecord = camelizeKeys(administratorsRAW)[0];
+        const { firstName: earliestAdministratorFirstName } = earliestAdministratorRecord || {};
+
+        const recruiterFirstName = jobCreatorFirstName || earliestAdministratorFirstName;
+        
+        // ----------------start of sending emails        
+        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-applied-email`, isDefaultTemplate: false, companyId: creatorCompanyId, status: 'active' }})
+        const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
+        const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
+        const templateName = `application-applied-email`;
+        const ownerId = customTemplateId ? cTemplateOwnerId : null;
+        const isX0PATemplate = customTemplateId ? false : true;
+        
+        const emailData = {
+            emails: [luserEmail],
+            email: luserEmail,
+            ccEmails: [],
+            templateName,
+            ownerId,
+            isX0PATemplate,
+
+            companyName: appliedJobDetails.companyName,
+            candidateFirstName: luserFirstName,
+            recruiterFirstName,
+            jobName: appliedJobDetails.jobName,    
+        };
+
+        const additionalEData = {
+            userId: employerId,
+            Emailtemplate,
+            Userinfo,
+            Companyinfo,
+            Emaillog,
+        };
+        sendEmailAsync(emailData, additionalEData);
+        // ----------------end of sending emails      
 
         delete recordResponse.createdAt;
         delete recordResponse.updatedAt;
@@ -1172,22 +1323,22 @@ const getAppliedJobs = async (request, h) => {
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
         // Checking if application status is valid
-        const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+        const validStatus = ['applied', 'withdrawn', 'shortlisted', 'interview', 'closed', 'offer', 'hired'];
         const isStatusReqValid = (status && isArray(status)) ? (
         status.every( req => validStatus.includes(req))
         ) : validStatus.includes(status);
         if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
 
         // sort query
-        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'DESC'];
-        if (!sortType && sortBy !== 'created_at') sortType = 'ASC';
-        if (!sortType && sortBy === 'created_at') sortType = 'DESC';
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';
 
         const validSorts = ['status', 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         const validSortTypes = [ 'asc', 'desc'];
-        const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
 
         // pagination
         const limitNum = limit ? Number(limit) : 10;
@@ -1323,7 +1474,7 @@ const withdrawFromAppliedJob = async (request, h) => {
       const { credentials } = request.auth || {};
       const { id: luserId } = credentials || {};
 
-      const { Job, Jobname, Jobapplication, Applicationauditlog, Jobtype, Jobindustry, Jobfunction, Joblocation } = request.getModels('xpaxr');            
+      const { Userinfo, Companyinfo, Job, Jobname, Jobapplication, Applicationauditlog, Emailtemplate, Emaillog } = request.getModels('xpaxr');            
       const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: luserId }}) || {};
       
       if(Object.keys(requestedForApplication).length === 0){
@@ -1332,9 +1483,14 @@ const withdrawFromAppliedJob = async (request, h) => {
       if(requestedForApplication.isWithdrawn){
         return h.response({ error: true, message: 'Bad request! Already withdrawn!' }).code(400);    
       }
-      
+
+        // candidate details
+        const luserRecord = await Userinfo.findOne({ where: { userId: luserId }});
+        const luserInfo = luserRecord && luserRecord.toJSON();
+        const { firstName: luserFirstName, email: luserEmail } = luserInfo || {};
+            
       const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
-      await Jobapplication.update( { isWithdrawn: true, status: 'Withdrawn' }, { where: { applicationId: applicationId }} );
+      await Jobapplication.update( { isWithdrawn: true, status: 'withdrawn' }, { where: { applicationId: applicationId }} );
       await Applicationauditlog.create({ 
             affectedApplicationId: applicationId,
             performerUserId: luserId,
@@ -1345,16 +1501,18 @@ const withdrawFromAppliedJob = async (request, h) => {
 
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select  
+                c.display_name as company_name,
                 ja.application_id, ja.job_id, ja.user_id as applicant_id, ja.is_applied, ja.is_withdrawn, ja.status,
                 jn.job_name, jt.job_type_name, ji.job_industry_name, jf.job_function_name, jl.job_location_name, j.*, j.user_id as creator_id
             from hris.jobapplications ja
                 inner join hris.jobs j on j.job_id=ja.job_id
-                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
-                
-                left join hris.jobtype jt on jt.job_type_id=j.job_type_id
-                left join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
-                left join hris.jobfunction jf on jf.job_function_id=j.job_function_id
-                left join hris.joblocation jl on jl.job_location_id=j.job_location_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id                
+				inner join  hris.company c on c.company_id=j.company_id
+                                
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where ja.application_id=:applicationId`;
         
         const sequelize = db1.sequelize;
@@ -1363,6 +1521,78 @@ const withdrawFromAppliedJob = async (request, h) => {
             replacements: { applicationId },
         });
         const updatedApplicationData = camelizeKeys(ares)[0];
+
+        // get creator if still exists or else get the earliest administrator firstName
+        const sqlStmt2 = `select 
+                jhm.access_level, ui.active, ui.first_name, ui.user_id
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='creator' and ui.active=true
+                and jhm.job_id=:jobId`;
+            
+        const creatorRAW = await sequelize.query(sqlStmt2, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        // get administrators
+        const sqlStmt3 = `select 
+                jhm.access_level, ui.active, ui.first_name, ui.user_id
+            from hris.jobhiremember jhm
+                inner join hris.userinfo ui on jhm.user_id=ui.user_id
+            where jhm.access_level='administrator' and ui.active=true
+                and jhm.job_id=34
+            order by jhm.created_at asc`;
+
+            const administratorsRAW = await sequelize.query(sqlStmt3, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId
+            },
+        });
+
+        const creatorRecord = camelizeKeys(creatorRAW)[0];
+        const { firstName: jobCreatorFirstName, userId: creatorId } = creatorRecord || {};
+        
+        const earliestAdministratorRecord = camelizeKeys(administratorsRAW)[0];
+        const { firstName: earliestAdministratorFirstName, userId: administratorId } = earliestAdministratorRecord || {};
+
+        const recruiterFirstName = jobCreatorFirstName || earliestAdministratorFirstName;
+        const employerId = creatorId || administratorId;
+        
+        // ----------------start of sending emails
+        const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-withdrawn-email`, isDefaultTemplate: false, companyId: updatedApplicationData.companyId, status: 'active' }})
+        const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
+        const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
+        const templateName = `application-withdrawn-email`;
+        const ownerId = customTemplateId ? cTemplateOwnerId : null;
+        const isX0PATemplate = customTemplateId ? false : true;
+
+        const emailData = {
+            emails: [luserEmail],
+            email: luserEmail,
+            ccEmails: [],
+            templateName,
+            ownerId,
+            isX0PATemplate,
+
+            companyName: updatedApplicationData.companyName,
+            candidateFirstName: luserFirstName,
+            recruiterFirstName: recruiterFirstName,
+            jobName: updatedApplicationData.jobName,            
+        };
+
+        const additionalEData = {
+            userId: employerId,
+            Emailtemplate,
+            Userinfo,
+            Companyinfo,
+            Emaillog,
+        };
+        sendEmailAsync(emailData, additionalEData);
+        // ----------------end of sending emails     
     
         return h.response(updatedApplicationData).code(200);
     }
@@ -1388,12 +1618,14 @@ const getApplicantProfile = async (request, h) => {
       // get the applicant's profile
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `select 
-            ja.application_id,
+            ja.application_id, ja.status, mcm.mentor_id,
             ui.*, ut.user_type_name, ur.role_name
         from hris.userinfo ui
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
             inner join hris.userrole ur on ur.role_id=ui.role_id
             inner join hris.jobapplications ja on ja.user_id=ui.user_id
+            
+            left join hris.mentorcandidatemapping mcm on mcm.candidate_id=ui.user_id
         where ui.user_id=:userId and ja.job_id=:jobId`;
 
         const sequelize = db1.sequelize;
@@ -1432,22 +1664,22 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // Checking if application status is valid
-      const validStatus = ['Applied', 'Withdrawn', 'Shortlisted', 'Interview', 'Offer', 'Hired'];
+      const validStatus = ['applied', 'shortlisted', 'interview', 'closed', 'offer', 'hired'];
       const isStatusReqValid = (status && isArray(status)) ? (
       status.every( req => validStatus.includes(req))
       ) : validStatus.includes(status);
       if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!'}).code(400);
     
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'DESC'];
-      if (!sortType && sortBy !== 'application_date') sortType = 'ASC';
-      if (!sortType && sortBy === 'application_date') sortType = 'DESC';      
+      let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'desc'];
+      if (!sortType && sortBy !== 'application_date') sortType = 'asc';
+      if (!sortType && sortBy === 'application_date') sortType = 'desc';      
       
       const validSorts = ['first_name', 'last_name', 'application_date', 'status'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       const validSortTypes = [ 'asc', 'desc'];
-      const isSortTypeReqValid = validSortTypes.includes(sortType?.toLowerCase());
+      const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
@@ -1586,7 +1818,7 @@ const getApplicationAccessRecords = async (request, h) => {
         const luserAccessRecord = await Applicationhiremember.findOne({ where: {applicationId, userId}});
         const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
         const { accessLevel } = luserAccessInfo || {};
-        if(accessLevel !== 'jobcreator') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        if(accessLevel !== 'jobcreator' && accessLevel !== 'administrator') return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         // find all access records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -1642,12 +1874,12 @@ const shareApplication = async (request, h) => {
             return h.response({error: true, message: `You are not authorized`}).code(403);
         }
 
-        // can he share this application?
-        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
-        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
-        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
-
-        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+          
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // sharing job with fellow recruiter
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -1728,12 +1960,12 @@ const updateSharedApplication = async (request, h) => {
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
         
-        // can he share this application?
-        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
-        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
-        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
-
-        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+          
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // update the shared application access
         const { accessLevel, userId: fellowRecruiterId } = request.payload || {};
@@ -1742,7 +1974,7 @@ const updateSharedApplication = async (request, h) => {
         const isValidAccessLevel = validAccessLevel.includes(accessLevel.toLowerCase());
         
         if(!isValidAccessLevel) return h.response({ error: true, message: 'Not a valid access level!'}).code(400);
-        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not share with oneself!'}).code(400);
+        if(userId === fellowRecruiterId) return h.response({ error: true, message: 'Can not update your own access record!'}).code(400);
 
         // is he really a fellow recruiter
         const fellowUserRecord = await Userinfo.findOne({ 
@@ -1762,9 +1994,11 @@ const updateSharedApplication = async (request, h) => {
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { applicationHireMemberId, accessLevel: oldAccessLevel } = alreadySharedInfo || {};
+        const { applicationHireMemberId, accessLevel: oldAccessLevel, userId: accessLevelUserId } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
+        if(oldAccessLevel === 'jobcreator') return h.response({ error: true, message: 'This record can not be updated!'}).code(400);
+        if(userId === accessLevelUserId) return h.response({ error: true, message: 'Can not update your own access record!'}).code(400);
         if(oldAccessLevel === accessLevel) return h.response({ error: true, message: 'Already given this access to this user!'}).code(400);
 
         // update the shared job          
@@ -1815,23 +2049,25 @@ const deleteApplicationAccessRecord = async (request, h) => {
         const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
         if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
         
-        // can he share this application?
-        const canIshareRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
-        const canIshareInfo = canIshareRecord && canIshareRecord.toJSON();
-        const { accessLevel: luserAccessLevel } = canIshareInfo || {};
-
-        if(luserAccessLevel !== 'jobcreator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
-        
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+          
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+  
         const { userId: fellowRecruiterId } = request.payload || {};
         if(!fellowRecruiterId) return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
 
         // is already shared with this fellow recruiter
         const alreadySharedRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: fellowRecruiterId }});
         const alreadySharedInfo = alreadySharedRecord && alreadySharedRecord.toJSON();
-        const { applicationHireMemberId, accessLevel } = alreadySharedInfo || {};
+        const { applicationHireMemberId, accessLevel, userId: accessLevelUserId } = alreadySharedInfo || {};
 
         if(!applicationHireMemberId) return h.response({ error: true, message: 'Not shared the job with this user yet!'}).code(400);
         if(accessLevel === 'jobcreator' || accessLevel === 'candidate') return h.response({ error: true, message: 'This record can not be deleted!'}).code(400);        
+        if(userId === accessLevelUserId) return h.response({ error: true, message: 'Can not delete your own access record!'}).code(400);        
+        
 
         // delete the shared job record
         await Applicationhiremember.destroy({ where: { applicationId, userId: fellowRecruiterId }});        
@@ -1843,6 +2079,685 @@ const deleteApplicationAccessRecord = async (request, h) => {
             actionDescription: `The user of userId ${userId} has deleted the access of the shared application of applicationId ${applicationId} from the user of userId ${fellowRecruiterId}. Now it is unshared with that user`
         });
         return h.response({message: 'Access record deleted'}).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const updateApplicationStatus = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { applicationId } = request.params || {};
+        const { status } = request.payload || {};
+
+        const validUpdateRequests = [ 'status' ];
+        const requestedUpdateOperations = Object.keys(request.payload) || [];
+        const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+        if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+
+        const validStatus = ['shortlisted', 'interview', 'closed', 'offer', 'hired'];
+        if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status'}).code(400);
+                
+        const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId, firstName: luserFirstName } = userProfileInfo || {};        
+        
+        const sqlStmt = `select  
+                ui.first_name as candidate_first_name, ui.email as candidate_email, c.display_name as company_name,
+                ja.application_id, ja.job_id, ja.status,
+                jn.job_name, j.user_id as creator_id, j.company_id
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.userinfo ui on ui.user_id=ja.user_id
+				inner join  hris.company c on c.company_id=j.company_id
+            where ja.application_id=:applicationId`;
+        
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const applicationJobDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                applicationId
+            },
+        });
+        const applicationJobDetails = camelizeKeys(applicationJobDetailsSQL)[0];
+        const { applicationId: existingApplicationId, companyId: creatorCompanyId, candidateEmail, candidateFirstName, companyName, jobName, status: oldStatus } = applicationJobDetails || {};
+
+        if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
+
+        // can (s)he update this application?
+        const accessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const accessRecordInfo = accessRecord && accessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = accessRecordInfo || {};
+ 
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized to update the application!'}).code(403);         
+        
+        if(oldStatus === 'hired') return h.response({ error: true, message: 'Already hired. So the status can not change!'}).code(400);
+        if(oldStatus === status) return h.response({ error: true, message: 'Already has this status!'}).code(400);
+          
+        await Jobapplication.update({ status }, { where: { applicationId }});        
+        const updatedRecord = await Jobapplication.findOne({where: {applicationId}});
+
+        await Applicationauditlog.create({ 
+            affectedApplicationId: applicationId,
+            performerUserId: userId,
+            actionName: 'Update the Application Status',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has updated the status of application of applicationId ${applicationId}. Previous status was ${ oldStatus } and current status is ${ status }.`
+        });
+
+          // ----------------start of sending emails
+          const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-${ status }-email`, isDefaultTemplate: false, companyId: recruiterCompanyId, status: 'active' }})
+          const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
+          const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
+          const templateName =  `application-${ status }-email`;
+          const ownerId = customTemplateId ? cTemplateOwnerId : null;
+          const isX0PATemplate = customTemplateId ? false : true;
+          
+          const emailData = {
+            emails: [candidateEmail],
+            email: candidateEmail,
+            ccEmails: [],
+            templateName,
+            ownerId,
+            isX0PATemplate,
+
+            companyName: companyName,
+            candidateFirstName,
+            recruiterFirstName: luserFirstName,
+            jobName: jobName,            
+        };
+
+        const additionalEData = {
+            userId,
+            Emailtemplate,
+            Userinfo,
+            Companyinfo,
+            Emaillog,
+        };
+        sendEmailAsync(emailData, additionalEData);
+        // ----------------end of sending emails     
+    
+
+        return h.response(updatedRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const getAllEmailTemplates = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
+        
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};    
+
+        const { type } = request.query;
+
+        const typeVal = type ? type.toLowerCase() : 'default';
+        const validTypes = ['default', 'custom'];
+        const isTypeReqValid = validTypes.includes(typeVal);
+        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
+        
+        const whereQuery = {};
+        if(typeVal === 'default'){
+            whereQuery.isDefaultTemplate = true;
+            whereQuery.companyId = null;
+            whereQuery.ownerId = null;
+        }
+        if(typeVal === 'custom'){
+            whereQuery.isDefaultTemplate = false;
+            whereQuery.companyId = luserCompanyId;
+        }
+
+        const emailTemplates = await Emailtemplate.findAll({ where: { ...whereQuery }});        
+        return h.response({ emailTemplates }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
+const getEmailTemplateInfo = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
+        
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};    
+
+        const { templateName } = request.params;
+        const { type } = request.query;
+
+        const typeVal = type ? type.toLowerCase() : 'default';
+        const validTypes = ['default', 'custom'];
+        const isTypeReqValid = validTypes.includes(typeVal);
+        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
+        
+        const whereQuery = {};
+        if(typeVal === 'default'){
+            whereQuery.isDefaultTemplate = true;
+            whereQuery.companyId = null;
+            whereQuery.ownerId = null;
+        }
+        if(typeVal === 'custom'){
+            whereQuery.isDefaultTemplate = false;
+            whereQuery.companyId = luserCompanyId;
+        }
+
+        const emailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
+        const emailTemplateInfo = emailTemplateRecord && emailTemplateRecord.toJSON();
+        const { id: existingEmailTemplateId } = emailTemplateInfo || {};
+        if(!existingEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
+
+        return h.response(emailTemplateInfo).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
+const maintainCompanyEmailTemplates = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'companysuperadmin' && luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { templateName } = request.params || {};
+        const customizedData = request.payload || {};     
+
+        const validUpdateRequests = [ 'status', 'subject', 'desc', 'displayName', 'emailBody', 'emailFooter', 'productName' ];
+        const requestedUpdateOperations = Object.keys(customizedData) || [];
+        const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+        if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+
+        const { Userinfo, Emailtemplate } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+
+        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: templateName, ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId', 'isDefaultTemplate'] }});
+        const defaultTemplateInfo = defaultTemplateRecord && defaultTemplateRecord.toJSON();
+        const { id: defaultTemplateId, ...rest } = defaultTemplateInfo || {};
+
+        // find if this company already has the customized template
+        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, isDefaultTemplate: false, companyId: luserCompanyId, ownerId: { [Op.not]: null } }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
+        const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
+        const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
+
+        if(!defaultTemplateId) return h.response({ error: true, message: 'No default template found!'}).code(400);
+        
+        // is status req valid
+        const { status } = customizedData;
+        const validStatus = ['active', 'inactive'];
+        const isStatusReqValid = validStatus.includes(status);
+        
+        if(status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status request!'}).code(400);
+
+        if(!existingCustomizedTemplateId) {            
+            await Emailtemplate.create({ ...rest, isDefaultTemplate: false, companyId: luserCompanyId, templateName, ownerId: userId });
+        } else {
+            await Emailtemplate.update(customizedData, { where: { templateName, companyId: luserCompanyId }});
+        }
+        
+        const updatedRecord = await Emailtemplate.findOne({ where: { templateName: templateName, companyId: luserCompanyId }});
+        return h.response(updatedRecord).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const mentorCandidateLinking = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
+        const { applicationId } = request.params || {};
+        const { mentorId } = request.payload || {};
+        if(!mentorId) return h.response({error:true, message:'Please provide a mentorId!'}).code(403);
+                
+        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+        
+        const sqlStmt = `select ja.*, j.company_id 
+            from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id
+            where ja.application_id=:applicationId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const applicationJobDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                applicationId
+            },
+        });
+        const applicationJobDetails = camelizeKeys(applicationJobDetailsSQL)[0];
+        const { applicationId: existingApplicationId, userId: candidateId, companyId: creatorCompanyId, status } = applicationJobDetails || {};
+
+        if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
+        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
+        if(status !== 'hired') return h.response({error: true, message: `The candidate is NOT hired yet!`}).code(400);
+
+        // can (s)he update this application?
+        const accessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
+        const accessRecordInfo = accessRecord && accessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = accessRecordInfo || {};
+ 
+        if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized to update the application!'}).code(403);         
+        
+        // are they really a mentor and a candidate
+        const [mentorRecord, candidateRecord] = await Promise.all([
+            Userinfo.findOne({ 
+                where: { userId: mentorId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            }),
+            Userinfo.findOne({ 
+                where: { userId: candidateId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            })
+        ]);
+        const mentorProfileInfo = mentorRecord && mentorRecord.toJSON();
+        const { userId: mUserId, userType: mUserType, companyId: mCompanyId } = mentorProfileInfo || {};
+        const { userTypeName: mUserTypeName } = mUserType || {};
+        
+        const candidateProfileInfo = candidateRecord && candidateRecord.toJSON();
+        const { userType: cUserType, companyId: cCompanyId } = candidateProfileInfo || {};
+        const { userTypeName: cUserTypeName } = cUserType || {};
+
+        if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
+        if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
+        if(cUserTypeName !== 'candidate') return h.response({error: true, message: 'The user is not a candidate.'}).code(400);
+        if(recruiterCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+
+        // is already linked
+        const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId }});
+        const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
+        const { mentorcandidatemappingId } = alreadyLinkedInfo || {};
+
+        if(mentorcandidatemappingId) return h.response({ error: true, message: 'Already has a mentor!'}).code(400);
+
+        const record = await Mentorcandidatemapping.create({
+            mentorId,
+            candidateId
+        });
+
+        return h.response(record).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const deleteMentorCandidateMappingRecord = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
+        const { candidateId } = request.params || {};        
+                
+        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};        
+                   
+        // is already linked
+        const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId }});
+        const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
+        const { mentorcandidatemappingId, mentorId } = alreadyLinkedInfo || {};
+
+        if(!mentorcandidatemappingId) return h.response({ error: true, message: `This candidate doesn't have a mentor!`}).code(400);
+
+        // is the mentor from same company
+        const mentorRecord = await Userinfo.findOne({ where: { userId: mentorId } });
+        const mentorProfileInfo = mentorRecord && mentorRecord.toJSON();
+        const { userId: mUserId, companyId: mCompanyId } = mentorProfileInfo || {};
+        
+        if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
+        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+
+        const record = await Mentorcandidatemapping.destroy({ where: { candidateId, mentorId } });
+
+        return h.response({ message: `Record deletion successful!`}).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const replaceMentorForOne = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
+        const { candidateId } = request.params || {};
+        const { mentorId } = request.payload || {};
+        if(!mentorId) return h.response({error:true, message:'Please provide a mentorId!'}).code(403);
+                
+        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};        
+        
+        // are they really a mentor and a candidate
+        const [mentorRecord, candidateRecord] = await Promise.all([
+            Userinfo.findOne({ 
+                where: { userId: mentorId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            }),
+            Userinfo.findOne({ 
+                where: { userId: candidateId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            })
+        ]);
+        const mentorProfileInfo = mentorRecord && mentorRecord.toJSON();
+        const { userId: mUserId, userType: mUserType, companyId: mCompanyId } = mentorProfileInfo || {};
+        const { userTypeName: mUserTypeName } = mUserType || {};
+        
+        const candidateProfileInfo = candidateRecord && candidateRecord.toJSON();
+        const { userType: cUserType, companyId: cCompanyId } = candidateProfileInfo || {};
+        const { userTypeName: cUserTypeName } = cUserType || {};
+
+        if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
+        if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
+        if(cUserTypeName !== 'candidate') return h.response({error: true, message: 'The user is not a candidate.'}).code(400);
+        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+
+        // is already linked
+        const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId, mentorId }});
+        const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
+        const { mentorcandidatemappingId } = alreadyLinkedInfo || {};
+
+        if(mentorcandidatemappingId) return h.response({ error: true, message: 'This mentor is already mentoring this candidate!'}).code(400);
+
+        await Mentorcandidatemapping.update({ mentorId }, { where: { candidateId } });
+        return h.response({ message: `Mentor replacing successful!`}).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const replaceMentorForAll = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
+        const { oldMentorId } = request.params || {};        
+        const { mentorId: newMentorId } = request.payload || {};        
+        if(!newMentorId) return h.response({error:true, message:'Please provide a mentorId!'}).code(400);
+                
+        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};        
+             
+        // is (s)he really a mentor
+        const mentorRecord = await Userinfo.findOne({ 
+                where: { userId: newMentorId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            });
+        const mentorProfileInfo = mentorRecord && mentorRecord.toJSON();
+        const { userId: mUserId, userType: mUserType, companyId: mCompanyId } = mentorProfileInfo || {};
+        const { userTypeName: mUserTypeName } = mUserType || {};
+                
+        if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
+        if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
+        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+
+        
+        const sqlStmt = `
+            UPDATE hris.mentorcandidatemapping mcm
+            SET mentor_id = :newMentorId
+            where mcm.mentor_id=:oldMentorId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const replacedMentorResSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { newMentorId, oldMentorId },
+        });
+        
+               
+        return h.response({ message: `Mentor replacing successful!`}).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const getMentorCandidates = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+        const { mentorId } = request.params || {};
+        const { Userinfo, Usertype } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+        
+        // get the company of the mentor (if it's companysuperadmin requesting, they'll be different users, otherwise the mentor and the luser will be the same)
+        const mUserRecord = await Userinfo.findOne({ 
+            where: { userId: mentorId },
+            include: [{
+                model: Usertype,
+                as: 'userType',                
+            }],
+            attributes: { exclude: ['createdAt', 'updatedAt'] 
+        }});
+        const mUserProfileInfo = mUserRecord && mUserRecord.toJSON();
+        const { userId: mUserId, companyId: mentorCompanyId, userType: mUserType } = mUserProfileInfo || {};
+        const { userTypeName: mUserTypeName } = mUserType || {};
+
+        if(mUserTypeName !== 'mentor') return h.response({error:true, message:'The user is not a mentor!'}).code(400);
+        if(!mUserId) return h.response({error:true, message:'No user found for this mentorId!'}).code(400);
+        if(luserCompanyId !== mentorCompanyId) return h.response({error:true, message:'You are not authorized! The mentor is not from the same company!'}).code(403);
+        
+        // find all candidates' records (using SQL to avoid nested ugliness in the response)
+        const db1 = request.getDb('xpaxr');
+        const sqlStmt = `select
+            mcm.mentorcandidatemapping_id, mcm.mentor_id,
+            ut.user_type_name, ur.role_name, ui.*
+        from hris.mentorcandidatemapping mcm
+            inner join hris.userinfo ui on ui.user_id=mcm.candidate_id
+            inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+            inner join hris.userrole ur on ur.role_id=ui.role_id
+        where mcm.mentor_id=:mentorId`;
+
+        const sequelize = db1.sequelize;
+      	const allCandidateInfoSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                mentorId,
+            },
+        });
+        const allCandidateInfo = camelizeKeys(allCandidateInfoSQL);
+        return h.response({ candidates: allCandidateInfo }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const getAllMentorCandidates = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};        
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+              
+        const { Userinfo, Mentorcandidatemapping } = request.getModels('xpaxr');
+
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+
+        const allMentorsRaw = await Userinfo.findAll({
+            where: { userTypeId: 3, companyId: luserCompanyId},
+            include: [{
+                model: Mentorcandidatemapping,
+                as: 'mentorMentorcandidatemappings',
+                required: true,
+                attributes: ['mentorcandidatemappingId', 'mentorId', 'candidateId'],
+
+                include: {
+                    model: Userinfo,
+                    as: 'candidate',
+                    required: true,
+                    attributes: ['userId', 'email', 'firstName'],
+                }
+            }],
+            attributes: ['userId', 'email', 'firstName'],
+
+        })
+        
+        
+        const allMentors = [];
+        for(let i=0; i<allMentorsRaw.length; i++){
+            const mentorRecord = allMentorsRaw[i] && allMentorsRaw[i].toJSON();
+            const { mentorMentorcandidatemappings: mcmappings } = mentorRecord || {};
+            const allCandidates = [];
+            
+            for(let j=0; j<mcmappings.length; j++){
+                const { candidate } = mcmappings[j] || {};
+                allCandidates.push(candidate);
+            }
+            
+            mentorRecord.candidates = allCandidates;
+            delete mentorRecord.mentorMentorcandidatemappings;            
+            allMentors.push(mentorRecord);
+        }        
+
+        return h.response({ mentors: allMentors }).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -1869,36 +2784,42 @@ const getRecommendedTalents = async (request, h) => {
       if(!jobHireMemberId) return h.response({error:true, message:'You are not authorized!'}).code(403);
 
         /* UNCOMMENT THESE FOLLOWING LINES when going for staging */
-        // let model = request.getModels('xpaxr');
-        // if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
-        // let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
-        // recommendations = recommendations.data["recommendation"] //this will be  sorted array of {job_id,score}
-        
-        // FAKE RECOMMENDED DATA (delete it when going for staging)
-        const recommendations = [
-            { user_id: '167', score: '10' },
-            { user_id: '169', score: '9' },
-            { user_id: '161', score: '8' },
-            { user_id: '164', score: '7' },
-            { user_id: '160', score: '6' },
-            { user_id: '165', score: '5' },
-            { user_id: '162', score: '4' },
-            { user_id: '168', score: '3' },
-            { user_id: '166', score: '2' },
-            { user_id: '163', score: '1' },
-        ]
-    
-        // storing all the jobIds in the given order   
+        let model = request.getModels('xpaxr');
+        if (!await isJobQuestionnaireDone(jobId,model)) return h.response({error:"Questionnaire Not Done"}).code(409)
         const userIdArray = [];
-        recommendations.forEach(item =>{
-            userIdArray.push(item.user_id);
-        });
+        
+        try {
+            const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: jobId } })
+            const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+            if(!isArray(recommendations) || (isArray(recommendations) && !recommendations.length)) return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+            
+            // storing all the talentUserIds in the given order   
+            recommendations.forEach(item =>{
+                userIdArray.push(item.user_id);
+            });
+        } catch (error) {
+            return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+        }
+
+        // FAKE RECOMMENDED DATA (delete it when going for staging)
+        // const recommendations = [
+        //     { user_id: '167', score: '10' },
+        //     { user_id: '169', score: '9' },
+        //     { user_id: '161', score: '8' },
+        //     { user_id: '164', score: '7' },
+        //     { user_id: '160', score: '6' },
+        //     { user_id: '165', score: '5' },
+        //     { user_id: '162', score: '4' },
+        //     { user_id: '168', score: '3' },
+        //     { user_id: '166', score: '2' },
+        //     { user_id: '163', score: '1' },
+        // ]        
       
       const { limit, offset, sort, search } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'ASC'];
+      let [sortBy, sortType] = sort ? sort.split(':') : ['score', 'asc'];
       const validSorts = ['score', 'first_name', 'last_name'];
       const isSortReqValid = validSorts.includes(sortBy);
 
@@ -2023,34 +2944,43 @@ const getTalentsAndApplicants = async (request, h) => {
         for(let i=0; i<allOwnJobIdsSQL.length; i++){
             const ownJob = allOwnJobIdsSQL[i];
             
-            // const [applications, recommendationRes] = await Promise.all([
-            //     Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']}),
-            //     axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } }),
-            // ]);            
-            // const recommendation = recommendationRes?.data?.recommendation || [];
-
             const applications = await Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId']});
-            const recommendation =  [
-                    { user_id: '167', score: '10' },
-                    { user_id: '169', score: '9' },
-                    { user_id: '161', score: '8' },
-                    { user_id: '164', score: '7' },
-                    { user_id: '160', score: '6' },
-                    { user_id: '165', score: '5' },
-                    { user_id: '162', score: '4' },
-                    { user_id: '168', score: '3' },
-                    { user_id: '166', score: '2' },
-                    { user_id: '163', score: '1' },
-            ]
-            
-            applications[0] && applications.forEach((item)=> addIdsIfNotExist(item.userId, applicantIds));
-            recommendation[0] && recommendation.forEach((item)=> addIdsIfNotExist(item.user_id, talentUserIds));
-            
+            try {
+                const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`,{ params: { job_id: ownJob.job_id } })
+                const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+                
+                // storing all the talentUserIds in the given order   
+                recommendations.forEach(item =>{
+                    talentUserIds.push(item.user_id);
+                });
+
+                applications[0] && applications.forEach((item)=> addIdsIfNotExist(item.userId, applicantIds));
+                recommendations[0] && recommendations.forEach((item)=> addIdsIfNotExist(item.user_id, talentUserIds));
+                
+            } catch (error) {  
+                console.log(error.stack);
+                return h.response({error: true, message: 'Something wrong with Data Science Server!'}).code(500);
+            }
+                       
+            // FAKE RECOMMENDED DATA (delete it when going for staging)
+            // const recommendation =  [
+            //         { user_id: '167', score: '10' },
+            //         { user_id: '169', score: '9' },
+            //         { user_id: '161', score: '8' },
+            //         { user_id: '164', score: '7' },
+            //         { user_id: '160', score: '6' },
+            //         { user_id: '165', score: '5' },
+            //         { user_id: '162', score: '4' },
+            //         { user_id: '168', score: '3' },
+            //         { user_id: '166', score: '2' },
+            //         { user_id: '163', score: '1' },
+            // ]
         };
 
         console.log(applicantIds, talentUserIds);
         const refinedUnique = new Set([...talentUserIds, ...applicantIds]);
         const finalArray = [...refinedUnique];
+        if(!finalArray.length) return h.response({error: true, message: 'No users found!'}).code(400);;
         
       // _______________QUERY PARAMETERS
       const { limit, offset, sort, search } = request.query;            
@@ -2276,10 +3206,24 @@ module.exports = {
     withdrawFromAppliedJob,
     getApplicantProfile,
     getAllApplicantsSelectiveProfile,
+    
     getApplicationAccessRecords,
     shareApplication, 
     updateSharedApplication,
     deleteApplicationAccessRecord,
+    updateApplicationStatus,
+ 
+    getAllEmailTemplates,
+    getEmailTemplateInfo,
+    maintainCompanyEmailTemplates,
+
+    mentorCandidateLinking,
+    getMentorCandidates,
+    getAllMentorCandidates,
+    replaceMentorForOne,
+    replaceMentorForAll,
+    deleteMentorCandidateMappingRecord,
+    
     getRecommendedTalents,
     getTalentsAndApplicants,
     getTalentProfile,
