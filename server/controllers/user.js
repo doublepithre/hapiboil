@@ -759,7 +759,7 @@ const updateCompanyProfile = async (request, h) => {
     const luser = userRecord && userRecord.toJSON();
     const { userId: luserId, companyId: luserCompanyId } = luser || {};
     
-    const requestedForCompany = await Company.findOne({ where: { companyUuid }}) || {};
+    const requestedForCompany = await Company.findOne({ where: { companyUuid }});
     const rCompanyInfo = requestedForCompany && requestedForCompany.toJSON();
     const { companyId: rCompanyId } = rCompanyInfo || {};
 
