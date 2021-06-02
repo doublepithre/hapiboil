@@ -4,7 +4,6 @@ module.exports = function(sequelize, DataTypes) {
     displayName: {
       type: DataTypes.STRING,
       allowNull: false,
-      primaryKey: true,
       field: 'display_name'
     },
     questionKey: {
@@ -28,15 +27,6 @@ module.exports = function(sequelize, DataTypes) {
     sequelize,
     tableName: 'report',
     schema: 'hris',
-    timestamps: false,
-    indexes: [
-      {
-        name: "report_pkey",
-        unique: true,
-        fields: [
-          { name: "display_name" },
-        ]
-      },
-    ]
+    timestamps: false
   });
 };

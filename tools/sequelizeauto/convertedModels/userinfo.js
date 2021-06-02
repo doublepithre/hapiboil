@@ -140,6 +140,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: false,
       field: 'in_talent_pool'
+    },
+    allowSendEmail: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'allow_send_email'
     }
   }, {
     sequelize,
@@ -178,9 +184,12 @@ const initRelations = (model) =>{
   const Applicationauditlog = model.Applicationauditlog;
   const Applicationhiremember = model.Applicationhiremember;
   const Companyauditlog = model.Companyauditlog;
+  const Cronofy = model.Cronofy;
+  const Cronofytoken = model.Cronofytoken;
   const Jobapplication = model.Jobapplication;
   const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
+  const Mentorcandidatemapping = model.Mentorcandidatemapping;
   const Mentorquesresponse = model.Mentorquesresponse;
   const Profileauditlog = model.Profileauditlog;
   const Usermeta = model.Usermeta;
@@ -199,9 +208,13 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
+  Userinfo.hasOne(Cronofy, { as: "cronofy", foreignKey: "userId"});
+  Userinfo.hasMany(Cronofytoken, { as: "cronofytokens", foreignKey: "userId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Userinfo.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorcandidatemappings", foreignKey: "candidateId"});
+  Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorMentorcandidatemappings", foreignKey: "mentorId"});
   Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
   Userinfo.hasMany(Profileauditlog, { as: "profileauditlogs", foreignKey: "affectedUserId"});
   Userinfo.hasMany(Profileauditlog, { as: "performerUserProfileauditlogs", foreignKey: "performerUserId"});

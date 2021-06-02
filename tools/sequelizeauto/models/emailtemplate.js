@@ -87,6 +87,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING,
       allowNull: true,
       field: 'product_name'
+    },
+    isDefaultTemplate: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      field: 'is_default_template'
     }
   }, {
     sequelize,
