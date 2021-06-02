@@ -577,11 +577,11 @@ const updateCompanyBySuperadmin = async (request, h) => {
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
     if (!isAllReqsValid || (updateDetails.active !== true && updateDetails.active !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
-    const { Company, Companyauditlog, Profileauditlog } = request.getModels('xpaxr');
+    const { Company, Companyauditlog } = request.getModels('xpaxr');
 
     const { companyUuid } = request.params || {};
-    const requestedForCompany = await Company.findOne({ where: { companyUuid }}) || {};
-    const rcompanyInfo = requestedForCompany && requestedForCompany.toJSON();
+    const requestedForCompanyRecord = await Company.findOne({ where: { companyUuid }});
+    const rcompanyInfo = requestedForCompanyRecord && requestedForCompanyRecord.toJSON();
     const { companyId: rCompanyId, active: oldActive } = rcompanyInfo || {};
 
     if(!rCompanyId)  return h.response({ error: true, message: 'No company found!'}).code(400);
@@ -646,21 +646,12 @@ const updateCompanyBySuperadmin = async (request, h) => {
         attributes: { exclude: ['createdAt', 'updatedAt']
       }
     });
-    const cinfo = updatedCinfo && updatedCinfo.toJSON();
-
-    // await Profileauditlog.create({ 
-    //   affectedUserId: ruserId,
-    //   performerUserId: userId,
-    //   actionName: 'Update a User',
-    //   actionType: 'UPDATE',
-    //   actionDescription: `The user of userId ${userId} has updated the user of userId ${ruserId}`
-    // });
-
+    const cinfo = updatedCinfo && updatedCinfo.toJSON();    
     return h.response(cinfo).code(200);
   }
   catch(error) {
     console.log(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
@@ -683,16 +674,17 @@ const updateUserBySuperadmin = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || (updateDetails.active !== true && updateDetails.active !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || (updateDetails.active && updateDetails.active !== true && updateDetails.active !== false) || (updateDetails.isAdmin && updateDetails.isAdmin !== true && updateDetails.isAdmin !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     const { Userinfo, Profileauditlog } = request.getModels('xpaxr');
 
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
     const ruserInfo = requestedForUser && requestedForUser.toJSON();
-    const { userId: ruserId } = ruserInfo || {};
+    const { userId: ruserId, active: oldActive } = ruserInfo || {};
 
     if(!ruserId)  return h.response({ error: true, message: 'No user found!'}).code(400);
+    if(updateDetails.active === oldActive)  return h.response({ error: true, message: `The user is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
 
     if(updateDetails.active === false){      
       const db1 = request.getDb('xpaxr');
