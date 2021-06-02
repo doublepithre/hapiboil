@@ -1197,7 +1197,7 @@ const getFellowCompanyStaff = async (request, h) => {
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    if(luserTypeName !== 'employer' && luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -1220,15 +1220,17 @@ const getFellowCompanyStaff = async (request, h) => {
       const sortTypeLower = sortType.toLowerCase();
       const validSortTypes = ['asc', 'desc'];
       const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
+
+      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
       
-      const validUserTypeFilters = ['employer', 'mentor'];
-      const isUserTypeReqValid = validUserTypeFilters.includes(userType);
+      const validAccountTypes = ['employer', 'mentor'];
+      const isUserTypeQueryValid = (userType && isArray(userType)) ? (
+        userType.every( req => validAccountTypes.includes(req))
+      ) : validAccountTypes.includes(userType);
 
-      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      if(userType && !isUserTypeReqValid) return h.response({error: true, message: 'Invalid userType query parameter!'}).code(400);
-
+      if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);    
+      
       const db1 = request.getDb('xpaxr');
-
       // get sql statement for getting all company staff or its count        
       const filters = { search, sortBy, sortType, userType, exclude }
       function getSqlStmt(queryType, obj = filters){            
