@@ -575,7 +575,7 @@ const updateCompanyBySuperadmin = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || (updateDetails.active !== true && updateDetails.active !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || typeof updateDetails.active !== 'boolean') return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     const { Company, Companyauditlog } = request.getModels('xpaxr');
 
@@ -674,7 +674,7 @@ const updateUserBySuperadmin = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || (updateDetails.active && updateDetails.active !== true && updateDetails.active !== false) || (updateDetails.isAdmin && updateDetails.isAdmin !== true && updateDetails.isAdmin !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || (updateDetails.active && typeof updateDetails.active !== 'boolean') || (updateDetails.isAdmin && typeof updateDetails.isAdmin !== 'boolean')) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     const { Userinfo, Profileauditlog } = request.getModels('xpaxr');
 
@@ -792,7 +792,6 @@ const updateCompanyProfile = async (request, h) => {
       const isHexCode = RegEx.test(emailBg);
       if(!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!'}).code(400);
     }
-
         
     await Company.update(
       {
@@ -828,16 +827,7 @@ const updateCompanyProfile = async (request, h) => {
     });
     const responses = camelizeKeys(SQLcompanyInfo)[0];
     delete responses.companyName;
-    delete responses.active;
-
-    // await Profileauditlog.create({ 
-    //   affectedUserId: rForUserId,
-    //   performerUserId: luserId,
-    //   actionName: 'Update a User',
-    //   actionType: 'UPDATE',
-    //   actionDescription: `The user of userId ${luserId} has updated his own info`
-    // });
-    
+    delete responses.active;       
     
     return h.response(responses).code(201);
   } catch (error) {
@@ -1317,7 +1307,7 @@ const updateCompanyStaff = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || typeof updateDetails.active !== 'boolean') return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     // Checking account type
     const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
