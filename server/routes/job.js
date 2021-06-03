@@ -63,9 +63,7 @@ const xjob = {
           auth: {
             mode: 'try',
           },
-          handler: async (request, h) => {
-            return await getSingleJob(request, h);
-          },
+          handler: getSingleJob,
         },
       });
       server.route({

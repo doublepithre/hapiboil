@@ -118,7 +118,7 @@ const getAutoComplete = async (request, h) => {
         if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
         
-        const validTypes = [ 'jobName', 'jobIndustry', 'jobFunction'];
+        const validTypes = ['jobName', 'jobIndustry', 'jobFunction'];
         const isTypeReqValid = validTypes.includes(type);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
@@ -172,26 +172,29 @@ const getSingleJob = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
-        }
+        }        
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};  
-        const { jobUuid } = request.params || {};
+        const { jobUuid } = request.params || {};        
+
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'candidate' && luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
         const { Jobapplication, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the luser (using it only if he is a recruiter)
         const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
-        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
-        
-        // Checking user type from jwt
-        let luserTypeName = request.auth.artifacts.decoded.userTypeName;             
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};                
                 
         const db1 = request.getDb('xpaxr');
 
+        const isCandidateView = luserTypeName === 'candidate';
+        const isEmployerView = luserTypeName === 'employer';
         // get sql statement for getting jobs or jobs count        
         function getSqlStmt(queryType){            
-            let sqlStmt;
+            let sqlStmt;            
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
                 sqlStmt = `select count(*)`;
@@ -199,7 +202,7 @@ const getSingleJob = async (request, h) => {
                 sqlStmt = `select
                 jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
 
-                if(luserTypeName === 'employer') sqlStmt += `, jhm.access_level`
+                if(isEmployerView) sqlStmt += `, jhm.access_level`
             }
 
             sqlStmt += `
@@ -213,12 +216,12 @@ const getSingleJob = async (request, h) => {
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
             
             // if he is an employer
-            if(luserTypeName === 'employer') sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id`;        
+            if(isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id`;        
             sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid`;
 
             // if he is an employer
-            if(luserTypeName === 'candidate') sqlStmt += ` and j.is_private=false `;        
-            if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
+            if(isCandidateView) sqlStmt += ` and j.is_private=false`;        
+            if(isEmployerView) sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
             
             return sqlStmt;
         };
@@ -229,6 +232,9 @@ const getSingleJob = async (request, h) => {
             replacements: { jobUuid, recruiterCompanyId },
         });      	        
         const rawJobArray = camelizeKeys(sqlJobArray);
+        const { jobId: foundJobId } = rawJobArray[0] || {};
+
+        if(!foundJobId) return h.response({error: true, message: 'No job found!'}).code(400);
 
         // check if already applied
         if(luserTypeName === 'candidate'){
@@ -3112,9 +3118,8 @@ const isJobQuestionnaireDone = async(jobId,model)=>{
       where:{
         jobId
       }
-    });
-    //   return await questionnaireCount === await responsesCount;
-      return await questionnaireCount === await responsesCount;
+    });    
+    return await questionnaireCount === await responsesCount;
 }
 
 const isUserQuestionnaireDone = async(userId,model)=>{
@@ -3150,7 +3155,7 @@ const isUserQuestionnaireDone = async(userId,model)=>{
         userId
       }
     });
-      return await questionnaireCount === await responsesCount;
+    return await questionnaireCount === await responsesCount;
 }
 
 module.exports = {
