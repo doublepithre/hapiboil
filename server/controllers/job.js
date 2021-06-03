@@ -2651,10 +2651,12 @@ const getMentorCandidates = async (request, h) => {
         // find all candidates' records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select
-            mcm.mentorcandidatemapping_id, mcm.mentor_id,
+            mcm.mentorcandidatemapping_id, mcm.mentor_id, ja.job_id,
             ut.user_type_name, ur.role_name, ui.*
         from hris.mentorcandidatemapping mcm
             inner join hris.userinfo ui on ui.user_id=mcm.candidate_id
+            inner join hris.jobapplications ja on ja.user_id=mcm.candidate_id and ja.status='hired'
+            inner join hris.jobs j on j.job_id=ja.job_id and j.company_id=:luserCompanyId
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
             inner join hris.userrole ur on ur.role_id=ui.role_id
         where mcm.mentor_id=:mentorId`;
