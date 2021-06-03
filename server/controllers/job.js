@@ -88,7 +88,7 @@ const getJobDetailsOptions = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        const { Job, Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
+        const { Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
         const [jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
             Jobtype.findAll({}),
             Jobfunction.findAll({}),
