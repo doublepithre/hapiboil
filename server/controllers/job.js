@@ -1614,7 +1614,7 @@ const getApplicantProfile = async (request, h) => {
       }
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-      if(luserTypeName !== 'employer'){
+      if(luserTypeName !== 'employer' && luserTypeName !== 'mentor'){
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
