@@ -23,7 +23,8 @@ import {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
 
-    getAllEmailTemplates,
+    getAllDefaultEmailTemplates,
+    getAllCustomEmailTemplates,
     getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
 
@@ -62,9 +63,7 @@ const xjob = {
           auth: {
             mode: 'try',
           },
-          handler: async (request, h) => {
-            return await getSingleJob(request, h);
-          },
+          handler: getSingleJob,
         },
       });
       server.route({
@@ -283,17 +282,27 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/email-template/all',
+        path: '/email-template/default',
         options: {
           auth: {
             mode: 'try',
           },
-          handler: getAllEmailTemplates,
+          handler: getAllDefaultEmailTemplates,          
         },
       });
       server.route({
         method: 'GET',
-        path: '/email-template-info/{templateName}',
+        path: '/email-template/custom',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllCustomEmailTemplates,          
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/email-template-info/{templateId}',
         options: {
           auth: {
             mode: 'try',
@@ -303,7 +312,7 @@ const xjob = {
       });
       server.route({
         method: 'PATCH',
-        path: '/customize-email-template/{templateName}',
+        path: '/customize-email-template/{templateId}',
         options: {
           auth: {
             mode: 'try',
@@ -333,7 +342,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/mentor-candidate/{mentorId}',
+        path: '/mentor-candidate/me',
         options: {
           auth: {
             mode: 'try',

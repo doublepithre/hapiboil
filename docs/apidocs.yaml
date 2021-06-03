@@ -571,7 +571,7 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/fellow-staff?search={searchTEXT}&userType={userType}&sort={sort}:
+  /account/fellow-staff?search={searchTEXT}&userType={userType}&sort={sort}&exclude={excludeUserId}:
     get: 
         summary: Get all fellow company staff
         tags:
@@ -593,6 +593,14 @@ paths:
             type: string
             enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]        
         
+        - name: exclude
+          description: userId to exclude
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: 143
+        
         responses:
           '200':
             description: OK
@@ -604,7 +612,20 @@ paths:
                     staff:
                       type: array
                       items:
-                        $ref: "#/components/schemas/companyUser"                      
+                        type: object
+                        properties:
+                          firstName:
+                            type: string
+                          lastName:
+                            type: string
+                          email:
+                            type: string
+                          userId:
+                            type: number
+                          roleName:
+                            type: string
+                          userTypeName:
+                            type: string            
 
   /login:
     post:
@@ -1687,6 +1708,14 @@ paths:
                 properties:
                   applicationId:
                     type: number
+                  status:
+                    type: string
+                  mentorId:
+                    type: number
+                  jobName:
+                    type: string
+                  jobUuid:
+                    type: string
 
   /job/j/share-application/{applicationId}:
     get: 
@@ -1844,7 +1873,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication" 
 
-  /job/customize-email-template/{templateName}:    
+  /job/customize-email-template/{templateId}:    
     patch: 
       summary: Maintain custom email templates
       tags:
@@ -1888,6 +1917,79 @@ paths:
                 type: object
                 $ref: "#/components/schemas/Emailtemplate" 
 
+  /job/email-template-info/{templateId}:    
+    get: 
+      summary: Get Email Template Info
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: templateName
+          in: path
+          description: Name of the email template
+          required: true
+          schema:
+            type: string
+
+        - name: type
+          in: query
+          description: type of the email template. If no type parameter given, it'll first look for custom template, if it does not exist, it'll fetch default template, it is same as giving the "customordefault" value
+          required: true
+          schema:
+            type: string
+            enum: [custom, default, customordefault]
+            required: false,
+            
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/Emailtemplate" 
+
+  /job/email-template/default:    
+    get: 
+      summary: Get All Default Email Templates
+      tags:
+        - Job
+      security:
+      - bearerAuth: []   
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emailTemplates:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Emailtemplate" 
+
+  /job/email-template/custom:    
+    get: 
+      summary: Get All Custom Email Templates
+      tags:
+        - Job
+      security:
+      - bearerAuth: []   
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  emailTemplates:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/Emailtemplate" 
+
   /job/mentor-candidate/{applicationId}:    
     post: 
       summary: Mentor Candidate Linking
@@ -1919,20 +2021,14 @@ paths:
                 type: object
                 $ref: "#/components/schemas/mentorCandidateMapping" 
 
-  /job/mentor-candidate/{mentorId}:    
+  /job/mentor-candidate/me:    
     get: 
       summary: Get One Mentor's Candidates
       tags:
         - Job
       security:
       - bearerAuth: []
-      parameters:
-        - name: mentorId
-          in: path
-          description: id of mentor
-          required: true
-          schema:
-            type: string      
+      
       responses:
         '200':
           description: OK
@@ -2570,6 +2666,8 @@ components:
         emailVars:
           type: json
         isUserTemplate:
+          type: boolean
+        isDefaultTemplate:
           type: boolean
         createdAt:
           type: string        

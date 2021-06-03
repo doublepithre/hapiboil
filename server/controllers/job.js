@@ -88,7 +88,7 @@ const getJobDetailsOptions = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
         }
-        const { Job, Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
+        const { Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
         const [jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
             Jobtype.findAll({}),
             Jobfunction.findAll({}),
@@ -118,7 +118,7 @@ const getAutoComplete = async (request, h) => {
         if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
         
-        const validTypes = [ 'jobName', 'jobIndustry', 'jobFunction'];
+        const validTypes = ['jobName', 'jobIndustry', 'jobFunction'];
         const isTypeReqValid = validTypes.includes(type);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
@@ -172,26 +172,29 @@ const getSingleJob = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
-        }
+        }        
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};  
-        const { jobUuid } = request.params || {};
+        const { jobUuid } = request.params || {};        
+
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if(luserTypeName !== 'candidate' && luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
         const { Jobapplication, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the luser (using it only if he is a recruiter)
         const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
-        const { companyId: recruiterCompanyId } = luserProfileInfo || {};
-        
-        // Checking user type from jwt
-        let luserTypeName = request.auth.artifacts.decoded.userTypeName;             
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};                
                 
         const db1 = request.getDb('xpaxr');
 
+        const isCandidateView = luserTypeName === 'candidate';
+        const isEmployerView = luserTypeName === 'employer';
         // get sql statement for getting jobs or jobs count        
         function getSqlStmt(queryType){            
-            let sqlStmt;
+            let sqlStmt;            
             const type = queryType && queryType.toLowerCase();
             if(type === 'count'){
                 sqlStmt = `select count(*)`;
@@ -199,7 +202,7 @@ const getSingleJob = async (request, h) => {
                 sqlStmt = `select
                 jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
 
-                if(luserTypeName === 'employer') sqlStmt += `, jhm.access_level`
+                if(isEmployerView) sqlStmt += `, jhm.access_level`
             }
 
             sqlStmt += `
@@ -213,12 +216,12 @@ const getSingleJob = async (request, h) => {
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
             
             // if he is an employer
-            if(luserTypeName === 'employer') sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id`;        
+            if(isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id`;        
             sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid`;
 
             // if he is an employer
-            if(luserTypeName === 'candidate') sqlStmt += ` and j.is_private=false `;        
-            if(luserTypeName === 'employer') sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
+            if(isCandidateView) sqlStmt += ` and j.is_private=false`;        
+            if(isEmployerView) sqlStmt += ` and j.company_id=:recruiterCompanyId`;        
             
             return sqlStmt;
         };
@@ -229,6 +232,9 @@ const getSingleJob = async (request, h) => {
             replacements: { jobUuid, recruiterCompanyId },
         });      	        
         const rawJobArray = camelizeKeys(sqlJobArray);
+        const { jobId: foundJobId } = rawJobArray[0] || {};
+
+        if(!foundJobId) return h.response({error: true, message: 'No job found!'}).code(400);
 
         // check if already applied
         if(luserTypeName === 'candidate'){
@@ -1608,7 +1614,7 @@ const getApplicantProfile = async (request, h) => {
       }
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-      if(luserTypeName !== 'employer'){
+      if(luserTypeName !== 'employer' && luserTypeName !== 'mentor'){
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
@@ -1616,13 +1622,17 @@ const getApplicantProfile = async (request, h) => {
 
       // get the applicant's profile
       const db1 = request.getDb('xpaxr');
-      const sqlStmt = `select 
+      const sqlStmt = `select
+            jn.job_name,
+            j.job_uuid,  
             ja.application_id, ja.status, mcm.mentor_id,
             ui.*, ut.user_type_name, ur.role_name
         from hris.userinfo ui
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
             inner join hris.userrole ur on ur.role_id=ui.role_id
             inner join hris.jobapplications ja on ja.user_id=ui.user_id
+            inner join hris.jobs j on j.job_id=:jobId
+            inner join hris.jobname jn on jn.job_name_id=j.job_name_id
             
             left join hris.mentorcandidatemapping mcm on mcm.candidate_id=ui.user_id
         where ui.user_id=:userId and ja.job_id=:jobId`;
@@ -2202,7 +2212,7 @@ const updateApplicationStatus = async (request, h) => {
     }
 }
 
-const getAllEmailTemplates = async (request, h) => {
+const getAllCustomEmailTemplates = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden'}).code(403);
@@ -2220,26 +2230,30 @@ const getAllEmailTemplates = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};    
 
-        const { type } = request.query;
+        const allCustomTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: false, companyId: luserCompanyId, status: 'active' }});        
+        return h.response({ emailTemplates: allCustomTemplates }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
 
-        const typeVal = type ? type.toLowerCase() : 'default';
-        const validTypes = ['default', 'custom'];
-        const isTypeReqValid = validTypes.includes(typeVal);
-        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
+const getAllDefaultEmailTemplates = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
-        const whereQuery = {};
-        if(typeVal === 'default'){
-            whereQuery.isDefaultTemplate = true;
-            whereQuery.companyId = null;
-            whereQuery.ownerId = null;
-        }
-        if(typeVal === 'custom'){
-            whereQuery.isDefaultTemplate = false;
-            whereQuery.companyId = luserCompanyId;
-        }
-
-        const emailTemplates = await Emailtemplate.findAll({ where: { ...whereQuery }});        
-        return h.response({ emailTemplates }).code(200);
+        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
+        const allDefaultTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' }});                
+        
+        return h.response({ emailTemplates: allDefaultTemplates }).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -2265,31 +2279,23 @@ const getEmailTemplateInfo = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};    
 
-        const { templateName } = request.params;
+        const { templateId } = request.params;
         const { type } = request.query;
 
-        const typeVal = type ? type.toLowerCase() : 'default';
-        const validTypes = ['default', 'custom'];
+        const typeVal = type ? type.toLowerCase() : 'customordefault';
+        const validTypes = ['default', 'custom', 'customordefault'];
         const isTypeReqValid = validTypes.includes(typeVal);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
         
-        const whereQuery = {};
-        if(typeVal === 'default'){
-            whereQuery.isDefaultTemplate = true;
-            whereQuery.companyId = null;
-            whereQuery.ownerId = null;
-        }
-        if(typeVal === 'custom'){
-            whereQuery.isDefaultTemplate = false;
-            whereQuery.companyId = luserCompanyId;
-        }
+        const emailRecord = await Emailtemplate.findOne({ where: { id: templateId }});
+        const emailInfo = emailRecord && emailRecord.toJSON();
+        const { id: existingEmailTemplateId, companyId: templateCompanyId, isDefaultTemplate } = emailInfo || {};
 
-        const emailTemplateRecord = await Emailtemplate.findOne({ where: { templateName, ...whereQuery }});
-        const emailTemplateInfo = emailTemplateRecord && emailTemplateRecord.toJSON();
-        const { id: existingEmailTemplateId } = emailTemplateInfo || {};
-        if(!existingEmailTemplateId) return h.response({error: true, message: 'No email template found!'}).code(400);
-
-        return h.response(emailTemplateInfo).code(200);
+        if(!existingEmailTemplateId) return h.response({ error: true, message: 'No email template found!'}).code(400);
+        if(isDefaultTemplate === false && templateCompanyId && templateCompanyId !== luserCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(400);        
+        if(isDefaultTemplate === null) return h.response({ error: true, message: 'You are not authorized!'}).code(400);        
+        
+        return h.response(emailInfo).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -2309,7 +2315,7 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { templateName } = request.params || {};
+        const { templateId } = request.params || {};
         const customizedData = request.payload || {};     
 
         const validUpdateRequests = [ 'status', 'subject', 'desc', 'displayName', 'emailBody', 'emailFooter', 'productName' ];
@@ -2317,37 +2323,27 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
         if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
 
-        const { Userinfo, Emailtemplate } = request.getModels('xpaxr');
-
-        // get the company of the luser
-        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-        const luserProfileInfo = luserRecord && luserRecord.toJSON();
-        const { companyId: luserCompanyId } = luserProfileInfo || {};
-
-        const defaultTemplateRecord = await Emailtemplate.findOne({ where: { templateName: templateName, ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'templateName', 'ownerId', 'isDefaultTemplate'] }});
-        const defaultTemplateInfo = defaultTemplateRecord && defaultTemplateRecord.toJSON();
-        const { id: defaultTemplateId, ...rest } = defaultTemplateInfo || {};
-
-        // find if this company already has the customized template
-        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { templateName, isDefaultTemplate: false, companyId: luserCompanyId, ownerId: { [Op.not]: null } }, attributes: { exclude: ['createdAt', 'updatedAt', 'isUserTemplate'] }});
-        const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
-        const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
-
-        if(!defaultTemplateId) return h.response({ error: true, message: 'No default template found!'}).code(400);
-        
         // is status req valid
         const { status } = customizedData;
         const validStatus = ['active', 'inactive'];
         const isStatusReqValid = validStatus.includes(status);
         
         if(status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status request!'}).code(400);
-
-        if(!existingCustomizedTemplateId) {            
-            await Emailtemplate.create({ ...rest, isDefaultTemplate: false, companyId: luserCompanyId, templateName, ownerId: userId });
-        } else {
-            await Emailtemplate.update(customizedData, { where: { templateName, companyId: luserCompanyId }});
-        }
         
+        const { Userinfo, Emailtemplate } = request.getModels('xpaxr');
+        // get the company of the luser
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: luserCompanyId } = luserProfileInfo || {};
+
+        // find if this company already has the customized template
+        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { id: templateId }});
+        const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
+        const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
+
+        if(!existingCustomizedTemplateId) return h.response({ error: true, message: 'No email template found!'}).code(400);
+        
+        await Emailtemplate.update(customizedData, { where: { id: templateId }});
         const updatedRecord = await Emailtemplate.findOne({ where: { templateName: templateName, companyId: luserCompanyId }});
         return h.response(updatedRecord).code(201);
     }
@@ -2647,41 +2643,27 @@ const getMentorCandidates = async (request, h) => {
         const { id: userId } = credentials || {};        
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-        if(luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin'){
+        if(luserTypeName !== 'mentor'){
             return h.response({error:true, message:'You are not authorized!'}).code(403);
-        }
-        const { mentorId } = request.params || {};
-        const { Userinfo, Usertype } = request.getModels('xpaxr');
-
+        }        
+        const mentorId = userId;
+        
+        const { Userinfo } = request.getModels('xpaxr');
         // get the company of the luser
-        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-        const luserProfileInfo = luserRecord && luserRecord.toJSON();
-        const { companyId: luserCompanyId } = luserProfileInfo || {};
-        
-        // get the company of the mentor (if it's companysuperadmin requesting, they'll be different users, otherwise the mentor and the luser will be the same)
-        const mUserRecord = await Userinfo.findOne({ 
-            where: { userId: mentorId },
-            include: [{
-                model: Usertype,
-                as: 'userType',                
-            }],
-            attributes: { exclude: ['createdAt', 'updatedAt'] 
-        }});
-        const mUserProfileInfo = mUserRecord && mUserRecord.toJSON();
-        const { userId: mUserId, companyId: mentorCompanyId, userType: mUserType } = mUserProfileInfo || {};
-        const { userTypeName: mUserTypeName } = mUserType || {};
+        const userRecord = await Userinfo.findOne({ where: { userId: mentorId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};
 
-        if(mUserTypeName !== 'mentor') return h.response({error:true, message:'The user is not a mentor!'}).code(400);
-        if(!mUserId) return h.response({error:true, message:'No user found for this mentorId!'}).code(400);
-        if(luserCompanyId !== mentorCompanyId) return h.response({error:true, message:'You are not authorized! The mentor is not from the same company!'}).code(403);
-        
+            
         // find all candidates' records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select
-            mcm.mentorcandidatemapping_id, mcm.mentor_id,
+            mcm.mentorcandidatemapping_id, mcm.mentor_id, ja.job_id,
             ut.user_type_name, ur.role_name, ui.*
         from hris.mentorcandidatemapping mcm
             inner join hris.userinfo ui on ui.user_id=mcm.candidate_id
+            inner join hris.jobapplications ja on ja.user_id=mcm.candidate_id and ja.status='hired'
+            inner join hris.jobs j on j.job_id=ja.job_id and j.company_id=:luserCompanyId
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
             inner join hris.userrole ur on ur.role_id=ui.role_id
         where mcm.mentor_id=:mentorId`;
@@ -2690,7 +2672,7 @@ const getMentorCandidates = async (request, h) => {
       	const allCandidateInfoSQL = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { 
-                mentorId,
+                mentorId, luserCompanyId
             },
         });
         const allCandidateInfo = camelizeKeys(allCandidateInfoSQL);
@@ -3145,9 +3127,8 @@ const isJobQuestionnaireDone = async(jobId,model)=>{
       where:{
         jobId
       }
-    });
-    //   return await questionnaireCount === await responsesCount;
-      return await questionnaireCount === await responsesCount;
+    });    
+    return await questionnaireCount === await responsesCount;
 }
 
 const isUserQuestionnaireDone = async(userId,model)=>{
@@ -3183,7 +3164,7 @@ const isUserQuestionnaireDone = async(userId,model)=>{
         userId
       }
     });
-      return await questionnaireCount === await responsesCount;
+    return await questionnaireCount === await responsesCount;
 }
 
 module.exports = {
@@ -3212,7 +3193,8 @@ module.exports = {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
  
-    getAllEmailTemplates,
+    getAllDefaultEmailTemplates,
+    getAllCustomEmailTemplates,
     getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
 
