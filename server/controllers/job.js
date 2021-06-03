@@ -2647,6 +2647,13 @@ const getMentorCandidates = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }        
         const mentorId = userId;
+        
+        const { Userinfo } = request.getModels('xpaxr');
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { mentorId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};
+
             
         // find all candidates' records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -2665,7 +2672,7 @@ const getMentorCandidates = async (request, h) => {
       	const allCandidateInfoSQL = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { 
-                mentorId,
+                mentorId, luserCompanyId
             },
         });
         const allCandidateInfo = camelizeKeys(allCandidateInfoSQL);
