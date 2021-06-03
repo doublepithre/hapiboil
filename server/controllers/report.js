@@ -114,6 +114,7 @@ const getMentorRecommendations = async (request, h) => {
  * @returns employer has access to candidate data
  */
 const checkReportAccess = async(sequelize,userId,talentId,userTypeName) =>{
+    return true;
     if (userTypeName==="employer"){
         let sqlStmt = `select * from hris.applicationhiremember ahm 
         join hris.applicationhiremember ahm1 on ahm.application_id = ahm1.application_id
