@@ -2650,7 +2650,7 @@ const getMentorCandidates = async (request, h) => {
         
         const { Userinfo } = request.getModels('xpaxr');
         // get the company of the luser
-        const userRecord = await Userinfo.findOne({ where: { mentorId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userRecord = await Userinfo.findOne({ where: { userId: mentorId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};
 
