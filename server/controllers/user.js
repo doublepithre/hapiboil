@@ -34,7 +34,7 @@ const createUser = async (request, h) => {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
     // Checking account type
-    const validAccountTypes = ['candidate', 'specialist'];
+    const validAccountTypes = ['candidate'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -1448,7 +1448,7 @@ const updateUser = async (request, h) => {
     const userId = credentials.id;
     const userRecord = await Userinfo.findOne({ where: { userId } });
     const luser = userRecord && userRecord.toJSON();
-    const { userId: luserId, isAdmin } = luser || {};
+    const { userId: luserId } = luser || {};
     
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
@@ -1549,13 +1549,13 @@ const resendVerificationEmailBySuperadmin = async (request, h) => {
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
     if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
     
-    const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     
     const { credentials } = request.auth || {};
     const luserId = credentials.id;
     
     const { userId } = request.payload || {};
-    if(!userId) return h.response({error:true, message:'Please provide necessary details!'}).code(400);
+    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
 
     const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const userInfo = userRecord && userRecord.toJSON();
@@ -1626,7 +1626,7 @@ const resendCompanyVerificationEmail = async (request, h) => {
     const { companyId } = luserRecord && luserRecord.toJSON();
 
     const { userId } = request.payload || {};
-    if(!userId) return h.response({error:true, message:'Please provide necessary details!'}).code(400);
+    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
 
     const userRecord = await Userinfo.findOne({ where: { userId, companyId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const userInfo = userRecord && userRecord.toJSON();
@@ -1738,6 +1738,8 @@ const verifyEmail = async (request, h) => {
 const forgotPassword = async (request, h) => {
   try{
     const { email } = request.payload || {};
+    if(!email) return h.response({error:true, message:'Please provide an email!'}).code(400);
+
     if (!validator.isEmail(email)) { 
       return h.response({ error: true, message: 'Invalid Email!'}).code(400);
     }
@@ -1891,7 +1893,9 @@ const getProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    let userType = request.auth.artifacts.decoded.userTypeName;   
+    let userType = request.auth.artifacts.decoded.userTypeName; 
+    if(userType !== 'candidate' && userType !== 'mentor')   return h.response({error: true, message: 'You are not authorized!'}).code(403);
+    
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
@@ -1913,8 +1917,8 @@ const getProfile = async (request, h) => {
 
     const responses = [];
     for (let response of quesResponses) {
-      response = response && response.toJSON();
-      const { questionId, responseVal, timeTaken } = response;
+      const responseInfo = response && response.toJSON();
+      const { questionId, responseVal, timeTaken } = responseInfo || {};
       const res = { questionId, answer:responseVal.answer, timeTaken };
       responses.push(res);
     }
@@ -1923,11 +1927,11 @@ const getProfile = async (request, h) => {
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;    
 
-    const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
+    const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
     inner join hris.questiontarget qt on qt.target_id=q.question_target_id
     where qt.target_id=:targetId`;  
 
-    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
+    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
         type: QueryTypes.SELECT,
         replacements: { 
           targetId,
@@ -1935,11 +1939,11 @@ const getProfile = async (request, h) => {
     });
     const userQuesCount = allSQLUserQuesCount[0].count;
     
-    const sqlStmtForUserRes = `select count(*) 
+    const sqlStmtForUserResCount = `select count(*) 
       from hris.${ answerTable } uqr
       where uqr.user_id=:userId`;        
 
-    const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
+    const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
         type: QueryTypes.SELECT,
         replacements: { 
           userId, 
@@ -1961,17 +1965,24 @@ const createProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { responses } = request.payload || {};
+    // Checking user type from jwt
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    if(userTypeName !== 'candidate' && userTypeName !== 'mentor')   return h.response({error: true, message: 'You are not authorized!'}).code(403);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
+
+    const { responses } = request.payload || {};
+    
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
-    // Checking user type from jwt
     const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;
     let data = []
     let createProfileResponse;
-    let userTypeName = request.auth.artifacts.decoded.userTypeName;
-    if (userTypeName === "candidate") {
+    let targetId;
+    
+    if (userTypeName === "candidate") {      
+      // create profile for a candidate
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
         const record = { questionId, responseVal:{answer}, userId, timeTaken }
@@ -1986,44 +1997,12 @@ const createProfile = async (request, h) => {
         const res = { questionId, answer:responseVal.answer, timeTaken };
         resRecord.push(res);
       }
-
-      // attaching isComplete property
-      const db1 = request.getDb('xpaxr');
-      const sequelize = db1.sequelize;
-
-      const targetId = 1;
-
-      const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
-      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
-      where qt.target_id=:targetId`;  
-
-      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
-          type: QueryTypes.SELECT,
-          replacements: { 
-            targetId,
-          },
-      });
-      const userQuesCount = allSQLUserQuesCount[0].count;
       
-      const sqlStmtForUserRes = `select count(*) 
-        from hris.userquesresponses uqr
-        where uqr.user_id=:userId`;        
+      createProfileResponse = resRecord;
+      targetId = 1;      
 
-      const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
-          type: QueryTypes.SELECT,
-          replacements: { 
-            userId,            
-          },
-      });
-      const userResCount = allSQLUserResCount[0].count;
-
-      const isComplete = userQuesCount === userResCount;
-      createProfileResponse = { isComplete, responses: resRecord };
-
-    } else if ( userTypeName === 'employer') {
-      // For Employer profile creation
-    } else if ( userTypeName  === 'mentor') {
-      // For Mentor profile creation
+    } else if (userTypeName  === 'mentor') {
+      // create profile for a mentor
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
         const record = { questionId, responseVal:{answer}, userId, timeTaken }
@@ -2034,17 +2013,41 @@ const createProfile = async (request, h) => {
       const resRecord = [];
       for (let response of quesResponses) {
         response = response && response.toJSON();
-        const { questionId, responseVal } = response;
-        const res = { questionId, answer:responseVal.answer };
+        const { questionId, responseVal, timeTaken } = response;
+        const res = { questionId, answer:responseVal.answer, timeTaken };
         resRecord.push(res);
       }
-      createProfileResponse = { responses: resRecord };
+      createProfileResponse = resRecord;
+      targetId = 3;      
+    }
+    
+    // attaching isComplete property
+    const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
+    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+    where qt.target_id=:targetId`;  
 
-      
-    } else {
-      return h.response({ error: true, message: 'Invalid Request!'}).code(400);
-    }    
-    return h.response(createProfileResponse).code(201);
+    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          targetId,
+        },
+    });
+    const userQuesCount = allSQLUserQuesCount[0].count;
+    
+    const sqlStmtForUserRes = `select count(*) 
+      from hris.userquesresponses uqr
+      where uqr.user_id=:userId`;        
+
+    const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          userId,            
+        },
+    });
+    const userResCount = allSQLUserResCount[0].count;
+
+    const isComplete = userQuesCount === userResCount;
+    return h.response({ isComplete, responses: createProfileResponse }).code(201);
   }
   catch (error) {
     console.error(error.stack);
@@ -2088,7 +2091,7 @@ const updateMetaData = async (request, h) => {
     const { metaKey, metaValue } = request.payload || {};
 
     if (!(metaKey && metaValue)) {     
-      return h.response({ error: true, message: 'Not a valid request!'}).code(400);
+      return h.response({ error: true, message: 'Please provide the necessary details!'}).code(400);
     }  
 
     const { Usermeta, Profileauditlog } = request.getModels('xpaxr');        
