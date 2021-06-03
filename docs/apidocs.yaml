@@ -1873,7 +1873,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication" 
 
-  /job/customize-email-template/{templateName}:    
+  /job/customize-email-template/{templateId}:    
     patch: 
       summary: Maintain custom email templates
       tags:
@@ -1917,7 +1917,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/Emailtemplate" 
 
-  /job/email-template-info/{templateName}?type={customOrDefault}:    
+  /job/email-template-info/{templateId}:    
     get: 
       summary: Get Email Template Info
       tags:
