@@ -65,12 +65,7 @@ const getCompatibility = async (request, h) => {
         let db = request.getDb('xpaxr');
         let sequelize = db.sequelize;
         let {talentId,jobId} = request.query;
-        const { Attributeset,Jobhiremember } = request.getModels('xpaxr');
         if (await checkReportAccess(sequelize,userId,talentId,userTypeName)){
-            let rec = await Jobhiremember.findOne({where:{jobId,userId},attributes:["accessLevel"]});
-            if (!rec || !(rec.accessLevel==="creator" || rec.accessLevel==="viewer")){
-                return h.response({error:true,message:"Not authorized"}).code(401);
-            }
             let talentCompatibility = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/compatibility`,{ params: { talent_id: talentId,job_id:jobId } }); //user_id here refers to candidate
             return h.response(camelizeKeys(talentCompatibility.data)).code(200);
         }else{
@@ -114,7 +109,6 @@ const getMentorRecommendations = async (request, h) => {
  * @returns employer has access to candidate data
  */
 const checkReportAccess = async(sequelize,userId,talentId,userTypeName) =>{
-    return true;
     if (userTypeName==="employer"){
         let sqlStmt = `select * from hris.applicationhiremember ahm 
         join hris.applicationhiremember ahm1 on ahm.application_id = ahm1.application_id
