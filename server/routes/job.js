@@ -282,7 +282,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/email-template/default',
+        path: '/email-templates/default',
         options: {
           auth: {
             mode: 'try',
@@ -292,7 +292,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/email-template/custom',
+        path: '/email-templates/custom',
         options: {
           auth: {
             mode: 'try',
@@ -302,7 +302,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/email-template-info/{templateId}',
+        path: '/email-template/{templateId}',
         options: {
           auth: {
             mode: 'try',
@@ -312,7 +312,7 @@ const xjob = {
       });
       server.route({
         method: 'PATCH',
-        path: '/customize-email-template/{templateId}',
+        path: '/email-template/{templateId}',
         options: {
           auth: {
             mode: 'try',
