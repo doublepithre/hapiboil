@@ -2533,6 +2533,7 @@ const mentorCandidateLinking = async (request, h) => {
             mentorId,
             candidateId
         });
+        await Applicationhiremember.destroy({ where:{ userId: mentorId, applicationId }})
 
         return h.response(record).code(201);
     }
