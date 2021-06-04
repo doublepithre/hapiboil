@@ -2215,7 +2215,7 @@ const updateApplicationStatus = async (request, h) => {
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: recruiterCompanyId, firstName: luserFirstName } = userProfileInfo || {};        
+        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};        
         
         const sqlStmt = `select  
                 ui.first_name as candidate_first_name, ui.email as candidate_email, c.display_name as company_name,
@@ -2240,7 +2240,7 @@ const updateApplicationStatus = async (request, h) => {
         const { applicationId: existingApplicationId, companyId: creatorCompanyId, candidateEmail, candidateFirstName, companyName, jobName, status: oldStatus } = applicationJobDetails || {};
 
         if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
-        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
+        if(luserCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
 
         // can (s)he update this application?
         const accessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
@@ -2342,8 +2342,8 @@ const getAllDefaultEmailTemplates = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
-        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
-        const allDefaultTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' }});                
+        const { Emailtemplate } = request.getModels('xpaxr');
+        const allDefaultTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' }});
         
         return h.response({ emailTemplates: allDefaultTemplates }).code(200);
     }
@@ -2372,20 +2372,14 @@ const getEmailTemplateInfo = async (request, h) => {
         const { companyId: luserCompanyId } = userProfileInfo || {};    
 
         const { templateId } = request.params;
-        const { type } = request.query;
-
-        const typeVal = type ? type.toLowerCase() : 'customordefault';
-        const validTypes = ['default', 'custom', 'customordefault'];
-        const isTypeReqValid = validTypes.includes(typeVal);
-        if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type query parameter!'}).code(400);
-        
+             
         const emailRecord = await Emailtemplate.findOne({ where: { id: templateId }});
         const emailInfo = emailRecord && emailRecord.toJSON();
         const { id: existingEmailTemplateId, companyId: templateCompanyId, isDefaultTemplate } = emailInfo || {};
 
         if(!existingEmailTemplateId) return h.response({ error: true, message: 'No email template found!'}).code(400);
-        if(isDefaultTemplate === false && templateCompanyId && templateCompanyId !== luserCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(400);        
-        if(isDefaultTemplate === null) return h.response({ error: true, message: 'You are not authorized!'}).code(400);        
+        if(isDefaultTemplate === false && templateCompanyId && templateCompanyId !== luserCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(403);        
+        if(isDefaultTemplate === null) return h.response({ error: true, message: 'You are not authorized!'}).code(403);        
         
         return h.response(emailInfo).code(200);
     }
@@ -2431,12 +2425,13 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         // find if this company already has the customized template
         const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { id: templateId }});
         const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
-        const { id: existingCustomizedTemplateId } = existingCustomizedTemplateInfo || {};
+        const { id: existingCustomizedTemplateId, companyId: etCompanyId } = existingCustomizedTemplateInfo || {};
 
         if(!existingCustomizedTemplateId) return h.response({ error: true, message: 'No email template found!'}).code(400);
+        if(luserCompanyId !== etCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(403);
         
         await Emailtemplate.update(customizedData, { where: { id: templateId }});
-        const updatedRecord = await Emailtemplate.findOne({ where: { templateName: templateName, companyId: luserCompanyId }});
+        const updatedRecord = await Emailtemplate.findOne({ where: { id: templateId }});
         return h.response(updatedRecord).code(201);
     }
     catch (error) {
