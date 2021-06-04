@@ -442,7 +442,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
-    const { limit, offset, sort, search, userType, companyName, companyId } = request.query;            
+    const { limit, offset, sort, search, userType, companyId } = request.query;            
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // filters

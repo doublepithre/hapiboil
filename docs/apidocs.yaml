@@ -73,7 +73,7 @@ paths:
                   example: password
                 accountType:
                   type: string
-                  enum: [candidate, specialist]
+                  enum: [candidate]
                 privacyClause:
                   type: boolean                  
                 tandc:
@@ -166,7 +166,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [company_name:asc, company_name:desc, created_at:asc, created_at:desc, company_id:asc, company_id:desc]        
+            enum: [company_name:asc, company_name:desc, created_at:asc, created_at:desc]        
         
         responses:
           '200':
@@ -219,7 +219,7 @@ paths:
                     description: Describes reason for failure
                     type: string
 
-  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyName={companyName}&companyId={companyId}&sort={sort}:
+  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyId={companyId}&sort={sort}:
     get: 
         summary: Get all users
         tags:
@@ -357,11 +357,11 @@ paths:
           content:
             application/json: 
               schema:
-                $ref: "#/components/schemas/CompanyFullDetails"
+                $ref: "#/components/schemas/CompanyFullDetails"               
         
   /account/company/{companyId}/: 
     get:
-      summary: Get Company info
+      summary: Get any Company info
       parameters:
         - name: companyId
           in: path
@@ -1348,7 +1348,14 @@ paths:
                   accessRecords:
                     type: array  
                     items:
-                      $ref: "#/components/schemas/jobShared" 
+                      type: object
+                      allOf:
+                        - $ref: "#/components/schemas/jobShared" 
+                      properties:
+                        firstName:
+                          type: string
+                        email:
+                          type: string
     post: 
       summary: Share Job
       tags:
