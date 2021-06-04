@@ -1894,7 +1894,6 @@ const getProfile = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     let userType = request.auth.artifacts.decoded.userTypeName; 
-    if(userType !== 'candidate' && userType !== 'mentor')   return h.response({error: true, message: 'You are not authorized!'}).code(403);
     
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -1951,7 +1950,9 @@ const getProfile = async (request, h) => {
     });
     const userResCount = allSQLUserResCount[0].count;
 
-    const isComplete = userQuesCount === userResCount;
+    let isComplete = userQuesCount === userResCount;
+
+    if(userType !== 'mentor' && userType !== 'candidate') isComplete = true;
     return h.response({ isComplete, responses }).code(200);
   }
   catch (error) {

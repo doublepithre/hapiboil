@@ -2456,12 +2456,12 @@ const mentorCandidateLinking = async (request, h) => {
         const { mentorId } = request.payload || {};
         if(!mentorId) return h.response({error:true, message:'Please provide a mentorId!'}).code(403);
                 
-        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+        const { Userinfo, Usertype, Mentorcandidatemapping, Applicationhiremember } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: recruiterCompanyId } = userProfileInfo || {};        
+        const { companyId: luserCompanyId } = userProfileInfo || {};        
         
         const sqlStmt = `select ja.*, j.company_id 
             from hris.jobapplications ja
@@ -2480,7 +2480,7 @@ const mentorCandidateLinking = async (request, h) => {
         const { applicationId: existingApplicationId, userId: candidateId, companyId: creatorCompanyId, status } = applicationJobDetails || {};
 
         if(!existingApplicationId) return h.response({error: true, message: `No application found!`}).code(400);
-        if(recruiterCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
+        if(luserCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);
         if(status !== 'hired') return h.response({error: true, message: `The candidate is NOT hired yet!`}).code(400);
 
         // can (s)he update this application?
@@ -2520,7 +2520,7 @@ const mentorCandidateLinking = async (request, h) => {
         if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
         if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
         if(cUserTypeName !== 'candidate') return h.response({error: true, message: 'The user is not a candidate.'}).code(400);
-        if(recruiterCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
 
         // is already linked
         const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId }});
@@ -2557,7 +2557,7 @@ const deleteMentorCandidateMappingRecord = async (request, h) => {
         
         const { candidateId } = request.params || {};        
                 
-        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+        const { Userinfo, Mentorcandidatemapping } = request.getModels('xpaxr');
 
         // get the company of the luser
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -2579,7 +2579,7 @@ const deleteMentorCandidateMappingRecord = async (request, h) => {
         if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
         if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
 
-        const record = await Mentorcandidatemapping.destroy({ where: { candidateId, mentorId } });
+        await Mentorcandidatemapping.destroy({ where: { candidateId, mentorId } });
 
         return h.response({ message: `Record deletion successful!`}).code(200);
     }
@@ -2636,7 +2636,7 @@ const replaceMentorForOne = async (request, h) => {
         const { userTypeName: mUserTypeName } = mUserType || {};
         
         const candidateProfileInfo = candidateRecord && candidateRecord.toJSON();
-        const { userType: cUserType, companyId: cCompanyId } = candidateProfileInfo || {};
+        const { userType: cUserType } = candidateProfileInfo || {};
         const { userTypeName: cUserTypeName } = cUserType || {};
 
         if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
@@ -2675,8 +2675,9 @@ const replaceMentorForAll = async (request, h) => {
         const { oldMentorId } = request.params || {};        
         const { mentorId: newMentorId } = request.payload || {};        
         if(!newMentorId) return h.response({error:true, message:'Please provide a mentorId!'}).code(400);
+        if(oldMentorId === newMentorId) return h.response({error:true, message:'Both the old mentor and the new mentor is the same person!'}).code(400);
                 
-        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+        const { Userinfo, Usertype } = request.getModels('xpaxr');
 
         // get the company of the luser
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -2684,22 +2685,36 @@ const replaceMentorForAll = async (request, h) => {
         const { companyId: luserCompanyId } = userProfileInfo || {};        
              
         // is (s)he really a mentor
-        const mentorRecord = await Userinfo.findOne({ 
+        const [newMentorRecord, oldMentorRecord] = await Promise.all([
+            Userinfo.findOne({ 
                 where: { userId: newMentorId }, 
                 include: [{
                     model: Usertype,
                     as: "userType",
                     required: true,
                 }]
-            });
-        const mentorProfileInfo = mentorRecord && mentorRecord.toJSON();
-        const { userId: mUserId, userType: mUserType, companyId: mCompanyId } = mentorProfileInfo || {};
-        const { userTypeName: mUserTypeName } = mUserType || {};
+            }),
+            Userinfo.findOne({ 
+                where: { userId: oldMentorId }, 
+                include: [{
+                    model: Usertype,
+                    as: "userType",
+                    required: true,
+                }]
+            })
+        ]);
+        const newMentorProfileInfo = newMentorRecord && newMentorRecord.toJSON();
+        const { userId: nmUserId, userType: nmUserType, companyId: nmCompanyId } = newMentorProfileInfo || {};
+        const { userTypeName: nmUserTypeName } = nmUserType || {};
+        
+        const oldMentorProfileInfo = oldMentorRecord && oldMentorRecord.toJSON();
+        const { companyId: omCompanyId } = oldMentorProfileInfo || {};
                 
-        if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
-        if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
-        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
-
+        if(luserCompanyId !== omCompanyId) return h.response({error: true, message: 'The old mentor is not from the same company.'}).code(400);
+        
+        if(!nmUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
+        if(nmUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
+        if(luserCompanyId !== nmCompanyId) return h.response({error: true, message: 'The replacer mentor is not from the same company.'}).code(400);
         
         const sqlStmt = `
             UPDATE hris.mentorcandidatemapping mcm
@@ -2708,11 +2723,10 @@ const replaceMentorForAll = async (request, h) => {
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
-        const replacedMentorResSQL = await sequelize.query(sqlStmt, {
+        await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { newMentorId, oldMentorId },
         });
-        
                
         return h.response({ message: `Mentor replacing successful!`}).code(201);
     }
@@ -2741,7 +2755,6 @@ const getMentorCandidates = async (request, h) => {
         const userRecord = await Userinfo.findOne({ where: { userId: mentorId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};
-
             
         // find all candidates' records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
@@ -2795,7 +2808,7 @@ const getAllMentorCandidates = async (request, h) => {
             include: [{
                 model: Mentorcandidatemapping,
                 as: 'mentorMentorcandidatemappings',
-                required: true,
+                required: false,
                 attributes: ['mentorcandidatemappingId', 'mentorId', 'candidateId'],
 
                 include: {
@@ -3162,7 +3175,6 @@ const getTalentProfile = async (request, h) => {
       const { userId: rUserId, userTypeId, roleId, inTalentPool } = talentProfileInfo || {};
       
       if(!rUserId) return h.response({error:true, message:'No user found!'}).code(400);
-      if(!inTalentPool) return h.response({error:true, message:'You are not authorized. User has not agreed to join the Talent Pool!'}).code(403);
       
       const userTypeRecord = await Usertype.findOne({ where: { userTypeId }});
       const userRoleRecord = await Userrole.findOne({ where: { roleId }});
@@ -3170,7 +3182,7 @@ const getTalentProfile = async (request, h) => {
       const { roleName } = userRoleRecord && userRoleRecord.toJSON();
       
       if(roleName !== 'candidate') return h.response({error:true, message:'This user is not a candidate!'}).code(400);
-
+      if(!inTalentPool) return h.response({error:true, message:'You are not authorized. User has not agreed to join the Talent Pool!'}).code(403);
   
       talentProfileInfo.userTypeName = userTypeName;
       talentProfileInfo.roleName = roleName;
