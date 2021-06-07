@@ -2,7 +2,8 @@ import {
     getAbout,
     getUserStats,
     getCompatibility,
-    getMentorRecommendations
+    getMentorRecommendations,
+    getMentorStats
 } from "../controllers/report";
 
 const report = {
@@ -29,6 +30,16 @@ const report = {
             mode: 'try',
           },
           handler: getUserStats
+        },
+      });   
+      server.route({
+        method: 'GET',
+        path: '/mentor/stats',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getMentorStats
         },
       });   
       server.route({
