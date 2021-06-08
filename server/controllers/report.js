@@ -143,7 +143,7 @@ const checkReportAccess = async(sequelize,userId,talentId,userTypeName) =>{
         });
         return result.length > 0;
     }else if (userTypeName === "mentor"){
-        let sqlStmt = "select * from hris.hris.mentorcandidatemapping where mentor_id = :userId and candidate_id = :talentId limit 1;"
+        let sqlStmt = "select * from hris.mentorcandidatemapping where mentor_id = :userId and candidate_id = :talentId limit 1;"
         let result = await sequelize.query(sqlStmt,{
             type: QueryTypes.SELECT,
             replacements: { 
