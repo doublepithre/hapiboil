@@ -34,7 +34,7 @@ const createUser = async (request, h) => {
       return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
     }
     // Checking account type
-    const validAccountTypes = ['candidate', 'specialist'];
+    const validAccountTypes = ['candidate'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -179,7 +179,7 @@ const createCompanySuperAdmin = async (request, h) => {
       actionType: 'CREATE',
       actionDescription: `The user of userId ${luserId} has created the company of companyId ${companyId}`,
     });
-
+    
     // creating company superadmin user
     const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
     const userTypeRecord = await Usertype.findOne({
@@ -219,6 +219,13 @@ const createCompanySuperAdmin = async (request, h) => {
       actionType: 'CREATE',
       actionDescription: `The user of userId ${luserId} has created the user of userId ${userId}, with the accountType of ${accountType}`
     });
+
+    // creating company custom email templates (copying the default ones)
+    const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate'] }});  
+    for(let record of allDefaultTemplatesRecord){
+      const defaultData = record.toJSON();
+      Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, companyId: companyId, templateName: defaultData.templateName, ownerId: userId });
+    }
 
     // SENDING THE VERIFICATION EMAIL (confirmation email)
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
@@ -337,15 +344,19 @@ const getAllCompanyBySuperadmin = async (request, h) => {
       const sortTypeLower = sortType.toLowerCase();
       const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
       
-      const validSorts = ['company_id', 'company_name', 'created_at'];
+      const validSorts = ['company_name', 'created_at'];
       const isSortReqValid = validSorts.includes(sortBy);
 
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-      if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
-        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      }       
+
+      if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
+      if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
+      if(!isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
+      if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
+                          
+      if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       
       const db1 = request.getDb('xpaxr');
@@ -431,7 +442,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
-    const { limit, offset, sort, search, userType, companyName, companyId } = request.query;            
+    const { limit, offset, sort, search, userType, companyId } = request.query;            
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // filters
@@ -458,9 +469,13 @@ const getAllUsersBySuperadmin = async (request, h) => {
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
-        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      }       
+      
+      if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
+      if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
+      if(!isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
+      if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
+                          
+      if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       
       const db1 = request.getDb('xpaxr');
@@ -560,13 +575,13 @@ const updateCompanyBySuperadmin = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || (updateDetails.active !== true && updateDetails.active !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || typeof updateDetails.active !== 'boolean') return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
-    const { Company, Companyauditlog, Profileauditlog } = request.getModels('xpaxr');
+    const { Company, Companyauditlog } = request.getModels('xpaxr');
 
     const { companyUuid } = request.params || {};
-    const requestedForCompany = await Company.findOne({ where: { companyUuid }}) || {};
-    const rcompanyInfo = requestedForCompany && requestedForCompany.toJSON();
+    const requestedForCompanyRecord = await Company.findOne({ where: { companyUuid }});
+    const rcompanyInfo = requestedForCompanyRecord && requestedForCompanyRecord.toJSON();
     const { companyId: rCompanyId, active: oldActive } = rcompanyInfo || {};
 
     if(!rCompanyId)  return h.response({ error: true, message: 'No company found!'}).code(400);
@@ -631,21 +646,12 @@ const updateCompanyBySuperadmin = async (request, h) => {
         attributes: { exclude: ['createdAt', 'updatedAt']
       }
     });
-    const cinfo = updatedCinfo && updatedCinfo.toJSON();
-
-    // await Profileauditlog.create({ 
-    //   affectedUserId: ruserId,
-    //   performerUserId: userId,
-    //   actionName: 'Update a User',
-    //   actionType: 'UPDATE',
-    //   actionDescription: `The user of userId ${userId} has updated the user of userId ${ruserId}`
-    // });
-
+    const cinfo = updatedCinfo && updatedCinfo.toJSON();    
     return h.response(cinfo).code(200);
   }
   catch(error) {
     console.log(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
@@ -668,16 +674,17 @@ const updateUserBySuperadmin = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || (updateDetails.active !== true && updateDetails.active !== false)) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || (updateDetails.active && typeof updateDetails.active !== 'boolean') || (updateDetails.isAdmin && typeof updateDetails.isAdmin !== 'boolean')) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     const { Userinfo, Profileauditlog } = request.getModels('xpaxr');
 
     const { userUuid } = request.params || {};
-    const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
+    const requestedForUser = await Userinfo.findOne({ where: { userUuid }});
     const ruserInfo = requestedForUser && requestedForUser.toJSON();
-    const { userId: ruserId } = ruserInfo || {};
+    const { userId: ruserId, active: oldActive } = ruserInfo || {};
 
     if(!ruserId)  return h.response({ error: true, message: 'No user found!'}).code(400);
+    if(updateDetails.active === oldActive)  return h.response({ error: true, message: `The user is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
 
     if(updateDetails.active === false){      
       const db1 = request.getDb('xpaxr');
@@ -713,7 +720,7 @@ const updateUserBySuperadmin = async (request, h) => {
   }
   catch(error) {
     console.log(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
@@ -752,7 +759,7 @@ const updateCompanyProfile = async (request, h) => {
     const luser = userRecord && userRecord.toJSON();
     const { userId: luserId, companyId: luserCompanyId } = luser || {};
     
-    const requestedForCompany = await Company.findOne({ where: { companyUuid }}) || {};
+    const requestedForCompany = await Company.findOne({ where: { companyUuid }});
     const rCompanyInfo = requestedForCompany && requestedForCompany.toJSON();
     const { companyId: rCompanyId } = rCompanyInfo || {};
 
@@ -785,7 +792,6 @@ const updateCompanyProfile = async (request, h) => {
       const isHexCode = RegEx.test(emailBg);
       if(!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!'}).code(400);
     }
-
         
     await Company.update(
       {
@@ -821,16 +827,7 @@ const updateCompanyProfile = async (request, h) => {
     });
     const responses = camelizeKeys(SQLcompanyInfo)[0];
     delete responses.companyName;
-    delete responses.active;
-
-    // await Profileauditlog.create({ 
-    //   affectedUserId: rForUserId,
-    //   performerUserId: luserId,
-    //   actionName: 'Update a User',
-    //   actionType: 'UPDATE',
-    //   actionDescription: `The user of userId ${luserId} has updated his own info`
-    // });
-    
+    delete responses.active;       
     
     return h.response(responses).code(201);
   } catch (error) {
@@ -846,8 +843,7 @@ const getAnyCompanyInfo = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }            
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
+    const { credentials } = request.auth || {};    
     const { companyId } = request.params;
 
     const db1 = request.getDb('xpaxr');
@@ -1100,9 +1096,13 @@ const getCompanyStaff = async (request, h) => {
       // pagination
       const limitNum = limit ? Number(limit) : 10;
       const offsetNum = offset ? Number(offset) : 0;
-       if(isNaN(limitNum) || isNaN(offsetNum) || !isSortReqValid || !isSortTypeReqValid){
-        return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      }       
+
+      if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
+      if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
+      if(!isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
+      if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
+                          
+      if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
       if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
       
       const db1 = request.getDb('xpaxr');
@@ -1187,7 +1187,7 @@ const getFellowCompanyStaff = async (request, h) => {
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    if(luserTypeName !== 'employer' && luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -1198,7 +1198,7 @@ const getFellowCompanyStaff = async (request, h) => {
     const userProfileInfo = userRecord && userRecord.toJSON();
     const { companyId } = userProfileInfo || {};
 
-    const { sort, search, userType } = request.query;            
+    const { sort, search, userType, exclude } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
       // sort query
@@ -1210,26 +1210,28 @@ const getFellowCompanyStaff = async (request, h) => {
       const sortTypeLower = sortType.toLowerCase();
       const validSortTypes = ['asc', 'desc'];
       const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
+
+      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
       
-      const validUserTypeFilters = ['employer', 'mentor'];
-      const isUserTypeReqValid = validUserTypeFilters.includes(userType);
+      const validAccountTypes = ['employer', 'mentor'];
+      const isUserTypeQueryValid = (userType && isArray(userType)) ? (
+        userType.every( req => validAccountTypes.includes(req))
+      ) : validAccountTypes.includes(userType);
 
-      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid query parameters!'}).code(400);
-      if(userType && !isUserTypeReqValid) return h.response({error: true, message: 'Invalid userType query parameter!'}).code(400);
-
+      if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);    
+      
       const db1 = request.getDb('xpaxr');
-
       // get sql statement for getting all company staff or its count        
-      const filters = { search, sortBy, sortType, userType }
+      const filters = { search, sortBy, sortType, userType, exclude }
       function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userType } = obj;
+          const { search, sortBy, sortType, userType, exclude } = obj;
           let sqlStmt;
           const type = queryType && queryType.toLowerCase();
           if(type === 'count'){
               sqlStmt = `select count(*)`;
           } else {
               sqlStmt = `select
-                ui.email, ui.user_id, ur.role_name, ut.user_type_name`;
+                ui.first_name, ui.last_name, ui.email, ui.user_id, ur.role_name, ut.user_type_name`;
           }
 
           sqlStmt += `
@@ -1239,6 +1241,9 @@ const getFellowCompanyStaff = async (request, h) => {
               where ui.company_id=:companyId and not ui.user_id=:userId and ui.active=true`;
            
           // filters
+          if(exclude){
+            sqlStmt += isArray(exclude) ? ` and not ui.user_id in (:exclude)` : ` and not ui.user_id=:exclude`;
+          }
           if(userType){
             sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
           } else {
@@ -1269,6 +1274,7 @@ const getFellowCompanyStaff = async (request, h) => {
                 companyId,
                 userType,                
                 searchVal,                
+                exclude,
             },
         });
         const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
@@ -1301,7 +1307,7 @@ const updateCompanyStaff = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || typeof updateDetails.active !== 'boolean') return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     // Checking account type
     const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
@@ -1328,11 +1334,13 @@ const updateCompanyStaff = async (request, h) => {
     
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
-    const { userId: staffUserId, companyId: ruserCompanyId } = requestedForUser && requestedForUser.toJSON();
+    const { userId: staffUserId, companyId: ruserCompanyId, active: oldActive, userTypeId: oldUserTypeId } = requestedForUser && requestedForUser.toJSON();
 
     if (luserCompanyId !== ruserCompanyId) {
       return h.response({ error: true, message: 'Bad Request! You are not authorized.'}).code(403);
     }
+    if(updateDetails.active === oldActive)  return h.response({ error: true, message: `The user is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
+    if(updateDetails.userTypeId === oldUserTypeId)  return h.response({ error: true, message: `The user already has this userType!`}).code(400);
 
     if(updateDetails.active === false){      
       const db1 = request.getDb('xpaxr');
@@ -1440,7 +1448,7 @@ const updateUser = async (request, h) => {
     const userId = credentials.id;
     const userRecord = await Userinfo.findOne({ where: { userId } });
     const luser = userRecord && userRecord.toJSON();
-    const { userId: luserId, isAdmin } = luser || {};
+    const { userId: luserId } = luser || {};
     
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
@@ -1541,13 +1549,13 @@ const resendVerificationEmailBySuperadmin = async (request, h) => {
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
     if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
     
-    const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     
     const { credentials } = request.auth || {};
     const luserId = credentials.id;
     
     const { userId } = request.payload || {};
-    if(!userId) return h.response({error:true, message:'Please provide necessary details!'}).code(400);
+    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
 
     const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const userInfo = userRecord && userRecord.toJSON();
@@ -1618,7 +1626,7 @@ const resendCompanyVerificationEmail = async (request, h) => {
     const { companyId } = luserRecord && luserRecord.toJSON();
 
     const { userId } = request.payload || {};
-    if(!userId) return h.response({error:true, message:'Please provide necessary details!'}).code(400);
+    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
 
     const userRecord = await Userinfo.findOne({ where: { userId, companyId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
     const userInfo = userRecord && userRecord.toJSON();
@@ -1730,6 +1738,8 @@ const verifyEmail = async (request, h) => {
 const forgotPassword = async (request, h) => {
   try{
     const { email } = request.payload || {};
+    if(!email) return h.response({error:true, message:'Please provide an email!'}).code(400);
+
     if (!validator.isEmail(email)) { 
       return h.response({ error: true, message: 'Invalid Email!'}).code(400);
     }
@@ -1883,7 +1893,8 @@ const getProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    let userType = request.auth.artifacts.decoded.userTypeName;   
+    let userType = request.auth.artifacts.decoded.userTypeName; 
+    
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
@@ -1905,8 +1916,8 @@ const getProfile = async (request, h) => {
 
     const responses = [];
     for (let response of quesResponses) {
-      response = response && response.toJSON();
-      const { questionId, responseVal, timeTaken } = response;
+      const responseInfo = response && response.toJSON();
+      const { questionId, responseVal, timeTaken } = responseInfo || {};
       const res = { questionId, answer:responseVal.answer, timeTaken };
       responses.push(res);
     }
@@ -1915,11 +1926,11 @@ const getProfile = async (request, h) => {
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;    
 
-    const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
+    const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
     inner join hris.questiontarget qt on qt.target_id=q.question_target_id
     where qt.target_id=:targetId`;  
 
-    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
+    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
         type: QueryTypes.SELECT,
         replacements: { 
           targetId,
@@ -1927,11 +1938,11 @@ const getProfile = async (request, h) => {
     });
     const userQuesCount = allSQLUserQuesCount[0].count;
     
-    const sqlStmtForUserRes = `select count(*) 
+    const sqlStmtForUserResCount = `select count(*) 
       from hris.${ answerTable } uqr
       where uqr.user_id=:userId`;        
 
-    const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
+    const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
         type: QueryTypes.SELECT,
         replacements: { 
           userId, 
@@ -1939,7 +1950,9 @@ const getProfile = async (request, h) => {
     });
     const userResCount = allSQLUserResCount[0].count;
 
-    const isComplete = userQuesCount === userResCount;
+    let isComplete = userQuesCount === userResCount;
+
+    if(userType !== 'mentor' && userType !== 'candidate') isComplete = true;
     return h.response({ isComplete, responses }).code(200);
   }
   catch (error) {
@@ -1953,17 +1966,24 @@ const createProfile = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { responses } = request.payload || {};
+    // Checking user type from jwt
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+    if(userTypeName !== 'candidate' && userTypeName !== 'mentor')   return h.response({error: true, message: 'You are not authorized!'}).code(403);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
+
+    const { responses } = request.payload || {};
+    
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
-    // Checking user type from jwt
     const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;
     let data = []
     let createProfileResponse;
-    let userTypeName = request.auth.artifacts.decoded.userTypeName;
-    if (userTypeName === "candidate") {
+    let targetId;
+    
+    if (userTypeName === "candidate") {      
+      // create profile for a candidate
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
         const record = { questionId, responseVal:{answer}, userId, timeTaken }
@@ -1978,44 +1998,12 @@ const createProfile = async (request, h) => {
         const res = { questionId, answer:responseVal.answer, timeTaken };
         resRecord.push(res);
       }
-
-      // attaching isComplete property
-      const db1 = request.getDb('xpaxr');
-      const sequelize = db1.sequelize;
-
-      const targetId = 1;
-
-      const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
-      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
-      where qt.target_id=:targetId`;  
-
-      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
-          type: QueryTypes.SELECT,
-          replacements: { 
-            targetId,
-          },
-      });
-      const userQuesCount = allSQLUserQuesCount[0].count;
       
-      const sqlStmtForUserRes = `select count(*) 
-        from hris.userquesresponses uqr
-        where uqr.user_id=:userId`;        
+      createProfileResponse = resRecord;
+      targetId = 1;      
 
-      const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
-          type: QueryTypes.SELECT,
-          replacements: { 
-            userId,            
-          },
-      });
-      const userResCount = allSQLUserResCount[0].count;
-
-      const isComplete = userQuesCount === userResCount;
-      createProfileResponse = { isComplete, responses: resRecord };
-
-    } else if ( userTypeName === 'employer') {
-      // For Employer profile creation
-    } else if ( userTypeName  === 'mentor') {
-      // For Mentor profile creation
+    } else if (userTypeName  === 'mentor') {
+      // create profile for a mentor
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
         const record = { questionId, responseVal:{answer}, userId, timeTaken }
@@ -2026,17 +2014,41 @@ const createProfile = async (request, h) => {
       const resRecord = [];
       for (let response of quesResponses) {
         response = response && response.toJSON();
-        const { questionId, responseVal } = response;
-        const res = { questionId, answer:responseVal.answer };
+        const { questionId, responseVal, timeTaken } = response;
+        const res = { questionId, answer:responseVal.answer, timeTaken };
         resRecord.push(res);
       }
-      createProfileResponse = { responses: resRecord };
+      createProfileResponse = resRecord;
+      targetId = 3;      
+    }
+    
+    // attaching isComplete property
+    const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
+    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+    where qt.target_id=:targetId`;  
 
-      
-    } else {
-      return h.response({ error: true, message: 'Invalid Request!'}).code(400);
-    }    
-    return h.response(createProfileResponse).code(201);
+    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          targetId,
+        },
+    });
+    const userQuesCount = allSQLUserQuesCount[0].count;
+    
+    const sqlStmtForUserRes = `select count(*) 
+      from hris.userquesresponses uqr
+      where uqr.user_id=:userId`;        
+
+    const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          userId,            
+        },
+    });
+    const userResCount = allSQLUserResCount[0].count;
+
+    const isComplete = userQuesCount === userResCount;
+    return h.response({ isComplete, responses: createProfileResponse }).code(201);
   }
   catch (error) {
     console.error(error.stack);
@@ -2080,7 +2092,7 @@ const updateMetaData = async (request, h) => {
     const { metaKey, metaValue } = request.payload || {};
 
     if (!(metaKey && metaValue)) {     
-      return h.response({ error: true, message: 'Not a valid request!'}).code(400);
+      return h.response({ error: true, message: 'Please provide the necessary details!'}).code(400);
     }  
 
     const { Usermeta, Profileauditlog } = request.getModels('xpaxr');        
@@ -2124,32 +2136,6 @@ const updateMetaData = async (request, h) => {
   }
 }
 
-const DEMOuploadFileAPI = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    const { credentials } = request.auth || {};
-    const luserId = credentials.id;
-    const payload = request.payload;
-
-    const { logoImage, keyPrefix: kf } = payload || {};
-    const fileItems = isArray(logoImage) ? logoImage : [logoImage];
-
-    let linksArr = [];
-    for(let fileItem of fileItems){
-      const uploadRes = await uploadFile(h, fileItem, luserId, ['png', 'jpg', 'jpeg']);
-      linksArr.push(uploadRes.vurl)
-    }
-
-    return h.response(linksArr).code(200);
-  }
-  catch(error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Bad Request!' }).code(500);
-  }
-}
-
 const getWebchatToken = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -2171,7 +2157,6 @@ const getWebchatToken = async (request, h) => {
 }
 
 module.exports = {
-  DEMOuploadFileAPI,
   createUser,
 
   createCompanySuperAdmin,
