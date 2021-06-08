@@ -60,6 +60,12 @@ const manifest = {
           prefix: `${apiRootPrefix}/admin`,
         },
       },
+      {
+        plugin: require('./routes/report'),
+        routes: {
+          prefix: `${apiRootPrefix}/report`,
+        },
+      },
     ],
     options: {},
   },

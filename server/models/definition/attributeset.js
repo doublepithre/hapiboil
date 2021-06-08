@@ -58,8 +58,10 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Attributeset = model.Attributeset;
   const Qaattribute = model.Qaattribute;
+  const Reportfilter = model.Reportfilter;
 
 
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
+  Attributeset.hasMany(Reportfilter, { as: "reportfilters", foreignKey: "attributeId"});
 
 }

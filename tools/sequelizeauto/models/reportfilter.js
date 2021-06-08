@@ -1,40 +1,37 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Report', {
-    displayName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      field: 'display_name'
-    },
-    questionKey: {
+  return sequelize.define('Reportfilter', {
+    filterKey: {
       type: DataTypes.STRING,
       allowNull: false,
       primaryKey: true,
-      field: 'question_key'
+      field: 'filter_key'
     },
-    questionId: {
+    attributeId: {
       type: DataTypes.BIGINT,
-      allowNull: true,
+      allowNull: false,
+      primaryKey: true,
       references: {
         model: {
-          tableName: 'questionnaire',
+          tableName: 'attributeset',
           schema: 'hris'
         },
-        key: 'question_id'
+        key: 'attribute_id'
       },
-      field: 'question_id'
+      field: 'attribute_id'
     }
   }, {
     sequelize,
-    tableName: 'report',
+    tableName: 'reportfilters',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "report_pkey",
+        name: "reportfilters_pkey",
         unique: true,
         fields: [
-          { name: "question_key" },
+          { name: "filter_key" },
+          { name: "attribute_id" },
         ]
       },
     ]
