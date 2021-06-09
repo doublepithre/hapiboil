@@ -7,6 +7,7 @@ var _Company = require("./company");
 var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
+var _Country = require("./country");
 var _Cronofy = require("./cronofy");
 var _Cronofytoken = require("./cronofytoken");
 var _Emaillog = require("./emaillog");
@@ -20,6 +21,7 @@ var _Joblocation = require("./joblocation");
 var _Jobname = require("./jobname");
 var _Job = require("./job");
 var _Jobsquesresponse = require("./jobsquesresponse");
+var _Jobsrecommendationlog = require("./jobsrecommendationlog");
 var _Jobtype = require("./jobtype");
 var _Mentorcandidatemapping = require("./mentorcandidatemapping");
 var _Mentorquesresponse = require("./mentorquesresponse");
@@ -31,12 +33,16 @@ var _Questionnaire = require("./questionnaire");
 var _Questionnaireanswer = require("./questionnaireanswer");
 var _Questiontarget = require("./questiontarget");
 var _Questiontype = require("./questiontype");
+var _Recommendation = require("./recommendation");
+var _Recommendationmetric = require("./recommendationmetric");
 var _Report = require("./report");
+var _Reportfilter = require("./reportfilter");
 var _Requesttoken = require("./requesttoken");
 var _User = require("./user");
 var _Userinfo = require("./userinfo");
 var _Usermetum = require("./usermetum");
 var _Userquesresponse = require("./userquesresponse");
+var _Userrecommendationlog = require("./userrecommendationlog");
 var _Userrole = require("./userrole");
 var _Usertype = require("./usertype");
 
@@ -49,6 +55,7 @@ function initModels(sequelize) {
   var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
+  var Country = _Country(sequelize, DataTypes);
   var Cronofy = _Cronofy(sequelize, DataTypes);
   var Cronofytoken = _Cronofytoken(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
@@ -62,6 +69,7 @@ function initModels(sequelize) {
   var Jobname = _Jobname(sequelize, DataTypes);
   var Job = _Job(sequelize, DataTypes);
   var Jobsquesresponse = _Jobsquesresponse(sequelize, DataTypes);
+  var Jobsrecommendationlog = _Jobsrecommendationlog(sequelize, DataTypes);
   var Jobtype = _Jobtype(sequelize, DataTypes);
   var Mentorcandidatemapping = _Mentorcandidatemapping(sequelize, DataTypes);
   var Mentorquesresponse = _Mentorquesresponse(sequelize, DataTypes);
@@ -73,25 +81,33 @@ function initModels(sequelize) {
   var Questionnaireanswer = _Questionnaireanswer(sequelize, DataTypes);
   var Questiontarget = _Questiontarget(sequelize, DataTypes);
   var Questiontype = _Questiontype(sequelize, DataTypes);
+  var Recommendation = _Recommendation(sequelize, DataTypes);
+  var Recommendationmetric = _Recommendationmetric(sequelize, DataTypes);
   var Report = _Report(sequelize, DataTypes);
+  var Reportfilter = _Reportfilter(sequelize, DataTypes);
   var Requesttoken = _Requesttoken(sequelize, DataTypes);
   var User = _User(sequelize, DataTypes);
   var Userinfo = _Userinfo(sequelize, DataTypes);
   var Usermetum = _Usermetum(sequelize, DataTypes);
   var Userquesresponse = _Userquesresponse(sequelize, DataTypes);
+  var Userrecommendationlog = _Userrecommendationlog(sequelize, DataTypes);
   var Userrole = _Userrole(sequelize, DataTypes);
   var Usertype = _Usertype(sequelize, DataTypes);
 
+  Job.belongsToMany(User, { through: Recommendation, foreignKey: "jobId", otherKey: "userId" });
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
   Questionnaire.belongsToMany(Userinfo, { through: Mentorquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
+  User.belongsToMany(Job, { through: Recommendation, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsToMany(Questionnaire, { through: Mentorquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Qaattribute.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
+  Reportfilter.belongsTo(Attributeset, { as: "attribute", foreignKey: "attributeId"});
+  Attributeset.hasMany(Reportfilter, { as: "reportfilters", foreignKey: "attributeId"});
   Companyauditlog.belongsTo(Company, { as: "affectedCompany", foreignKey: "affectedCompanyId"});
   Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
@@ -118,6 +134,10 @@ function initModels(sequelize) {
   Job.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "affectedJobId"});
   Jobhiremember.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
+  Jobsrecommendationlog.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Job.hasOne(Jobsrecommendationlog, { as: "jobsrecommendationlog", foreignKey: "jobId"});
+  Recommendation.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Job.hasMany(Recommendation, { as: "recommendations", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
   Jobtype.hasMany(Job, { as: "jobs", foreignKey: "jobTypeId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
@@ -144,10 +164,14 @@ function initModels(sequelize) {
   Questiontype.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionTypeId"});
   Job.belongsTo(User, { as: "user", foreignKey: "userId"});
   User.hasMany(Job, { as: "jobs", foreignKey: "userId"});
+  Recommendation.belongsTo(User, { as: "user", foreignKey: "userId"});
+  User.hasMany(Recommendation, { as: "recommendations", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
   User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
   Userinfo.belongsTo(User, { as: "userUu", foreignKey: "userUuid"});
   User.hasMany(Userinfo, { as: "userUuUserinfos", foreignKey: "userUuid"});
+  Userrecommendationlog.belongsTo(User, { as: "user", foreignKey: "userId"});
+  User.hasOne(Userrecommendationlog, { as: "userrecommendationlog", foreignKey: "userId"});
   Applicationauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
   Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Applicationhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
@@ -194,6 +218,7 @@ function initModels(sequelize) {
     Companyauditlog,
     Companyindustry,
     Companyinfo,
+    Country,
     Cronofy,
     Cronofytoken,
     Emaillog,
@@ -207,6 +232,7 @@ function initModels(sequelize) {
     Jobname,
     Job,
     Jobsquesresponse,
+    Jobsrecommendationlog,
     Jobtype,
     Mentorcandidatemapping,
     Mentorquesresponse,
@@ -218,12 +244,16 @@ function initModels(sequelize) {
     Questionnaireanswer,
     Questiontarget,
     Questiontype,
+    Recommendation,
+    Recommendationmetric,
     Report,
+    Reportfilter,
     Requesttoken,
     User,
     Userinfo,
     Usermetum,
     Userquesresponse,
+    Userrecommendationlog,
     Userrole,
     Usertype,
   };
