@@ -1197,7 +1197,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [jobName, jobIndustry, jobFunction]     
+            enum: [jobName, jobIndustry, jobFunction, countryName]     
       responses:
         '200':
           description: OK
@@ -1213,9 +1213,9 @@ paths:
                     items:
                       type: object
                       properties:
-                        job?????Id:
+                        countryId/job?????Id:
                           type: number
-                        job?????Name:
+                        countryFull/job?????Name:
                           type: string
 
   /job/j/job-details-options:
