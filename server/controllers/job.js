@@ -1240,7 +1240,7 @@ const applyToJob = async (request, h) => {
         // Job Details
         const db1 = request.getDb('xpaxr');
         const getJobDetailsSqlStmt = `select
-                j.job_id, jn.job_name, 
+                j.job_id, jn.job_name, j.close_date,
                 c.display_name as company_name, j.company_Id,
                 j.user_id
             from hris.jobs j
@@ -1256,9 +1256,10 @@ const applyToJob = async (request, h) => {
             },
         });
         const appliedJobDetails = camelizeKeys(appliedJobDetailsRAW)[0];
-        const { jobId: jobIdinTheDB, userId: employerId, companyId: creatorCompanyId } = appliedJobDetails || {};
+        const { jobId: jobIdinTheDB, userId: employerId, companyId: creatorCompanyId, closeDate: jobCloseDate } = appliedJobDetails || {};
 
         if(!jobIdinTheDB) return h.response({error: true, message: 'No job found!'}).code(400);
+        if(jobCloseDate < new Date()) return h.response({error: true, message: 'This job is no longer accepting any applicants!'}).code(400);
 
         const alreadyAppliedRecord = await Jobapplication.findOne({ where: { jobId, userId, isApplied: true }});
         const {applicationId: alreadyAppliedApplicationId} = alreadyAppliedRecord || {};
