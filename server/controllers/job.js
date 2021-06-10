@@ -18,10 +18,15 @@ const createJob = async (request, h) => {
         }
 
         const jobDetails = request.payload || {};
-        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration } = jobDetails;
-        if(!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp)){
+        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration, closeDate } = jobDetails;
+        if(!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp && closeDate)){
             return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
         }
+
+        jobDetails.closeDate = closeDate && new Date(closeDate);
+        const isValidCloseDate = closeDate ? !isNaN(Date.parse(jobDetails.closeDate)) : true;        
+        if(!isValidCloseDate) return h.response({error: true, message: 'Invalid closeDate!'}).code(400);
+        
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
@@ -1002,8 +1007,12 @@ const updateJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { jobUuid } = request.params || {};
-        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
+        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration, closeDate } = request.payload || {};        
         
+        const closeDateVal = closeDate && new Date(closeDate);
+        const isValidCloseDate = closeDate ? !isNaN(Date.parse(closeDateVal)) : true;        
+        if(!isValidCloseDate) return h.response({error: true, message: 'Invalid closeDate!'}).code(400);
+
         const { Job, Jobname, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -1078,7 +1087,7 @@ const updateJob = async (request, h) => {
             }
         }
               
-        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});        
+        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal, closeDate: closeDateVal }, { where: { jobUuid }});        
         const record = await Job.findOne({where: {jobUuid}});
                 
         await Jobauditlog.create({ 
