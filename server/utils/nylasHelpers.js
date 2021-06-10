@@ -1,7 +1,7 @@
 
 const saveAccessToken = async (request, data, userId = 0) => {
   try {
-    const { Cronofytokens } = request.getModels('xpaxr');
+    const { Cronofytoken } = request.getModels('xpaxr');
     
     const { access_token, account_id } = data || {};
     if (!access_token) {
@@ -19,7 +19,7 @@ const saveAccessToken = async (request, data, userId = 0) => {
       // scope: null,
       createdAt
     };
-    const ctokensRes = await Cronofytokens.upsert(
+    const ctokensRes = await Cronofytoken.upsert(
       cronofyTokenData,
       {
         where: {
@@ -28,7 +28,10 @@ const saveAccessToken = async (request, data, userId = 0) => {
         }
       },
     );
-    return ctokensRes;
+    const ctokensRecord = ctokensRes[0];
+    const ctokensInfo = ctokensRecord && ctokensRecord.toJSON();
+    const { accessToken } = ctokensInfo || {};
+    return { accessToken };
   } catch (err) {
     console.log("saveAccessTokenError:", err);
     return {

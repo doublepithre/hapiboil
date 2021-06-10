@@ -73,8 +73,9 @@ const requestNyToken = async (request, h) => { //tokenRecord, userId
         },
       }
     );
-    await userInfo.update({ allowSendEmail: true }, { where: { userId: userId || 0 }});
-    return res;
+    await Userinfo.update({ allowSendEmail: true }, { where: { userId: userId || 0 }});
+    const record = res[0];
+    return h.response(record).code(200);    
   } catch (err) {
     console.error(err);
     return h.response({error:true, message: err.message || `Unable to request nylas token!` }).code(400);    
