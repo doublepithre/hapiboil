@@ -4,21 +4,6 @@ const moment = require("moment");
 import { requestNyAccessToken, revokeNylasAccount } from '../utils/nylas'
 import { saveAccessToken } from '../utils/nylasHelpers'
 
-const DEMOrequestNyToken = async (request, h) => {
-    try{
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden'}).code(403);
-        }
-        console.log(process.env.NODE_ENV)  
-        const responses = { msg: "Hi!", env: process.env.NODE_ENV, body: request.payload }
-        return h.response(responses).code(200);
-    }
-    catch (error) {
-        console.error(error.stack);
-        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
-    }
-}
-
 const requestNyToken = async (request, h) => { //tokenRecord, userId
   try {
     if (!request.auth.isAuthenticated) {
@@ -89,8 +74,7 @@ const revokeNyAccount = async (request, h) => {
     }   
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    const { token: code } = request.payload || {}; //this is data
-    const { Cronofy, Cronofytokens } = request.getModels('xpaxr');
+    const { Cronofy, Cronofytoken, Userinfo } = request.getModels('xpaxr');
     const { accountId } = request.payload || {};
     if(!accountId) return h.response({error:true, message:'Please provide an accountId!'}).code(400);
       
@@ -105,19 +89,19 @@ const revokeNyAccount = async (request, h) => {
     if (!nylasAccountId) return h.response({error:true, message:'No connected calendar account found for this user!'}).code(400);            
     
     await revokeNylasAccount(nylasAccountId || 0);
-    await Cronofytokens.destroy({ 
+    await Cronofytoken.destroy({ 
       where: {
         userId: userId || 0,
         accountId: accountId || 0,
       }
     });
-    const res = await Cronofy.destroy({ where: { id }});
+    await Cronofy.destroy({ where: { id }});
     const usdata = {
       allowSendEmail: false,
       updatedAt: moment().format(),
     };
     await Userinfo.update(usdata, { where: { userId }});
-    return res;
+    return h.response({ message:'Successfully revoked account!'}).code(200);
   } catch (error) {
     console.error(error);
     return h.response({error:true, message:'Unable to revoke account!'}).code(400);
