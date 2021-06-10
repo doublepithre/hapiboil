@@ -1737,9 +1737,10 @@ const verifyEmail = async (request, h) => {
 
 const forgotPassword = async (request, h) => {
   try{
-    const { email } = request.payload || {};
-    if(!email) return h.response({error:true, message:'Please provide an email!'}).code(400);
-
+    const { email: rawEmail } = request.payload || {};
+    if(!rawEmail) return h.response({error:true, message:'Please provide an email!'}).code(400);
+    
+    const email = rawEmail.toLowerCase();
     if (!validator.isEmail(email)) { 
       return h.response({ error: true, message: 'Invalid Email!'}).code(400);
     }
