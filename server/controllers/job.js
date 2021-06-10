@@ -218,7 +218,7 @@ const getSingleJob = async (request, h) => {
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
             
             // if he is an employer
-            if(isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id`;        
+            if(isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id and jhm.user_id=:userId`;        
             sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid`;
 
             // if he is an employer
@@ -231,7 +231,7 @@ const getSingleJob = async (request, h) => {
         const sequelize = db1.sequelize;
       	const sqlJobArray = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
-            replacements: { jobUuid, recruiterCompanyId },
+            replacements: { jobUuid, recruiterCompanyId, userId },
         });      	        
         const rawJobArray = camelizeKeys(sqlJobArray);
         const { jobId: foundJobId } = rawJobArray[0] || {};
