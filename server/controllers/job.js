@@ -26,7 +26,6 @@ const createJob = async (request, h) => {
         jobDetails.closeDate = closeDate && new Date(closeDate);
         const isValidCloseDate = closeDate ? !isNaN(Date.parse(jobDetails.closeDate)) : true;        
         if(!isValidCloseDate) return h.response({error: true, message: 'Invalid closeDate!'}).code(400);
-        
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        

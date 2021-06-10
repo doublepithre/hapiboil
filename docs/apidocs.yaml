@@ -2272,6 +2272,8 @@ components:
           type: number
         email:
           type: string
+        allowSendEmail:
+          type: boolean        
         inTalentPool:
           type: boolean        
         privacyClause:
@@ -2416,6 +2418,9 @@ components:
           type: number
         duration:
           type: number
+        closeDate:
+          type: string
+          example: '2027-12-27'
         isPrivate:
           type: boolean
 

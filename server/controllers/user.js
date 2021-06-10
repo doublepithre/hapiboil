@@ -1434,7 +1434,7 @@ const updateUser = async (request, h) => {
       'tzid',        'primaryMobile',
       'roleId',      'privacyClause',
       'tandc',       'picture',
-      'inTalentPool',
+      'inTalentPool','allowSendEmail',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
