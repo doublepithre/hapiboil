@@ -100,7 +100,7 @@ const createUser = async (request, h) => {
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/u/verify-email?token=${token}`;
+    resetLink += `/verify-email?token=${token}`;
 
     const emailData = {
       emails: [udata.email],
@@ -1579,7 +1579,7 @@ const resendVerificationEmailBySuperadmin = async (request, h) => {
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/u/verify-email?token=${token}`;
+    resetLink += `/verify-email?token=${token}`;
 
     const emailData = {
       emails: [email],
