@@ -109,7 +109,36 @@ const revokeNyAccount = async (request, h) => {
   }
 };
 
+const userCalendars = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }   
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { Cronofy } = request.getModels('xpaxr');
+      
+    const res = await Cronofy.findAll({
+      where: { userId },
+      order: [['id', 'DESC']],
+      limit: 1
+    });
+
+    const fres =  {
+      calendars: res || [],
+    };
+
+    return h.response(fres).code(200);
+  } catch (error) {
+    console.error(error);
+    return h.response({error:true, message:'Unable to revoke account!'}).code(400);
+    
+  }
+};
+
+
 module.exports = {
   requestNyToken,
   revokeNyAccount,
+  userCalendars,
 }
