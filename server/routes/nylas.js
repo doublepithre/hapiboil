@@ -2,6 +2,7 @@ import {
   requestNyToken,
   revokeNyAccount,
   userCalendars,
+  refreshUserCalendars,
 } from "../controllers/nylas";
 
 const xnylas = {
@@ -38,6 +39,16 @@ register: async (server, options) => {
           mode: 'try',
         },
         handler: userCalendars,
+      },
+    });
+    server.route({
+      method: 'GET',
+      path: '/refresh-user-calendars',
+      options: {
+        auth: {
+          mode: 'try',
+        },
+        handler: refreshUserCalendars,
       },
     });
     // other routes

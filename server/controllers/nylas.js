@@ -1,8 +1,8 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const moment = require("moment");
 
-import { requestNyAccessToken, revokeNylasAccount } from '../utils/nylas'
-import { saveAccessToken } from '../utils/nylasHelpers'
+import { requestNyAccessToken, revokeNylasAccount, listCalendars } from '../utils/nylas'
+import { saveAccessToken, getAccessToken } from '../utils/nylasHelpers'
 
 const requestNyToken = async (request, h) => { //tokenRecord, userId
   try {
@@ -136,9 +136,45 @@ const userCalendars = async (request, h) => {
   }
 };
 
+const refreshUserCalendars = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }   
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { Cronofy } = request.getModels('xpaxr');
+      
+    const cronofyRecord = await Cronofy.findOne({ where: { userId: userId }});
+    const cronofyInfo = cronofyRecord && cronofyRecord.toJSON();
+    const { accountEmail } = cronofyInfo || {};
+
+    const accessToken = await getAccessToken(request, userId);
+    const calendarsRes = await listCalendars(accessToken);
+    const {calendars, error} = calendarsRes || {};
+    if (error) {
+      return error;
+    }
+    
+    const upsertResponse = await Cronofy.upsert({
+      userId: userId,
+      accountEmail: accountEmail,
+    }, {
+      calendar: calendars,
+    });
+
+    return h.response(upsertResponse[0]).code(200);
+  } catch (error) {
+    console.error(error);
+    return h.response({error:true, message:'Unable to get calendar details!'}).code(400);
+    
+  }
+};
+
 
 module.exports = {
   requestNyToken,
   revokeNyAccount,
   userCalendars,
+  refreshUserCalendars,
 }

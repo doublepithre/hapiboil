@@ -42,7 +42,33 @@ const saveAccessToken = async (request, data, userId = 0) => {
   }
 };
 
+const getAccessToken = async (request, userId, accountId) => {
+  try {
+    const { Cronofytoken } = request.getModels('xpaxr');
+
+    const query = {
+      where: {
+        userId: userId,
+      },
+      order: [['createdAt', 'DESC']]
+    };
+    if (accountId) {
+      query.where = {
+        accountId: accountId,
+      };
+    }
+
+    const tokenRecord = await Cronofytoken.findOne(query);
+    const tokenInfo = tokenRecord && tokenRecord.toJSON();
+    const { accessToken } = tokenInfo || {};
+    return accessToken;
+  } catch (error) {
+    console.error(error);
+    return error;
+  }
+};
 
 module.exports = {
   saveAccessToken,
+  getAccessToken
 }
