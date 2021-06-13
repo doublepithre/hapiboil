@@ -18,6 +18,9 @@ tags:
 
   - name: Job
     description: Information about jobs
+  
+  - name: Nylas
+    description: Information about Nylas API(s)
 
   - name: User Model
     x-displayName: The User Model
@@ -2255,6 +2258,96 @@ paths:
                 type: object
                 $ref: "#/components/schemas/User" 
 
+  /nylas/n/token:
+    post: 
+      summary: Request for Nylas Token
+      description: It requests for a Nylas Token
+      tags:
+        - Nylas
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                token:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/CronofyRecord"
+
+  /nylas/user-calendars:
+    get: 
+      summary: Get User Calenders
+      description: It gets the latest User Calendar
+      tags:
+        - Nylas
+      security:
+      - bearerAuth: []    
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  calendars:
+                    type: array
+                    items:                    
+                      - $ref: "#/components/schemas/CronofyRecord"
+
+  /nylas/refresh-user-calendars:
+    get: 
+      summary: Refresh User Calenders
+      description: It refreshes the User Calendar
+      tags:
+        - Nylas
+      security:
+      - bearerAuth: []    
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/CronofyRecord"
+
+  /nylas/revoke-account:
+    post: 
+      summary: Revoke Nylas Token
+      description: It revokes the Nylas Token
+      tags:
+        - Nylas
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                accountId:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Successfully revoked account
  
 components:
   securitySchemes:
@@ -2671,6 +2764,33 @@ components:
           type: boolean
         isDefaultTemplate:
           type: boolean
+        createdAt:
+          type: string        
+        updatedAt:
+          type: string               
+        
+    CronofyRecord:
+      type: object
+      description: This is the Cronofy Calendar Record for a user.      
+      properties:
+        id:
+          type: number  
+        userId:
+          type: number  
+        accountId:
+          type: number  
+        accountName:
+          type: string  
+        accountEmail:
+          type: string  
+        linkingProfile:
+          type: json  
+        defaultTzid:
+          type: string  
+        sub:
+          type: string  
+        calender:
+          type: json
         createdAt:
           type: string        
         updatedAt:
