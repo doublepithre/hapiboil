@@ -523,7 +523,8 @@ const getAllJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
         const filters = { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate };
 
-        // get sql statement for getting jobs or jobs count        
+        // get sql statement for getting jobs or jobs count          
+        const timeNow = new Date();
         function getSqlStmt(queryType, obj = filters){
             const { jobIdArray, recommendedVal, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate } = obj;
             let sqlStmt;
@@ -544,7 +545,7 @@ const getAllJobs = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where j.active=true 
-                and j.is_private=false`;            
+                and j.is_private=false and j.close_date > :timeNow`;            
                         
             if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
             if(recommendedVal === 1) sqlStmt += ` and j.job_id in (:jobIdArray)`;
@@ -609,11 +610,11 @@ const getAllJobs = async (request, h) => {
         const sequelize = db1.sequelize;
       	const allSQLJobs = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
-            replacements: { jobIdArray, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+            replacements: { timeNow, jobIdArray, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });
       	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
-            replacements: { jobIdArray, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+            replacements: { timeNow, jobIdArray, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });           
         const allJobs = camelizeKeys(allSQLJobs);
 
@@ -716,7 +717,8 @@ const getAllJobsForAParticularCompany = async (request, h) => {
         const db1 = request.getDb('xpaxr');
         const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate };
 
-        // get sql statement for getting jobs or jobs count        
+        // get sql statement for getting jobs or jobs count      
+        const timeNow = new Date();
         function getSqlStmt(queryType, obj = filters){
             const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate } = obj;
             let sqlStmt;
@@ -737,7 +739,7 @@ const getAllJobsForAParticularCompany = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             where j.active=true 
-                and j.is_private=false and j.company_id=:companyId`;            
+                and j.is_private=false and j.company_id=:companyId and j.close_date > :timeNow`;            
                         
             if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
             // filters
@@ -784,11 +786,11 @@ const getAllJobsForAParticularCompany = async (request, h) => {
         const sequelize = db1.sequelize;
       	const allSQLJobs = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
-            replacements: { companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+            replacements: { timeNow, companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });
       	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
-            replacements: { companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+            replacements: { timeNow, companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
         });           
         const allJobs = camelizeKeys(allSQLJobs);
 
