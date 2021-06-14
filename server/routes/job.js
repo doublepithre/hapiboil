@@ -4,6 +4,7 @@ import {
     getAutoComplete,
 
     getSingleJob,
+    getCompanyJobDetails,
     getAllJobs,
     getAllJobsForAParticularCompany,
     getRecruiterJobs,
@@ -90,6 +91,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getAllJobsForAParticularCompany,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/company/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getCompanyJobDetails,
         },
       });
       server.route({

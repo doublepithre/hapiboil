@@ -304,6 +304,130 @@ const getSingleJob = async (request, h) => {
     }
 }
 
+const getCompanyJobDetails = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};  
+        const { jobUuid } = request.params || {};        
+
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        
+        const { Jobapplication, Userinfo } = request.getModels('xpaxr');
+
+        // get the company of the luser (using it only if he is a recruiter)
+        const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const luserProfileInfo = luserRecord && luserRecord.toJSON();
+        const { companyId: recruiterCompanyId } = luserProfileInfo || {};                
+                
+        const db1 = request.getDb('xpaxr');
+
+        // get sql statement for getting jobs or jobs count
+        const isCandidateView = luserTypeName === 'candidate';
+        function getSqlStmt(queryType){            
+            let sqlStmt;            
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select
+                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+                if(isCandidateView) sqlStmt += `,jqr.response_id,jqr.question_id,jqr.response_val`;
+            }
+
+            sqlStmt += `
+            from hris.jobs j
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
+            
+            // if he is an employer
+            sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid and j.is_private=false`;        
+            
+            return sqlStmt;
+        };
+
+        const sequelize = db1.sequelize;
+      	const sqlJobArray = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { jobUuid, recruiterCompanyId, userId },
+        });      	        
+        const rawJobArray = camelizeKeys(sqlJobArray);
+        const jobRecord = rawJobArray[0] || {};
+        const { jobId: foundJobId } = jobRecord;
+
+        if(!foundJobId) return h.response({error: true, message: 'No job found!'}).code(400);
+
+        let responseJob = jobRecord;
+        // check if already applied
+        if(luserTypeName === 'candidate'){
+            const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+            const appliedJobIds = [];
+            rawAllAppliedJobs.forEach(aj => {
+                const { jobId } = aj || {};
+                if(jobId) {
+                    appliedJobIds.push(Number(jobId));
+                }
+            });
+
+            rawJobArray.forEach(j => {
+                const { jobId } = j || {};
+                if(appliedJobIds.includes(Number(jobId))) {
+                    j.isApplied = true;
+                } else {
+                    j.isApplied = false;
+                }
+            });   
+
+            const jobsMap = new Map();
+            const jobQuesMap = {};
+            const fres = [];
+    
+            // attaching jobQuestionResponses
+            if(Array.isArray(rawJobArray) && rawJobArray.length) {
+                rawJobArray.forEach(r => {
+                    const { jobId, questionId, responseId, responseVal, ...rest } = r || {};
+                    jobsMap.set(jobId, { jobId, ...rest });
+                    
+                    if(responseId){
+                        if(jobQuesMap[jobId]) {
+                            jobQuesMap[jobId].push({questionId, responseId, responseVal});
+                            } else {
+                            jobQuesMap[jobId] = [{questionId, responseId, responseVal}];
+                        }
+                    }
+                });
+                jobsMap.forEach((jqrObj, jm) => {
+                    const records = jobQuesMap[jm] || [];
+    
+                    const questions = [];
+                    for (let response of records) {
+                        const { questionId, responseVal } = response;
+                        const res = { questionId, answer:responseVal.answer };
+                        questions.push(res);
+                    }
+                    jqrObj.jobQuestionResponses = questions;
+                    fres.push(jqrObj);
+                });                
+            }   
+            responseJob = fres[0];    
+        }
+        
+        return h.response(responseJob).code(200);
+
+    } catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
 const getAllJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -3461,6 +3585,7 @@ module.exports = {
     getAutoComplete,
  
     getSingleJob,
+    getCompanyJobDetails,
     getAllJobs,
     getAllJobsForAParticularCompany,
     getRecruiterJobs,
