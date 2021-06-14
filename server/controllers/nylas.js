@@ -1,6 +1,8 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const moment = require("moment");
 
+import { isArray } from 'lodash';
+
 import { requestNyAccessToken, revokeNylasAccount, listCalendars } from '../utils/nylas'
 import { saveAccessToken, getAccessToken } from '../utils/nylasHelpers'
 
@@ -124,14 +126,24 @@ const userCalendars = async (request, h) => {
       limit: 1
     });
 
+    const calendarsArray = [];
+    if(isArray(res) && res.length) {
+      for(let record of res){
+        const info = record.toJSON();
+        const { calendar } = info || {};
+        info.calendar = JSON.parse(calendar);
+        calendarsArray.push(info);
+      }
+    }
+
     const fres =  {
-      calendars: res || [],
+      calendars: calendarsArray || [],
     };
 
     return h.response(fres).code(200);
   } catch (error) {
     console.error(error);
-    return h.response({error:true, message:'Unable to revoke account!'}).code(400);
+    return h.response({error:true, message:'Server error!'}).code(500);
     
   }
 };
