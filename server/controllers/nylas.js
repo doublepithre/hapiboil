@@ -175,7 +175,12 @@ const refreshUserCalendars = async (request, h) => {
       calendar: calendars,
     });
 
-    return h.response(upsertResponse[0]).code(200);
+    const record = upsertResponse[0] || {};
+    const info = record && record.toJSON();
+    const { calendar } = info || {};
+    info.calendar = JSON.parse(calendar);
+
+    return h.response(info).code(200);
   } catch (error) {
     console.error(error);
     return h.response({error:true, message:'Unable to get calendar details!'}).code(400);
