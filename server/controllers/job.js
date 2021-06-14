@@ -521,6 +521,183 @@ const getAllJobs = async (request, h) => {
     }
 }
 
+const getAllJobsForAParticularCompany = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};  
+        
+        const { Company, Jobapplication } = request.getModels('xpaxr');
+
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        const { companyId } = request.params;
+
+        const companyRecord = await Company.findOne({ where: { companyId }});
+        const companyInfo = companyRecord && companyRecord.toJSON();
+        const { companyId: existingCompanyId } = companyInfo || {};
+
+        if(!existingCompanyId) return h.response({error:true, message:'No company found for this companyId!'}).code(400);
+
+        const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';
+        
+        const validSorts = [ 'score', 'created_at', 'job_name'];
+        const isSortReqValid = validSorts.includes(sortBy);
+        const validSortTypes = [ 'asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
+
+        // pagination query
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;        
+
+        // query validation
+        if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
+        if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
+
+        if(!sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
+        if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
+                            
+        if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
+        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+
+        // custom date search query
+        let lowerDateRange;
+        let upperDateRange;
+        if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
+
+        if(startDate){
+            if(startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if(startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Invalid startDate or endDate query parameter!'}).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);
+        }
+        
+        const db1 = request.getDb('xpaxr');
+        const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate };
+
+        // get sql statement for getting jobs or jobs count        
+        function getSqlStmt(queryType, obj = filters){
+            const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select
+                    jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+            }
+
+            sqlStmt += `
+            from hris.jobs j
+                inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                inner join hris.company c on c.company_id=j.company_id
+                inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
+            where j.active=true 
+                and j.is_private=false and j.company_id=:companyId`;            
+                        
+            if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
+            // filters
+            if(jobTypeId){
+                sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
+            } 
+            if(jobFunctionId){
+                sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
+            } 
+            if(jobIndustryId){
+                sqlStmt += isArray(jobIndustryId) ? ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
+            }         
+            if(jobLocationId){
+                sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
+            }         
+            if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+
+            // search
+            if(search) {
+                sqlStmt += ` and (
+                    jn.job_name ilike :searchVal
+                    or jt.job_type_name ilike :searchVal
+                    or jf.job_function_name ilike :searchVal
+                    or ji.job_industry_name ilike :searchVal
+                    or jl.job_location_name ilike :searchVal
+                    or j.job_description ilike :searchVal
+                )`;
+            }
+
+            if(type !== 'count') {
+                // sorts (order)            
+                if(sortBy === 'job_name') {
+                    sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else {
+                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                }            
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+
+            return sqlStmt;
+        };
+
+        const sequelize = db1.sequelize;
+      	const allSQLJobs = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+        });
+      	const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+        });           
+        const allJobs = camelizeKeys(allSQLJobs);
+
+        // check if already applied
+        if(luserTypeName === 'candidate'){
+            const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
+            const appliedJobIds = [];
+            rawAllAppliedJobs.forEach(aj => {
+                const { jobId } = aj || {};
+                if(jobId) {
+                    appliedJobIds.push(Number(jobId));
+                }
+            });
+
+            allJobs.forEach(j => {
+                const { jobId } = j || {};
+                if(appliedJobIds.includes(Number(jobId))) {
+                    j.isApplied = true;
+                } else {
+                    j.isApplied = false;
+                }
+            });      
+
+        }
+        const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };                          
+        return h.response(responses).code(200);
+
+    } catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    }
+}
+
 const getRecruiterJobs = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -3282,9 +3459,12 @@ module.exports = {
     createJob,    
     getJobDetailsOptions,
     getAutoComplete,
+ 
     getSingleJob,
     getAllJobs,
+    getAllJobsForAParticularCompany,
     getRecruiterJobs,
+ 
     getJobAccessRecords,
     shareJob,
     updateSharedJob,

@@ -2,13 +2,17 @@ import {
     createJob,
     getJobDetailsOptions,
     getAutoComplete,
+
     getSingleJob,
     getAllJobs,
+    getAllJobsForAParticularCompany,
     getRecruiterJobs,
+    
     getJobAccessRecords,
     shareJob,
     updateSharedJob,
     deleteJobAccessRecord,
+    
     updateJob,
     createJobQuesResponses,
     getJobQuesResponses,
@@ -78,6 +82,16 @@ const xjob = {
           },
         },
       });      
+      server.route({
+        method: 'GET',
+        path: '/j/{companyId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllJobsForAParticularCompany,
+        },
+      });
       server.route({
         method: 'GET',
         path: '/j/recruiter',
