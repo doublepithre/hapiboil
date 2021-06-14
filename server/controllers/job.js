@@ -1424,7 +1424,7 @@ const deleteJob = async (request, h) => {
 
         const { jobUuid } = request.params || {};
         
-        const { Job, Jobname, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobhiremember, Jobauditlog, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -1457,6 +1457,69 @@ const deleteJob = async (request, h) => {
         });
 
         return h.response({ message: `Job deletion successful!` }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const getAllDeletedJobs = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { Job } = request.getModels('xpaxr');
+        
+        const allDeletedJobs = await Job.findAll({ where: { isDeleted: true }});
+        return h.response({ deletedJobs: allDeletedJobs }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
+const restoreDeletedJob = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { jobId } = request.payload || {};
+        if(!jobId) return h.response({error: true, message: `Please provide a jobId!`}).code(400);        
+
+        const { Job, Jobauditlog } = request.getModels('xpaxr');
+
+        const jobRecord = await Job.findOne({ where: { jobId }});
+        const jobInfo = jobRecord && jobRecord.toJSON();
+        const { jobId: existingJobId, isDeleted: isAlreadyDeleted } = jobInfo || {};
+
+        if(!existingJobId) return h.response({error: true, message: `No job found!`}).code(400);        
+        if(!isAlreadyDeleted) return h.response({error: true, message: `This job hasn't been deleted yet!`}).code(400);
+        
+        await Job.update({ isDeleted: false, deletedAt: null }, { where: { jobId }}); 
+        const restoredJob = await Job.findOne({ where: { jobId }});
+        
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'RESTORE a Job',
+            actionType: 'UPDATE',
+            actionDescription: `The user of userId ${userId} has restored the deleted job of jobId ${jobId}`
+        });
+
+        return h.response(restoredJob).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -3655,6 +3718,9 @@ module.exports = {
 
     updateJob,
     deleteJob,
+    getAllDeletedJobs,
+    restoreDeletedJob,
+
     createJobQuesResponses,
     getJobQuesResponses,
     applyToJob,
