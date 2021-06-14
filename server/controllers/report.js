@@ -106,11 +106,11 @@ const getMentorRecommendations = async (request, h) => {
         }
         let userTypeName = request.auth.artifacts.decoded.userTypeName;   
         let userId = request.auth.credentials.id;
-        let {talentId,jobId} = request.query;
+        let {talentId} = request.query;
         let db = request.getDb('xpaxr');
         let sequelize = db.sequelize;
         if (await checkReportAccess(sequelize,userId,talentId,userTypeName)){
-            let reportRecommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/mentor/recommendations`,{ params: { talent_id: talentId,job_id:jobId } });
+            let reportRecommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/mentor/recommendations`,{ params: { talent_id: talentId,mentor_id:userId } });
             return h.response(camelizeKeys(reportRecommendations.data)).code(200);
         }else{
             return h.response({error:true,message:"Not authorized"}).code(401);
