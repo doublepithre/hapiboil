@@ -1408,6 +1408,62 @@ const updateJob = async (request, h) => {
     }
 }
 
+const deleteJob = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer'){
+            return h.response({error:true, message:'You are not authorized!'}).code(403);
+        }
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { jobUuid } = request.params || {};
+        
+        const { Job, Jobname, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};        
+
+        const existingJobRecord = await Job.findOne({where: {jobUuid}});
+        const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+        const { jobId, companyId: creatorCompanyId, isDeleted: isAlreadyDeleted } = existingJobInfo || {};
+
+        if(!jobId) return h.response({error: true, message: `No job found!`}).code(400);        
+        if(luserCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);        
+        if(isAlreadyDeleted) return h.response({error: true, message: `No job found!`}).code(400);        
+
+        // does (s)he have access to do this?
+        const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
+        const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
+        const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
+
+        if(luserAccessLevel !== 'creator' && luserAccessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+            
+        const timeNow = new Date();
+        await Job.update({ isDeleted: true, deletedAt: timeNow }, { where: { jobUuid }});        
+                
+        await Jobauditlog.create({ 
+            affectedJobId: jobId,
+            performerUserId: userId,
+            actionName: 'DELETE a Job',
+            actionType: 'DELETE',
+            actionDescription: `The user of userId ${userId} has deleted the job of jobId ${jobId}`
+        });
+
+        return h.response({ message: `Job deletion successful!` }).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const createJobQuesResponses = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -3596,7 +3652,9 @@ module.exports = {
     shareJob,
     updateSharedJob,
     deleteJobAccessRecord,
+
     updateJob,
+    deleteJob,
     createJobQuesResponses,
     getJobQuesResponses,
     applyToJob,

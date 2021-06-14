@@ -15,6 +15,7 @@ import {
     deleteJobAccessRecord,
     
     updateJob,
+    deleteJob,
     createJobQuesResponses,
     getJobQuesResponses,
     applyToJob,
@@ -123,6 +124,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateJob,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteJob,
         },
       });
       server.route({
