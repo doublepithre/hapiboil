@@ -127,6 +127,11 @@ module.exports = function(sequelize, DataTypes) {
         key: 'job_name_id'
       },
       field: 'job_name_id'
+    },
+    closeDate: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'close_date'
     }
   }, {
     sequelize,

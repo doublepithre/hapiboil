@@ -7,6 +7,7 @@ var _Company = require("./company");
 var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
+var _Country = require("./country");
 var _Cronofy = require("./cronofy");
 var _Cronofytoken = require("./cronofytoken");
 var _Emaillog = require("./emaillog");
@@ -54,6 +55,7 @@ function initModels(sequelize) {
   var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
+  var Country = _Country(sequelize, DataTypes);
   var Cronofy = _Cronofy(sequelize, DataTypes);
   var Cronofytoken = _Cronofytoken(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
@@ -216,6 +218,7 @@ function initModels(sequelize) {
     Companyauditlog,
     Companyindustry,
     Companyinfo,
+    Country,
     Cronofy,
     Cronofytoken,
     Emaillog,

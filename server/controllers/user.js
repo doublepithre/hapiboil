@@ -100,7 +100,7 @@ const createUser = async (request, h) => {
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/u/verify-email?token=${token}`;
+    resetLink += `/verify-email?token=${token}`;
 
     const emailData = {
       emails: [udata.email],
@@ -1434,7 +1434,7 @@ const updateUser = async (request, h) => {
       'tzid',        'primaryMobile',
       'roleId',      'privacyClause',
       'tandc',       'picture',
-      'inTalentPool',
+      'inTalentPool','allowSendEmail',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
@@ -1579,7 +1579,7 @@ const resendVerificationEmailBySuperadmin = async (request, h) => {
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
     let resetLink = getDomainURL();
-    resetLink += `/u/verify-email?token=${token}`;
+    resetLink += `/verify-email?token=${token}`;
 
     const emailData = {
       emails: [email],
@@ -1737,9 +1737,10 @@ const verifyEmail = async (request, h) => {
 
 const forgotPassword = async (request, h) => {
   try{
-    const { email } = request.payload || {};
-    if(!email) return h.response({error:true, message:'Please provide an email!'}).code(400);
-
+    const { email: rawEmail } = request.payload || {};
+    if(!rawEmail) return h.response({error:true, message:'Please provide an email!'}).code(400);
+    
+    const email = rawEmail.toLowerCase();
     if (!validator.isEmail(email)) { 
       return h.response({ error: true, message: 'Invalid Email!'}).code(400);
     }

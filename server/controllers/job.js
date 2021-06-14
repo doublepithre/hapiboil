@@ -18,10 +18,14 @@ const createJob = async (request, h) => {
         }
 
         const jobDetails = request.payload || {};
-        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration } = jobDetails;
-        if(!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp)){
+        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration, closeDate } = jobDetails;
+        if(!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp && closeDate)){
             return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
         }
+
+        jobDetails.closeDate = closeDate && new Date(closeDate);
+        const isValidCloseDate = closeDate ? !isNaN(Date.parse(jobDetails.closeDate)) : true;        
+        if(!isValidCloseDate) return h.response({error: true, message: 'Invalid closeDate!'}).code(400);
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};        
@@ -118,7 +122,7 @@ const getAutoComplete = async (request, h) => {
         if(!(search && type)) return h.response({error: true, message: 'Query parameters missing (search and type)!'}).code(400);
         const searchVal = `%${ search.toLowerCase() }%`;
         
-        const validTypes = ['jobName', 'jobIndustry', 'jobFunction'];
+        const validTypes = ['jobName', 'jobIndustry', 'jobFunction', 'countryName'];
         const isTypeReqValid = validTypes.includes(type);
         if(!isTypeReqValid) return h.response({error: true, message: 'Not a valid type parameter!'}).code(400);
 
@@ -138,11 +142,13 @@ const getAutoComplete = async (request, h) => {
                 if(type === 'jobName') sqlStmt += ` jn.job_name_id, jn.job_name`;
                 if(type === 'jobIndustry') sqlStmt += `  ji.job_industry_id, ji.job_industry_name`;
                 if(type === 'jobFunction') sqlStmt += ` jf.job_function_id, jf.job_function_name`;
+                if(type === 'countryName') sqlStmt += ` c.country_id, c.country_full`;
             }
                         
             if(type === 'jobName') sqlStmt += ` from hris.jobname jn where jn.job_name ilike :searchVal`;
             if(type === 'jobIndustry') sqlStmt += ` from hris.jobindustry ji where ji.job_industry_name ilike :searchVal`;
             if(type === 'jobFunction') sqlStmt += ` from hris.jobfunction jf where jf.job_function_name ilike :searchVal`;
+            if(type === 'countryName') sqlStmt += ` from hris.country c where c.country_full ilike :searchVal`;
             
             if(queryTypeLower !== 'count') sqlStmt += ` limit 10`
             return sqlStmt;
@@ -216,7 +222,7 @@ const getSingleJob = async (request, h) => {
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
             
             // if he is an employer
-            if(isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id`;        
+            if(isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id and jhm.user_id=:userId`;        
             sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid`;
 
             // if he is an employer
@@ -229,7 +235,7 @@ const getSingleJob = async (request, h) => {
         const sequelize = db1.sequelize;
       	const sqlJobArray = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
-            replacements: { jobUuid, recruiterCompanyId },
+            replacements: { jobUuid, recruiterCompanyId, userId },
         });      	        
         const rawJobArray = camelizeKeys(sqlJobArray);
         const { jobId: foundJobId } = rawJobArray[0] || {};
@@ -1000,8 +1006,12 @@ const updateJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { jobUuid } = request.params || {};
-        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration } = request.payload || {};
+        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration, closeDate } = request.payload || {};        
         
+        const closeDateVal = closeDate && new Date(closeDate);
+        const isValidCloseDate = closeDate ? !isNaN(Date.parse(closeDateVal)) : true;        
+        if(!isValidCloseDate) return h.response({error: true, message: 'Invalid closeDate!'}).code(400);
+
         const { Job, Jobname, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -1076,7 +1086,7 @@ const updateJob = async (request, h) => {
             }
         }
               
-        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal }, { where: { jobUuid }});        
+        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal, closeDate: closeDateVal }, { where: { jobUuid }});        
         const record = await Job.findOne({where: {jobUuid}});
                 
         await Jobauditlog.create({ 
@@ -1238,7 +1248,7 @@ const applyToJob = async (request, h) => {
         // Job Details
         const db1 = request.getDb('xpaxr');
         const getJobDetailsSqlStmt = `select
-                j.job_id, jn.job_name, 
+                j.job_id, jn.job_name, j.close_date,
                 c.display_name as company_name, j.company_Id,
                 j.user_id
             from hris.jobs j
@@ -1254,9 +1264,10 @@ const applyToJob = async (request, h) => {
             },
         });
         const appliedJobDetails = camelizeKeys(appliedJobDetailsRAW)[0];
-        const { jobId: jobIdinTheDB, userId: employerId, companyId: creatorCompanyId } = appliedJobDetails || {};
+        const { jobId: jobIdinTheDB, userId: employerId, companyId: creatorCompanyId, closeDate: jobCloseDate } = appliedJobDetails || {};
 
         if(!jobIdinTheDB) return h.response({error: true, message: 'No job found!'}).code(400);
+        if(jobCloseDate < new Date()) return h.response({error: true, message: 'This job is no longer accepting any applicants!'}).code(400);
 
         const alreadyAppliedRecord = await Jobapplication.findOne({ where: { jobId, userId, isApplied: true }});
         const {applicationId: alreadyAppliedApplicationId} = alreadyAppliedRecord || {};

@@ -1197,7 +1197,7 @@ paths:
           required: true
           schema:
             type: string
-            enum: [jobName, jobIndustry, jobFunction]     
+            enum: [jobName, jobIndustry, jobFunction, countryName]     
       responses:
         '200':
           description: OK
@@ -1213,9 +1213,9 @@ paths:
                     items:
                       type: object
                       properties:
-                        job?????Id:
+                        countryId/job?????Id:
                           type: number
-                        job?????Name:
+                        countryFull/job?????Name:
                           type: string
 
   /job/j/job-details-options:
@@ -2272,6 +2272,8 @@ components:
           type: number
         email:
           type: string
+        allowSendEmail:
+          type: boolean        
         inTalentPool:
           type: boolean        
         privacyClause:
@@ -2416,6 +2418,9 @@ components:
           type: number
         duration:
           type: number
+        closeDate:
+          type: string
+          example: '2027-12-27'
         isPrivate:
           type: boolean
 
