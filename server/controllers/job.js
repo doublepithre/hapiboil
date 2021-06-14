@@ -673,7 +673,7 @@ const getAllJobsForAParticularCompany = async (request, h) => {
         if (!sortType && sortBy !== 'created_at') sortType = 'asc';
         if (!sortType && sortBy === 'created_at') sortType = 'desc';
         
-        const validSorts = [ 'score', 'created_at', 'job_name'];
+        const validSorts = [ 'created_at', 'job_name'];
         const isSortReqValid = validSorts.includes(sortBy);
         const validSortTypes = [ 'asc', 'desc'];
         const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
