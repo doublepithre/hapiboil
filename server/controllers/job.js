@@ -3122,7 +3122,7 @@ const getAllMentorCandidates = async (request, h) => {
             include: [{
                 model: Mentorcandidatemapping,
                 as: 'mentorMentorcandidatemappings',
-                required: false,
+                required: true,
                 attributes: ['mentorcandidatemappingId', 'mentorId', 'candidateId'],
 
                 include: {
