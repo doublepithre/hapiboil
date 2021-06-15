@@ -15,6 +15,10 @@ import {
     deleteJobAccessRecord,
     
     updateJob,
+    deleteJob,
+    getAllDeletedJobs,
+    restoreDeletedJob,
+
     createJobQuesResponses,
     getJobQuesResponses,
     applyToJob,
@@ -123,6 +127,36 @@ const xjob = {
             mode: 'try',
           },
           handler: updateJob,
+        },
+      });
+      server.route({
+        method: 'DELETE',
+        path: '/{jobUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: deleteJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/deleted',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllDeletedJobs,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/j/restore',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: restoreDeletedJob,
         },
       });
       server.route({

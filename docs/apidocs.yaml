@@ -1187,6 +1187,64 @@ paths:
                 type: object
                 $ref: "#/components/schemas/paginatedAllJobs"
   
+  /job/j/deleted?limit={limit}&offset={skip}&search={searchString}&jobId={jobId}&companyId={companyId}&sort=created_at:desc&createdStartDate={lowerDate}&createdEndDate={upperDate}&deletedStartDate={lowerDate}&deletedEndDate={upperDate}:    
+    get: 
+      summary: Get all deleted jobs
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [created_at:asc, created_at:desc, deleted_at:asc, deleted_at:desc, job_name:asc, job_name:desc, company_name:asc, company_name:desc]
+        
+        - name: createdStartDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: createdEndDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
+        - name: deletedStartDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: deletedEndDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  jobs:
+                    type: array
+                    items:
+                    $ref: "#/components/schemas/jobFullDetailed"
+  
   /job/j/{companyId}?limit={limit}&offset={skip}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&startDate={lowerDate}&endDate={upperDate}:
     get: 
       summary: Get all Open jobs of a company
@@ -1364,6 +1422,56 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
+    delete: 
+      summary: Delete job by uuid
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobUuid
+          in: path
+          description: UUID of job
+          required: true
+          schema:
+            type: string      
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Job deletion successful
+
+  /job/j/restore:
+    patch: 
+      summary: Restore a deleted job
+      description: This restores a deleted job. Only if it was deleted less than 2 years ago
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                jobId:
+                  type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobDetailed"
+                  
   /job/company/{jobUuid}:
     get: 
       summary: Get Company Job details by uuid
@@ -1385,7 +1493,7 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/jobFullDetailsWithQuesRes" 
+                $ref: "#/components/schemas/candidateJobDetails" 
 
   /job/j/share-job/{jobId}:
     get: 
@@ -1673,7 +1781,9 @@ paths:
           application/json: 
             schema:
               type: object
-              $ref: "#/components/schemas/jobApplicationWithOnlyJobId"
+              properties:
+                jobId:
+                  type: number
       responses:
         '200':
           description: OK
@@ -2577,6 +2687,10 @@ components:
           example: '2027-12-27'
         isPrivate:
           type: boolean
+        isDeleted:
+          type: boolean
+        deletedAt:
+          type: string
 
     jobDetailed:
       type: object
@@ -2664,12 +2778,6 @@ components:
         creatorId:
           type: number         
       
-    jobApplicationWithOnlyJobId:
-      type: object
-      properties:
-        jobId:
-          type: number
-        
     jobFullDetailsWithQuesRes:
       type: object
       description: This extends the job model and provides more information.
