@@ -1364,6 +1364,57 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed" 
 
+    delete: 
+      summary: Delete job by uuid
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobUuid
+          in: path
+          description: UUID of job
+          required: true
+          schema:
+            type: string      
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Job deletion successful
+
+  /job/j/restore:
+    patch: 
+      summary: Restore a deleted job
+      description: This restores a deleted job. Only if it was deleted less than 2 years ago
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                jobId:
+                  type: number
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/jobDetailed"
+                  
+
   /job/company/{jobUuid}:
     get: 
       summary: Get Company Job details by uuid
@@ -1673,7 +1724,9 @@ paths:
           application/json: 
             schema:
               type: object
-              $ref: "#/components/schemas/jobApplicationWithOnlyJobId"
+              properties:
+                jobId:
+                  type: number
       responses:
         '200':
           description: OK
@@ -2664,12 +2717,6 @@ components:
         creatorId:
           type: number         
       
-    jobApplicationWithOnlyJobId:
-      type: object
-      properties:
-        jobId:
-          type: number
-        
     jobFullDetailsWithQuesRes:
       type: object
       description: This extends the job model and provides more information.
