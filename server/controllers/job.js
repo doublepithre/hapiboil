@@ -2275,7 +2275,7 @@ const updateApplicationStatus = async (request, h) => {
         });
 
           // ----------------start of sending emails
-          const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-${ status }-email`, isDefaultTemplate: false, companyId: recruiterCompanyId, status: 'active' }})
+          const customTemplateRecord = await Emailtemplate.findOne({ where: { templateName: `application-${ status }-email`, isDefaultTemplate: false, companyId: luserCompanyId, status: 'active' }})
           const customTemplateInfo = customTemplateRecord && customTemplateRecord.toJSON();
           const { id: customTemplateId, ownerId: cTemplateOwnerId } = customTemplateInfo || {};
           const templateName =  `application-${ status }-email`;
