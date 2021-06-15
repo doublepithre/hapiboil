@@ -1586,6 +1586,8 @@ const getAllDeletedJobs = async (request, h) => {
                 // sorts
                 if(sortBy === 'job_name'){
                     sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else if(sortBy === 'company_name'){
+                    sqlStmt += ` order by c.${sortBy} ${sortType}`;
                 } else {
                     sqlStmt += ` order by j.${sortBy} ${sortType}`;
                 }
@@ -1619,7 +1621,7 @@ const getAllDeletedJobs = async (request, h) => {
         });
         const allDeletedJobs = camelizeKeys(allDeletedSQLJobs);
        
-        const responses = { count: allDeletedSQLJobsCount[0].count, deletedJobs: allDeletedJobs };                          
+        const responses = { count: allDeletedSQLJobsCount[0].count, jobs: allDeletedJobs };                          
         return h.response(responses).code(200);
     }
     catch (error) {
