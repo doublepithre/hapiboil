@@ -223,7 +223,7 @@ const getSingleJob = async (request, h) => {
             
             // if he is an employer
             if(isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id and jhm.user_id=:userId`;        
-            sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid`;
+            sqlStmt += ` where j.active=true and j.is_deleted=false and j.job_uuid=:jobUuid`;
 
             // if he is an employer
             if(isCandidateView) sqlStmt += ` and j.is_private=false`;        
@@ -349,7 +349,7 @@ const getCompanyJobDetails = async (request, h) => {
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
             
             // if he is an employer
-            sqlStmt += ` where j.active=true and j.job_uuid=:jobUuid and j.is_private=false`;        
+            sqlStmt += ` where j.active=true and j.is_deleted=false and j.job_uuid=:jobUuid and j.is_private=false`;        
             
             return sqlStmt;
         };
@@ -544,7 +544,7 @@ const getAllJobs = async (request, h) => {
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where j.active=true 
+            where j.active=true and j.is_deleted=false 
                 and j.is_private=false and j.close_date > :timeNow`;            
                         
             if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
@@ -738,7 +738,7 @@ const getAllJobsForAParticularCompany = async (request, h) => {
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where j.active=true 
+            where j.active=true and j.is_deleted=false 
                 and j.is_private=false and j.company_id=:companyId and j.close_date > :timeNow`;            
                         
             if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
@@ -923,7 +923,7 @@ const getRecruiterJobs = async (request, h) => {
                     inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                     inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
                     inner join hris.jobhiremember jhm on jhm.job_id=j.job_id 
-                where j.active=true                     
+                where j.active=true and j.is_deleted=false 
                     and j.company_id=:recruiterCompanyId 
                     and jhm.access_level in ('creator', 'administrator', 'viewer') 
                     and jhm.user_id=:userId`;
@@ -1038,8 +1038,9 @@ const getJobAccessRecords = async (request, h) => {
         const db1 = request.getDb('xpaxr');
         const sqlStmt = `select ui.first_name, ui.email, jhm.*
               from hris.jobhiremember jhm
-                inner join hris.userinfo ui on ui.user_id=jhm.user_id         
-              where jhm.job_id=:jobId and ui.company_id=:recruiterCompanyId`;
+                inner join hris.userinfo ui on ui.user_id=jhm.user_id
+                inner join hris.jobs j on j.job_id=jhm.job_id         
+              where jhm.job_id=:jobId and j.is_deleted=false and ui.company_id=:recruiterCompanyId`;
 
         const sequelize = db1.sequelize;
       	const allSQLAccessRecords = await sequelize.query(sqlStmt, {
@@ -1079,7 +1080,7 @@ const shareJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
         
-        const jobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
+        const jobRecord = await Job.findOne({where: {jobId: rParamsJobId, isDeleted: false}});
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
         const { jobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
@@ -1165,7 +1166,7 @@ const updateSharedJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const existingJobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
+        const existingJobRecord = await Job.findOne({where: {jobId: rParamsJobId, isDeleted: false}});
         const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
         const { jobId, companyId: creatorCompanyId } = existingJobInfo || {};
         if(!jobId) return h.response({error: true, message: `No job found`}).code(403);
@@ -1250,7 +1251,7 @@ const deleteJobAccessRecord = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
  
-        const jobRecord = await Job.findOne({where: {jobId: rParamsJobId}});
+        const jobRecord = await Job.findOne({where: {jobId: rParamsJobId, isDeleted: false}});
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
         const { jobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
@@ -1321,7 +1322,7 @@ const updateJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: recruiterCompanyId } = userProfileInfo || {};        
 
-        const existingJobRecord = await Job.findOne({where: {jobUuid}});
+        const existingJobRecord = await Job.findOne({where: {jobUuid, isDeleted: false}});
         const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
         const { jobId, companyId: creatorCompanyId } = existingJobInfo || {};
 
@@ -1430,13 +1431,12 @@ const deleteJob = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};        
 
-        const existingJobRecord = await Job.findOne({where: {jobUuid}});
+        const existingJobRecord = await Job.findOne({where: {jobUuid, isDeleted: false}});
         const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
-        const { jobId, companyId: creatorCompanyId, isDeleted: isAlreadyDeleted } = existingJobInfo || {};
+        const { jobId, companyId: creatorCompanyId } = existingJobInfo || {};
 
         if(!jobId) return h.response({error: true, message: `No job found!`}).code(400);        
         if(luserCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized!`}).code(403);        
-        if(isAlreadyDeleted) return h.response({error: true, message: `No job found!`}).code(400);        
 
         // does (s)he have access to do this?
         const doIhaveAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId }});
@@ -1557,7 +1557,7 @@ const createJobQuesResponses = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};
          
-        const existingJobRecord = await Job.findOne({where: {jobId}});
+        const existingJobRecord = await Job.findOne({where: {jobId, isDeleted: false}});
         const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
         const { jobId: existingJobId, companyId: creatorCompanyId } = existingJobInfo || {};
         
@@ -1611,7 +1611,7 @@ const getJobQuesResponses = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};
          
-        const existingJobRecord = await Job.findOne({where: {jobId}});
+        const existingJobRecord = await Job.findOne({where: {jobId, isDeleted: false}});
         const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
         const { jobId: existingJobId, companyId: creatorCompanyId } = existingJobInfo || {};
         
@@ -1676,7 +1676,7 @@ const applyToJob = async (request, h) => {
             from hris.jobs j
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 inner join hris.company c on c.company_id=j.company_id
-            where j.job_id=:jobId`;
+            where j.job_id=:jobId and j.is_deleted=false`;
 
         const sequelize = db1.sequelize;
       	const appliedJobDetailsRAW = await sequelize.query(getJobDetailsSqlStmt, {
@@ -1889,7 +1889,7 @@ const getAppliedJobs = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id            
-            where ja.user_id=:userId`;
+            where ja.user_id=:userId and j.is_deleted=false`;
             
             if(startDate) sqlStmt += ` and ja.created_at >= :lowerDateRange and ja.created_at <= :upperDateRange`;
             // filters
@@ -1968,22 +1968,26 @@ const withdrawFromAppliedJob = async (request, h) => {
       const { credentials } = request.auth || {};
       const { id: luserId } = credentials || {};
 
-      const { Userinfo, Companyinfo, Jobapplication, Applicationauditlog, Emailtemplate, Emaillog } = request.getModels('xpaxr');            
-      const requestedForApplication = await Jobapplication.findOne({ where: { jobId: jobId, userId: luserId }}) || {};
+      const { Userinfo, Companyinfo, Job, Jobapplication, Applicationauditlog, Emailtemplate, Emaillog } = request.getModels('xpaxr');            
+      const rApplicationRecord = await Jobapplication.findOne({ where: { jobId: jobId, userId: luserId }});
+      const rApplicationInfo = rApplicationRecord && rApplicationRecord.toJSON();
+      const { applicationId, jobId: applicationJobId, isWithdrawn: isAlreadyWithdrawn } = rApplicationInfo || {};
       
-      if(Object.keys(requestedForApplication).length === 0){
-        return h.response({ error: true, message: 'Bad request! No applied job found!' }).code(400);    
-      }
-      if(requestedForApplication.isWithdrawn){
-        return h.response({ error: true, message: 'Bad request! Already withdrawn!' }).code(400);    
-      }
+      if(!applicationId) return h.response({ error: true, message: 'No applied job found!' }).code(400);    
+      
+      const existingJobRecord = await Job.findOne({ where: { jobId: applicationJobId, isDeleted: false }});
+      const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+      const { jobId: existingJobId } = existingJobInfo || {};
+      
+      if(!existingJobId) return h.response({error: true, message: 'No job found!'}).code(400);
+      if(isAlreadyWithdrawn) return h.response({ error: true, message: 'Already withdrawn!' }).code(400);    
 
         // candidate details
         const luserRecord = await Userinfo.findOne({ where: { userId: luserId }});
         const luserInfo = luserRecord && luserRecord.toJSON();
         const { firstName: luserFirstName, email: luserEmail } = luserInfo || {};
             
-      const { applicationId } = requestedForApplication && requestedForApplication.toJSON();
+      
       await Jobapplication.update( { isWithdrawn: true, status: 'withdrawn' }, { where: { applicationId: applicationId }} );
       await Applicationauditlog.create({ 
             affectedApplicationId: applicationId,
@@ -2007,7 +2011,7 @@ const withdrawFromAppliedJob = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
-            where ja.application_id=:applicationId`;
+            where ja.application_id=:applicationId and j.is_deleted=false`;
         
         const sequelize = db1.sequelize;
         const updatedApplicationDataRAW = await sequelize.query(updatedApplicationDataSqlStmt, {
@@ -2110,13 +2114,19 @@ const getApplicantProfile = async (request, h) => {
       const { credentials } = request.auth || {};
       const { id: luserId } = credentials || {};
 
-      const { jobId, userId } = request.params || {};
-      const { Userinfo, Applicationhiremember } = request.getModels('xpaxr');
+      const { jobId: rParamsJobId, userId } = request.params || {};
+      const { Userinfo, Job, Applicationhiremember } = request.getModels('xpaxr');
 
       // get the company of the recruiter
       const luserRecord = await Userinfo.findOne({ where: { userId: luserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
       const luserProfileInfo = luserRecord && luserRecord.toJSON();
       const { companyId: luserCompanyId } = luserProfileInfo || {};    
+
+      const existingJobRecord = await Job.findOne({where: { jobId: rParamsJobId, isDeleted: false}});
+      const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+      const { jobId } = existingJobInfo || {};
+
+      if(!jobId) return h.response({error: true, message: `No job found!`}).code(400);        
 
       // get the applicant's profile
       const db1 = request.getDb('xpaxr');
@@ -2176,6 +2186,15 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
+      const { jobId: rParamsJobId } = request.params || {};      
+      const { Job } = request.getModels('xpaxr');
+
+      const existingJobRecord = await Job.findOne({ where: { jobId: rParamsJobId, isDeleted: false }});
+      const existingJobInfo = existingJobRecord && existingJobRecord.toJSON();
+      const { jobId } = existingJobInfo || {};
+      
+      if(!jobId) return h.response({error: true, message: 'No job found!'}).code(400);
+
       const { limit, offset, sort, startDate, endDate, search, status } = request.query;            
       const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
@@ -2231,9 +2250,8 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
           if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);                        
       }
 
-      const { jobId } = request.params || {};      
-      const db1 = request.getDb('xpaxr');
 
+        const db1 = request.getDb('xpaxr');      
         // get sql statement for getting all applications or all applications' count        
         const filters = { startDate, status, search, sortBy, sortType }
         function getSqlStmt(queryType, obj = filters){            
@@ -2341,7 +2359,7 @@ const getApplicationAccessRecords = async (request, h) => {
         if(!existingApplicationId) return h.response({ error: true, message: 'No application found'}).code(400);
 
         // does the job really exist and is it from the same company?
-        const jobRecord = await Job.findOne({where: { jobId: applicationJobId }});
+        const jobRecord = await Job.findOne({where: { jobId: applicationJobId, isDeleted: false }});
         const jobRecordInfo = jobRecord && jobRecord.toJSON();
         const { jobId: existingJobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
         if(!existingJobId) return h.response({ error: true, message: 'No job found'}).code(400);
@@ -2398,13 +2416,16 @@ const shareApplication = async (request, h) => {
                 
         const applicationRecord = await Jobapplication.findOne({where: { applicationId: rParamsApplicationId, isWithdrawn: false }});
         const applicationRecordInfo = applicationRecord && applicationRecord.toJSON();
-        const { applicationId, jobId } = applicationRecordInfo || {};  
+        const { applicationId, jobId: applicationJobId } = applicationRecordInfo || {};  
         if(!applicationId) return h.response({ error: true, message: 'No application found'}).code(400);
         
-        const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
-        if(luserCompanyId !== creatorCompanyId){
-            return h.response({error: true, message: `You are not authorized`}).code(403);
-        }
+        // does the job really exist and is it from the same company?
+        const jobRecord = await Job.findOne({where: { jobId: applicationJobId, isDeleted: false }});
+        const jobRecordInfo = jobRecord && jobRecord.toJSON();
+        const { jobId: existingJobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
+
+        if(!existingJobId) return h.response({ error: true, message: 'No job found'}).code(400);
+        if(luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(403);
 
         // does (s)he have access to do this?
         const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
@@ -2487,12 +2508,17 @@ const updateSharedApplication = async (request, h) => {
 
         const applicationRecord = await Jobapplication.findOne({where: { applicationId: rParamsApplicationId, isWithdrawn: false }});
         const applicationRecordInfo = applicationRecord && applicationRecord.toJSON();
-        const { applicationId, jobId } = applicationRecordInfo || {};  
+        const { applicationId, jobId: applicationJobId } = applicationRecordInfo || {};  
         if(!applicationId) return h.response({ error: true, message: 'No application found'}).code(400);
 
-        const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
-        if(luserCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
-        
+        // does the job really exist and is it from the same company?
+        const jobRecord = await Job.findOne({where: { jobId: applicationJobId, isDeleted: false }});
+        const jobRecordInfo = jobRecord && jobRecord.toJSON();
+        const { jobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
+
+        if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
+        if(luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+ 
         // does (s)he have access to do this?
         const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
         const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
@@ -2578,12 +2604,17 @@ const deleteApplicationAccessRecord = async (request, h) => {
 
         const applicationRecord = await Jobapplication.findOne({where: { applicationId: rParamsApplicationId, isWithdrawn: false }});
         const applicationRecordInfo = applicationRecord && applicationRecord.toJSON();
-        const { applicationId, jobId } = applicationRecordInfo || {};  
+        const { applicationId, jobId: applicationJobId } = applicationRecordInfo || {};  
         if(!applicationId) return h.response({ error: true, message: 'No application found'}).code(400);
 
-        const { companyId: creatorCompanyId } = await Job.findOne({where: {jobId}});
-        if(luserCompanyId !== creatorCompanyId) return h.response({error: true, message: `You are not authorized`}).code(403);
-        
+        // does the job really exist and is it from the same company?
+        const jobRecord = await Job.findOne({where: { jobId: applicationJobId, isDeleted: false }});
+        const jobRecordInfo = jobRecord && jobRecord.toJSON();
+        const { jobId, companyId: creatorCompanyId } = jobRecordInfo || {};  
+
+        if(!jobId) return h.response({ error: true, message: 'No job found'}).code(400);
+        if(luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(403);
+ 
         // does (s)he have access to do this?
         const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId }});
         const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
@@ -2659,7 +2690,7 @@ const updateApplicationStatus = async (request, h) => {
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 inner join hris.userinfo ui on ui.user_id=ja.user_id
 				inner join  hris.company c on c.company_id=j.company_id
-            where ja.application_id=:applicationId`;
+            where ja.application_id=:applicationId and j.is_deleted=false`;
         
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
@@ -2899,7 +2930,7 @@ const mentorCandidateLinking = async (request, h) => {
         const sqlStmt = `select ja.*, j.company_id 
             from hris.jobapplications ja
                 inner join hris.jobs j on j.job_id=ja.job_id
-            where ja.application_id=:applicationId`;
+            where ja.application_id=:applicationId and j.is_deleted=false`;
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
@@ -3038,7 +3069,7 @@ const replaceMentorForOne = async (request, h) => {
         const { mentorId } = request.payload || {};
         if(!mentorId) return h.response({error:true, message:'Please provide a mentorId!'}).code(403);
                 
-        const { Userinfo, Usertype, Mentorcandidatemapping, Jobapplication, Applicationhiremember, Applicationauditlog } = request.getModels('xpaxr');
+        const { Userinfo, Usertype, Mentorcandidatemapping } = request.getModels('xpaxr');
 
         // get the company of the luser
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
