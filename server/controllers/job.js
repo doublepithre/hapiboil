@@ -1473,10 +1473,154 @@ const getAllDeletedJobs = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
         if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
         
-        const { Job } = request.getModels('xpaxr');
+        const { limit, offset, sort, search, jobId, companyId, createdStartDate, createdEndDate, deletedStartDate, deletedEndDate } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
         
-        const allDeletedJobs = await Job.findAll({ where: { isDeleted: true }});
-        return h.response({ deletedJobs: allDeletedJobs }).code(200);
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['deleted_at', 'desc'];
+        if (!sortType && sortBy !== 'deleted_at') sortType = 'asc';
+        if (!sortType && sortBy === 'deleted_at') sortType = 'desc';
+        
+        const validSorts = [ 'deleted_at', 'created_at', 'job_name', 'company_name' ];
+        const isSortReqValid = validSorts.includes(sortBy);
+
+        const validSortTypes = [ 'asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
+        
+        // pagination query
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
+
+        // query validation        
+        if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
+        if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
+
+        if(!sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
+        if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
+
+        if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
+        if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
+        
+        if(isArray(jobId)) return h.response({error: true, message: 'Please provide only one jobId!'}).code(400);
+        if(isArray(companyId)) return h.response({error: true, message: 'Please provide only one companyId!'}).code(400);
+
+        // custom date search query
+        let createdLowerDateRange;
+        let createdUpperDateRange;
+        let deletedLowerDateRange;
+        let deletedUpperDateRange;
+        
+        if(!createdStartDate && createdEndDate) return h.response({error: true, message: `You can't send createdEndDate without createdStartDate!`}).code(400);
+        if(!deletedStartDate && deletedEndDate) return h.response({error: true, message: `You can't send deletedEndDate without deletedStartDate!`}).code(400);
+
+        if(createdStartDate){
+            if(createdStartDate && !createdEndDate) {
+                createdLowerDateRange = new Date(createdStartDate);
+                createdUpperDateRange = new Date(); //Now()
+            }
+            if(createdStartDate && createdEndDate) {
+                createdLowerDateRange = new Date(createdStartDate);
+                createdUpperDateRange = new Date(createdEndDate);
+            }
+
+            const isValidDate = !isNaN(Date.parse(createdLowerDateRange)) && !isNaN(Date.parse(createdUpperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Invalid createdStartDate or createdEndDate query parameter!'}).code(400);
+            const isValidDateRange = createdLowerDateRange.getTime() < createdUpperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'createdEndDate must be after createdStartDate!'}).code(400);
+        }
+        
+        if(deletedStartDate){
+            if(deletedStartDate && !deletedEndDate) {
+                deletedLowerDateRange = new Date(deletedStartDate);
+                deletedUpperDateRange = new Date(); //Now()
+            }
+            if(deletedStartDate && deletedEndDate) {
+                deletedLowerDateRange = new Date(deletedStartDate);
+                deletedUpperDateRange = new Date(deletedEndDate);
+            }
+
+            const isValidDate = !isNaN(Date.parse(deletedLowerDateRange)) && !isNaN(Date.parse(deletedUpperDateRange));
+            if(!isValidDate) return h.response({error: true, message: 'Invalid deletedStartDate or deletedEndDate query parameter!'}).code(400);
+            const isValidDateRange = deletedLowerDateRange.getTime() < deletedUpperDateRange.getTime();
+            if(!isValidDateRange) return h.response({error: true, message: 'deletedEndDate must be after deletedStartDate!'}).code(400);
+        }
+        
+        const db1 = request.getDb('xpaxr');
+
+        // get sql statement for getting deleted jobs or its count
+        const filters = { createdStartDate, deletedStartDate, jobId, companyId, search };
+        function getSqlStmt(queryType, obj = filters){
+            const { createdStartDate, deletedStartDate, jobId, companyId, search } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if(type === 'count'){
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select
+                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*, c.display_name as company_name`;
+            }
+
+            sqlStmt += `                    
+                from hris.jobs j
+                    inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                    inner join hris.company c on c.company_id=j.company_id
+                    inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+                    inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+                    inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+                    inner join hris.joblocation jl on jl.job_location_id=j.job_location_id                    
+                where j.is_deleted=true`;
+
+            if(createdStartDate) sqlStmt += ` and j.created_at >= :createdLowerDateRange and j.created_at <= :createdUpperDateRange`;
+            if(deletedStartDate) sqlStmt += ` and j.deleted_at >= :deletedLowerDateRange and j.deleted_at <= :deletedUpperDateRange`;
+            
+            // filters
+            if(jobId) sqlStmt += ` and j.job_id=:jobId`;
+            if(companyId) sqlStmt += ` and j.company_id=:companyId`;
+            
+            // search
+            if(search) {
+                sqlStmt += ` and jn.job_name ilike :searchVal`;
+            };
+            
+            if(type !== 'count') {
+                // sorts
+                if(sortBy === 'job_name'){
+                    sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else {
+                    sqlStmt += ` order by j.${sortBy} ${sortType}`;
+                }
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+            
+            return sqlStmt;                
+        }
+        
+        const sequelize = db1.sequelize;
+      	const allDeletedSQLJobs = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId, companyId,                
+                sortBy, sortType, searchVal,
+                limitNum, offsetNum, 
+                createdLowerDateRange, createdUpperDateRange,
+                deletedLowerDateRange, deletedUpperDateRange 
+            },
+        });
+      	const allDeletedSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: { 
+                jobId, companyId,                
+                sortBy, sortType, searchVal,
+                limitNum, offsetNum, 
+                createdLowerDateRange, createdUpperDateRange,
+                deletedLowerDateRange, deletedUpperDateRange 
+            },
+        });
+        const allDeletedJobs = camelizeKeys(allDeletedSQLJobs);
+       
+        const responses = { count: allDeletedSQLJobsCount[0].count, deletedJobs: allDeletedJobs };                          
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
