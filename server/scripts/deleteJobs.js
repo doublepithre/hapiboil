@@ -4,32 +4,12 @@ const config = require(`../../config/${ envVar }.json`);
 const { Client } = require('pg');
 const cron = require('node-cron');
 
-
 // '0 9 * * *' ---->every day at 09:00 am (in London time) this function will run
-// cron.schedule('* * * * *', () => {
-//   permanentlyDeleteJobsWhichWereDeletedMoreThan2YearsAgo();
-// }, {
-//   timezone: 'Europe/London'
-// });
-
-
-
-
-
-
-const testFunc = async ()=> {
-  console.log("**************************START!")
-  await permanentlyDeleteJobsWhichWereDeletedMoreThan2YearsAgo();
-  console.log("**************************END!")
-}
-testFunc();
-
-
-
-
-
-
-
+cron.schedule('0 9 * * *', () => {
+  permanentlyDeleteJobsWhichWereDeletedMoreThan2YearsAgo();
+}, {
+  timezone: 'Europe/London'
+});
 
 async function permanentlyDeleteJobsWhichWereDeletedMoreThan2YearsAgo(){
   const client = new Client({
@@ -48,19 +28,14 @@ async function permanentlyDeleteJobsWhichWereDeletedMoreThan2YearsAgo(){
     `;  
   const jobIdsRaw = await client.query(getJobIds);
   const jobIdsArray = jobIdsRaw.rows;
-  console.log(jobIdsArray) 
-
 
   // JOB IDS (to be deleted)
   const jobIdsStr = joinArrayObjectItemsAsString(jobIdsArray, 'job_id');
   console.log(`jobIdsStr: `, jobIdsStr)
 
-
-
-
   /* --------------GET APPLICATION IDS--------------- */
   let applicationIdsArray = [];
- if(jobIdsStr){
+  if(jobIdsStr){
     const getApplicationIds = `
       SELECT ja.application_id from hris.jobapplications ja
       where ja.job_id in(${ jobIdsStr })
@@ -72,9 +47,6 @@ async function permanentlyDeleteJobsWhichWereDeletedMoreThan2YearsAgo(){
   // APPLICATION IDS (to be deleted)
   const applicationIdsStr = joinArrayObjectItemsAsString(applicationIdsArray, 'application_id');
   console.log(`applicationIdsStr: `, applicationIdsStr);
-
-
-
 
   /* -----------------------------------------
   . DELETE JOBS and everything related to it
@@ -92,10 +64,6 @@ async function permanentlyDeleteJobsWhichWereDeletedMoreThan2YearsAgo(){
   await client.end();  
 }
 
-
-
-
-
 /* -----------------HELPER FUNCTIONS */
 function joinArrayObjectItemsAsString(array, propertyName){
   let str = '';
@@ -106,8 +74,6 @@ function joinArrayObjectItemsAsString(array, propertyName){
 
   return str;
 }
-
-
 
 async function deleteApplicationAuditLogs(client, stringOfApplicationIds){
   const sqlStmt = `
