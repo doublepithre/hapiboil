@@ -66,6 +66,12 @@ const manifest = {
           prefix: `${apiRootPrefix}/report`,
         },
       },
+      {
+        plugin: require('./routes/nlp'),
+        routes: {
+          prefix: `${apiRootPrefix}/nlp`,
+        },
+      },
     ],
     options: {},
   },
