@@ -2278,9 +2278,9 @@ const getApplicantProfile = async (request, h) => {
       // get the applicant's profile
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `select
-            ja.application_id, ja.status, mcm.mentor_id,
+            ja.application_id, ja.status, ja.created_at as application_date, mcm.mentor_id,
             j.company_id as job_creator_company_id, jn.job_name,
-            j.job_uuid, j.*, jt.*, jf.*,ji.*,jl.*,
+            j.job_uuid, j.*, jt.job_type_name, jf.job_function_name,ji.job_industry_name,jl.job_location_name,
             ui.*, ut.user_type_name, ur.role_name
         from hris.userinfo ui
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
