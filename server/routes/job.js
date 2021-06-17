@@ -36,6 +36,7 @@ import {
     getAllCustomEmailTemplates,
     getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
+    sendEmailFromRecruiterToCandidate,
 
     mentorCandidateLinking,
     getMentorCandidates,
@@ -377,6 +378,16 @@ const xjob = {
             mode: 'try',
           },
           handler: maintainCompanyEmailTemplates,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/send-email',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: sendEmailFromRecruiterToCandidate,
         },
       });
       server.route({

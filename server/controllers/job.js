@@ -1,4 +1,5 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
+const validator = require('validator');
 import { camelizeKeys } from '../utils/camelizeKeys'
 import { sendEmailAsync } from '../utils/email'
 import formatQueryRes from '../utils/index'
@@ -3050,6 +3051,70 @@ const maintainCompanyEmailTemplates = async (request, h) => {
     }
 }
 
+const sendEmailFromRecruiterToCandidate = async (request, h) => {
+    try{
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+        if(luserTypeName !== 'employer') return h.response({error:true, message:'You are not authorized!'}).code(403);
+        
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        
+        // const { templateId } = request.params || {};
+        const { subject, emailBody, email: rawEmail } = request.payload || {};     
+        const { Emailtemplate, Userinfo, Companyinfo, Emaillog, Cronofy, Cronofytoken } = request.getModels('xpaxr');
+
+        if(!(subject && emailBody && rawEmail)) return h.response({error:true, message:'Please provide the necessary details!'}).code(400);
+        const email = rawEmail.toLowerCase().trim();
+        // Validating Email & Password
+        if (!validator.isEmail(email)) {
+            return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
+        }
+     
+        // ----------------start of sending emails        
+        const userRecord = await Userinfo.findOne({ where: { userId } });
+        const userInfo = userRecord && userRecord.toJSON();
+        const { allowSendEmail } = userInfo || {};
+        
+        const sendViaNylas = allowSendEmail;
+
+        const emailData = {
+          emails: [email],
+          email: email,
+          ccEmails: [],
+
+          sendViaNylas,
+          sendRaw: true,
+          subject: subject,
+          html: emailBody,
+          text: emailBody
+      };
+
+      const additionalEData = {
+          userId,
+          Emailtemplate,
+          Userinfo,
+          Companyinfo,
+          Emaillog,   
+
+          Cronofy,
+          Cronofytoken,
+      };
+      const sentEmailRes = await sendEmailAsync(emailData, additionalEData);
+      console.log(sentEmailRes);
+      // ----------------end of sending emails     
+  
+        return h.response({ message: `Email successfully sent!` }).code(201);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 const mentorCandidateLinking = async (request, h) => {
     try{
         if (!request.auth.isAuthenticated) {
@@ -3916,6 +3981,7 @@ module.exports = {
     getAllCustomEmailTemplates,
     getEmailTemplateInfo,
     maintainCompanyEmailTemplates,
+    sendEmailFromRecruiterToCandidate,
 
     mentorCandidateLinking,
     getMentorCandidates,
