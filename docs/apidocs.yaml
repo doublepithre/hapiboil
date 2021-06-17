@@ -2161,6 +2161,37 @@ paths:
                     items:
                       $ref: "#/components/schemas/Emailtemplate" 
 
+  /job/j/send-email:    
+     patch: 
+      summary: Send email to anyone from Employer
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      requestBody:
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                subject:
+                  type: string
+                emailBody:
+                  type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  message:
+                    type: string
+                    example: Email successfully sent!
+    
   /job/mentor-candidate/{applicationId}:    
     post: 
       summary: Mentor Candidate Linking
