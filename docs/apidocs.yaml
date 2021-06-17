@@ -2223,13 +2223,20 @@ paths:
                 type: object
                 $ref: "#/components/schemas/mentorCandidateMapping" 
 
-  /job/mentor-candidate/me:    
+  /job/mentor-candidate/me?search={searchTEXT}&sort=first_name:asc:    
     get: 
-      summary: Get One Mentor's Candidates
+      summary: Get One Mentor's (my own) Candidates
       tags:
         - Job
       security:
       - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, created_at:asc, created_at:desc]
       
       responses:
         '200':

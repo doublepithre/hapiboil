@@ -3424,7 +3424,24 @@ const getMentorCandidates = async (request, h) => {
             return h.response({error:true, message:'You are not authorized!'}).code(403);
         }        
         const mentorId = userId;
+        const { search, sort } = request.query || {};
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+        if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+        if (!sortType && sortBy === 'created_at') sortType = 'desc';      
         
+        const validSorts = ['first_name', 'last_name', 'created_at'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
+        const validSortTypes = [ 'asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
+
+        // query validation
+        if(!sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
+        if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
+                          
         const { Userinfo } = request.getModels('xpaxr');
         // get the company of the luser
         const userRecord = await Userinfo.findOne({ where: { userId: mentorId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
@@ -3433,7 +3450,7 @@ const getMentorCandidates = async (request, h) => {
             
         // find all candidates' records (using SQL to avoid nested ugliness in the response)
         const db1 = request.getDb('xpaxr');
-        const sqlStmt = `select
+        let sqlStmt = `select
             mcm.mentorcandidatemapping_id, mcm.mentor_id, ja.job_id,
             ut.user_type_name, ur.role_name, ui.*
         from hris.mentorcandidatemapping mcm
@@ -3444,11 +3461,27 @@ const getMentorCandidates = async (request, h) => {
             inner join hris.userrole ur on ur.role_id=ui.role_id
         where mcm.mentor_id=:mentorId`;
 
+        if(searchVal) {
+            sqlStmt += ` and (
+                ui.first_name ilike :searchVal
+                or ui.last_name ilike :searchVal
+                or ui.email ilike :searchVal
+            )`;
+        }
+        // order and sort
+        if(sortBy === 'created_at') {
+            sqlStmt += ` order by mcm.${sortBy} ${sortType}`;
+
+        } else {
+            sqlStmt += ` order by ui.${sortBy} ${sortType}`;
+
+        }
+
         const sequelize = db1.sequelize;
       	const allCandidateInfoSQL = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: { 
-                mentorId, luserCompanyId
+                mentorId, luserCompanyId, searchVal
             },
         });
         const allCandidateInfo = camelizeKeys(allCandidateInfoSQL);
