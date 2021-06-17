@@ -2278,16 +2278,21 @@ const getApplicantProfile = async (request, h) => {
       // get the applicant's profile
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `select
-            j.company_id as job_creator_company_id, jn.job_name,
-            j.job_uuid,  
             ja.application_id, ja.status, mcm.mentor_id,
+            j.company_id as job_creator_company_id, jn.job_name,
+            j.job_uuid, j.*, jt.*, jf.*,ji.*,jl.*,
             ui.*, ut.user_type_name, ur.role_name
         from hris.userinfo ui
             inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
             inner join hris.userrole ur on ur.role_id=ui.role_id
             inner join hris.jobapplications ja on ja.user_id=ui.user_id
+            
             inner join hris.jobs j on j.job_id=:jobId
             inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+            inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
+            inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
+            inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
+            inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
             
             left join hris.mentorcandidatemapping mcm on mcm.candidate_id=ui.user_id
         where ui.user_id=:userId and ja.job_id=:jobId`;

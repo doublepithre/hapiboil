@@ -1885,6 +1885,7 @@ paths:
               schema:
                 type: object
                 allOf:        
+                  - $ref: "#/components/schemas/jobFullDetailed" 
                   - $ref: "#/components/schemas/User" 
                 properties:
                   applicationId:
@@ -1893,10 +1894,6 @@ paths:
                     type: string
                   mentorId:
                     type: number
-                  jobName:
-                    type: string
-                  jobUuid:
-                    type: string
 
   /job/j/share-application/{applicationId}:
     get: 
@@ -2743,7 +2740,7 @@ components:
         companyId:
           type: number        
         userId:
-          type: string
+          type: number
           description: ID of user who created the job
         active:
           type: boolean
