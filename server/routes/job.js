@@ -382,7 +382,7 @@ const xjob = {
       });
       server.route({
         method: 'PATCH',
-        path: '/send-email',
+        path: '/j/send-email',
         options: {
           auth: {
             mode: 'try',
