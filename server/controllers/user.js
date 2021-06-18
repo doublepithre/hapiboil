@@ -376,7 +376,7 @@ const getAllCompanyBySuperadmin = async (request, h) => {
 
           sqlStmt += `
               from hris.company c
-                inner join hris.companyindustry ci on ci.company_industry_id=c.company_industry_id
+                left join hris.companyindustry ci on ci.company_industry_id=c.company_industry_id
                 inner join hris.companyinfo cinfo on cinfo.company_id=c.company_id
               where c.company_id is not null`;
            
