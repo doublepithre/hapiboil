@@ -1,53 +1,41 @@
 import { 
-    createJob,
-    getJobDetailsOptions,
-    getAutoComplete,
+  createJob,    
+  getJobDetailsOptions,
+  getAutoComplete,
 
-    getSingleJob,
-    getCompanyJobDetails,
-    getAllJobs,
-    getAllJobsForAParticularCompany,
-    getRecruiterJobs,
-    
-    getJobAccessRecords,
-    shareJob,
-    updateSharedJob,
-    deleteJobAccessRecord,
-    
-    updateJob,
-    deleteJob,
-    getAllDeletedJobs,
-    restoreDeletedJob,
+  getSingleJob,
+  getAllJobs,
+  getRecruiterJobs,
 
-    createJobQuesResponses,
-    getJobQuesResponses,
-    applyToJob,
-    getAppliedJobs,
-    withdrawFromAppliedJob,
-    getApplicantProfile,
-    getAllApplicantsSelectiveProfile,
-    getApplicationAccessRecords,
-    shareApplication, 
-    updateSharedApplication,
-    deleteApplicationAccessRecord,
-    updateApplicationStatus,
+  updateJob,
+  deleteJob,
+  getAllDeletedJobs,
+  restoreDeletedJob,
+  
+  getJobAccessRecords,
+  shareJob,
+  updateSharedJob,
+  deleteJobAccessRecord,
 
-    getAllDefaultEmailTemplates,
-    getAllCustomEmailTemplates,
-    getEmailTemplateInfo,
-    maintainCompanyEmailTemplates,
-    sendEmailFromRecruiterToCandidate,
+  createJobQuesResponses,
+  getJobQuesResponses,
 
-    mentorCandidateLinking,
-    getMentorCandidates,
-    getAllMentorCandidates,
-    replaceMentorForOne,
-    replaceMentorForAll,
-    deleteMentorCandidateMappingRecord,
-     
-    getRecommendedTalents,
-    getTalentsAndApplicants,
-    getTalentProfile,
+  applyToJob,
+  getAppliedJobs,
+  withdrawFromAppliedJob,
+
+  getAllApplicantsSelectiveProfile,
+  getApplicantProfile,
+  
+  getApplicationAccessRecords,
+  shareApplication, 
+  updateSharedApplication,
+  deleteApplicationAccessRecord,
+  updateApplicationStatus,
+
+  getRecommendedTalents,
+  getTalentsAndApplicants,
+  getTalentProfile,
 } from "../controllers/job";
 
 const xjob = {
@@ -68,6 +56,26 @@ const xjob = {
       });
       server.route({
         method: 'GET',
+        path: '/j/job-details-options',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobDetailsOptions,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/auto-complete',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAutoComplete,
+        },
+      });
+      server.route({
+        method: 'GET',
         path: '/{jobUuid}',
         options: {
           auth: {
@@ -83,31 +91,9 @@ const xjob = {
           auth: {
             mode: 'try',
           },
-          handler: async (request, h) => {
-            return await getAllJobs(request, h);
-          },
+          handler: getAllJobs,
         },
       });      
-      server.route({
-        method: 'GET',
-        path: '/j/{companyId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAllJobsForAParticularCompany,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/company/{jobUuid}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getCompanyJobDetails,
-        },
-      });
       server.route({
         method: 'GET',
         path: '/j/recruiter',
@@ -115,9 +101,7 @@ const xjob = {
           auth: {
             mode: 'try',
           },
-          handler: async (request, h) => {
-            return await getRecruiterJobs(request, h, 'all');
-          },
+          handler: getRecruiterJobs,
         },
       });
       server.route({
@@ -200,26 +184,7 @@ const xjob = {
           handler: deleteJobAccessRecord,
         },
       });
-      server.route({
-        method: 'GET',
-        path: '/j/job-details-options',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getJobDetailsOptions,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/j/auto-complete',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAutoComplete,
-        },
-      });
+      
       server.route({
         method: 'POST',
         path: '/profile/{jobId}',
@@ -339,117 +304,7 @@ const xjob = {
           },
           handler: updateApplicationStatus,
         },
-      });
-      server.route({
-        method: 'GET',
-        path: '/email-templates/default',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAllDefaultEmailTemplates,          
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/email-templates/custom',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAllCustomEmailTemplates,          
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/email-template/{templateId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getEmailTemplateInfo,
-        },
-      });
-      server.route({
-        method: 'PATCH',
-        path: '/email-template/{templateId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: maintainCompanyEmailTemplates,
-        },
-      });
-      server.route({
-        method: 'PATCH',
-        path: '/j/send-email',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: sendEmailFromRecruiterToCandidate,
-        },
-      });
-      server.route({
-        method: 'POST',
-        path: '/mentor-candidate/{applicationId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: mentorCandidateLinking,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/mentor-candidates/all',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAllMentorCandidates,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/mentor-candidate/me',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getMentorCandidates,
-        },
-      });
-      server.route({
-        method: 'DELETE',
-        path: '/mentor-candidate/{candidateId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: deleteMentorCandidateMappingRecord,
-        },
-      });     
-      server.route({
-        method: 'PATCH',
-        path: '/replace-mentor/one/{candidateId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: replaceMentorForOne,
-        },
-      });
-      server.route({
-        method: 'PATCH',
-        path: '/replace-mentor/all/{oldMentorId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: replaceMentorForAll,
-        },
-      });      
+      });    
       server.route({
         method: 'GET',
         path: '/j/talents/{jobId}',
@@ -459,17 +314,7 @@ const xjob = {
           },
           handler: getRecommendedTalents,
         },
-      });      
-      server.route({
-        method: 'GET',
-        path: '/j/talent/{userId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getTalentProfile,
-        },
-      });      
+      });
       server.route({
         method: 'GET',
         path: '/j/talents-and-applicants',
@@ -479,7 +324,17 @@ const xjob = {
           },
           handler: getTalentsAndApplicants,
         },
-      });      
+      });    
+      server.route({
+        method: 'GET',
+        path: '/j/talent/{userId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getTalentProfile,
+        },
+      });
     } 
     catch(err) {
       console.log(err);

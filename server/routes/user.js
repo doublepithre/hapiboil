@@ -1,37 +1,27 @@
-import {   
-  createUser, 
-
+import {
+  createUser,
   createCompanySuperAdmin,
-  getAllCompanyNames,
-  getCompanyOptions,
+
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
     
-  getOwnCompanyInfo,
-  getAnyCompanyInfo,
-  updateCompanyProfile,
-  createCompanyStaff,
-  updateCompanyStaff,
-  getCompanyStaff,
-  getFellowCompanyStaff,
-  
   getUser, 
   updateUser, 
   updatePassword,
-  resendVerificationEmailBySuperadmin,
-  resendCompanyVerificationEmail,
-  verifyEmail,
   forgotPassword, 
   resetPassword, 
+  resendVerificationEmailBySuperadmin,
+  verifyEmail,
   
   createProfile,
+  getProfile, 
   getUserMetaData,
   updateMetaData,
-  getProfile, 
+
   getQuestionnaire,
-  getWebchatToken 
+  getWebchatToken
 } from "../controllers/user";
 
 const xuser = {
@@ -57,17 +47,7 @@ const xuser = {
           },
           handler: createCompanySuperAdmin,
         },
-      });
-      server.route({
-        method: 'GET',
-        path: '/company-names',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAllCompanyNames,
-        },
-      });
+      });      
       server.route({
         method: 'GET',
         path: '/companies',
@@ -76,16 +56,6 @@ const xuser = {
             mode: 'try',
           },
           handler: getAllCompanyBySuperadmin,
-        },
-      });
-      server.route({
-        method: 'PATCH',
-        path: '/companies/{companyUuid}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: updateCompanyBySuperadmin,
         },
       });
       server.route({
@@ -100,6 +70,16 @@ const xuser = {
       });
       server.route({
         method: 'PATCH',
+        path: '/companies/{companyUuid}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateCompanyBySuperadmin,
+        },
+      });      
+      server.route({
+        method: 'PATCH',
         path: '/users/{userUuid}',
         options: {
           auth: {
@@ -107,93 +87,7 @@ const xuser = {
           },
           handler: updateUserBySuperadmin,
         },
-      });
-      server.route({
-        method: 'GET',
-        path: '/company-options',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getCompanyOptions,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/company-profile',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getOwnCompanyInfo,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/company/{companyId}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getAnyCompanyInfo,
-        },
-      });      
-      server.route({
-        method: 'PATCH',
-        path: '/company/{companyUuid}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          payload: {
-            maxBytes: 3000000,
-            output: 'stream',
-            parse: true,
-            multipart: true,
-          },
-          handler: updateCompanyProfile,
-        },
-      });
-      server.route({
-        method: 'POST',
-        path: '/company-staff',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: createCompanyStaff,
-        },
-      });
-      server.route({
-        method: 'PATCH',
-        path: '/company-staff/{userUuid}',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: updateCompanyStaff,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/company-staff',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getCompanyStaff,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/fellow-staff',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getFellowCompanyStaff,
-        },
-      });
+      });          
       server.route({
         method: 'GET',
         path: '/me',
@@ -202,26 +96,6 @@ const xuser = {
             mode: 'try',
           },
           handler: getUser,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/me/meta',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getUserMetaData,
-        },
-      });
-      server.route({
-        method: 'PATCH',
-        path: '/me/meta',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: updateMetaData,
         },
       });
       server.route({
@@ -252,34 +126,6 @@ const xuser = {
       });
       server.route({
         method: 'POST',
-        path: '/resend-verify',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: resendVerificationEmailBySuperadmin,
-        },
-      });
-      server.route({
-        method: 'POST',
-        path: '/resend-company-verify',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: resendCompanyVerificationEmail,
-        },
-      });
-      server.route({
-        method: 'PATCH',
-        path: '/verify/{requestKey}',
-        options: {
-          auth: false,
-          handler: verifyEmail,
-        },
-      });
-      server.route({
-        method: 'POST',
         path: '/forgot-password',
         options: {
           auth: false,
@@ -292,6 +138,64 @@ const xuser = {
         options: {
           auth: false,
           handler: resetPassword,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/resend-verify',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: resendVerificationEmailBySuperadmin,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/verify/{requestKey}',
+        options: {
+          auth: false,
+          handler: verifyEmail,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/profile',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: createProfile,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/profile',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getProfile,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/me/meta',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getUserMetaData,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/me/meta',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateMetaData,
         },
       });
       server.route({
@@ -329,27 +233,7 @@ const xuser = {
             return await getQuestionnaire(request, h, 'empauwer_all')
           },
         },
-      });
-      server.route({
-        method: 'GET',
-        path: '/profile',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getProfile,
-        },
-      });
-      server.route({
-        method: 'POST',
-        path: '/profile',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: createProfile,
-        },
-      });
+      }); 
       server.route({
         method: 'get',
         path: '/webchat/token',

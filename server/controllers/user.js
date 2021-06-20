@@ -121,7 +121,7 @@ const createUser = async (request, h) => {
     sendEmailAsync(emailData, additionalEData);
     // ----------------end of verification email sending
 
-    return h.response(udata).code(201);
+    return h.response(udata).code(200);
   } catch (error) {
     console.error(error.stack);
     return h.response({
@@ -265,7 +265,7 @@ const createCompanySuperAdmin = async (request, h) => {
     sendEmailAsync(emailData, additionalEData);
     // ----------------end of verification email sending
 
-    return h.response(udata).code(201);
+    return h.response(udata).code(200);
   } catch (error) {
     console.error(error.stack);
     return h.response({
@@ -273,52 +273,6 @@ const createCompanySuperAdmin = async (request, h) => {
     }).code(400);
   }
 };
-
-const getAllCompanyNames = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
-      }
-      const db1 = request.getDb('xpaxr');
-
-      // get sql statement for getting jobs or jobs count
-      const sqlStmt = `
-        select 
-          c.company_id, c.display_name as company_name
-        from hris.company c`;
-
-      const sequelize = db1.sequelize;
-      const allCompaniesRAW = await sequelize.query(sqlStmt, {
-          type: QueryTypes.SELECT,
-      });
-      
-      const allCompanies = camelizeKeys(allCompaniesRAW);
-      
-      return h.response({ companies: allCompanies }).code(200);
-  }
-  catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
-  }
-}
-
-const getCompanyOptions = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
-      }
-      const { Companyindustry } = request.getModels('xpaxr');
-      const companyIndustries = await Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName']});
-      const responses = {
-          industry: companyIndustries,
-      };
-      return h.response(responses).code(200);
-  }
-  catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
-  }
-}
 
 const getAllCompanyBySuperadmin = async (request, h) => {
   try{
@@ -724,661 +678,6 @@ const updateUserBySuperadmin = async (request, h) => {
   }
 }
 
-const updateCompanyProfile = async (request, h) => {
-  try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-    
-    const updateDetails = request.payload;    
-    const { 
-      companyName, website, description, 
-      companyIndustryId, noOfEmployees, foundedYear,
-      emailBg      
-    } = updateDetails || {};
-    const { companyUuid } = request.params || {};
-    const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
-
-    const validUpdateRequests = [
-      'companyName',      'website',
-      'description',    'companyIndustryId',
-      'noOfEmployees',        'foundedYear',
-      'logo',      'banner',    'emailBg',
-    ];
-    const requestedUpdateOperations = Object.keys(updateDetails) || [];
-    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
-
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    const userRecord = await Userinfo.findOne({ where: { userId } });
-    const luser = userRecord && userRecord.toJSON();
-    const { userId: luserId, companyId: luserCompanyId } = luser || {};
-    
-    const requestedForCompany = await Company.findOne({ where: { companyUuid }});
-    const rCompanyInfo = requestedForCompany && requestedForCompany.toJSON();
-    const { companyId: rCompanyId } = rCompanyInfo || {};
-
-    if (!rCompanyId) return h.response({ error: true, message: 'No Company found!'}).code(400);
-    if (luserCompanyId !== rCompanyId) {    // when request is (not from self-company)
-      return h.response({ error: true, message: 'Bad Request! You are not authorized!'}).code(403);
-    }
-    
-    // upload picture to azure and use that generated link to save on db
-    if(updateDetails.logo){
-      const fileItem = updateDetails.logo;
-      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
-      const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
-      if(uploadRes.error) return h.response(uploadRes).code(400);
-      
-      updateDetails.logo = uploadRes.vurl;
-    }
-
-    if(updateDetails.banner){
-      const fileItem = updateDetails.banner;
-      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
-      const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
-      if(uploadRes.error) return h.response(uploadRes).code(400);
-      
-      updateDetails.banner = uploadRes.vurl;
-    }
-    
-    if(emailBg){
-      const RegEx = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
-      const isHexCode = RegEx.test(emailBg);
-      if(!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!'}).code(400);
-    }
-        
-    await Company.update(
-      {
-        companyName: companyName?.toLowerCase().trim(),
-        displayName: companyName,
-        website, description, companyIndustryId, 
-        noOfEmployees, foundedYear        
-      }, { where: { companyId: rCompanyId }} 
-    );
-    const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
-    await Companyinfo.update(companyInfoUpdateDetails, { where: { companyId: rCompanyId }});
-
-    await Companyauditlog.create({ 
-      affectedCompanyId: rCompanyId,
-      performerUserId: userId,
-      actionName: 'Update a Company',
-      actionType: 'UPDATE',
-      actionDescription: `The user of userId ${userId} has updated the company of companyId ${rCompanyId}`,
-    });
-    
-    // find all company info (using SQL to avoid nested ugliness in the response)
-    const db1 = request.getDb('xpaxr');
-    const sqlStmt = `select * from hris.company c
-        inner join hris.companyinfo ci on ci.company_id=c.company_id
-        where c.company_id=:rCompanyId`;
-
-    const sequelize = db1.sequelize;
-    const SQLcompanyInfo = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: { 
-            rCompanyId
-        },
-    });
-    const responses = camelizeKeys(SQLcompanyInfo)[0];
-    delete responses.companyName;
-    delete responses.active;       
-    
-    return h.response(responses).code(201);
-  } catch (error) {
-    console.error(error.stack);
-    return h.response({
-      error: true, message: 'Bad Request!'
-    }).code(400);
-  }
-};
-
-const getAnyCompanyInfo = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }            
-    const { credentials } = request.auth || {};    
-    const { companyId } = request.params;
-
-    const db1 = request.getDb('xpaxr');
-    
-    const sqlStmt = `select 	
-        ci.logo, ci.email_bg, ci.banner, c.*
-      from hris.company c
-        inner join hris.companyinfo ci on c.company_id=ci.company_id
-      where c.company_id=:companyId`;      
-        
-    const sequelize = db1.sequelize;
-    const companyInfoRAW = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: {                 
-          companyId,                
-        },
-    });    
-    const companyInfo = camelizeKeys(companyInfoRAW)[0];
-    const { companyId: foundCompanyId} = companyInfo || {};
-    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
-
-    return h.response(companyInfo).code(200);
-  }
-  catch(error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Bad Request!' }).code(500);
-  }
-}
-
-const getOwnCompanyInfo = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-        
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-
-    const { Userinfo } = request.getModels('xpaxr');
-
-    // get the company of the companysuperadmin
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userProfileInfo = userRecord && userRecord.toJSON();
-    const { companyId: luserCompanyId } = userProfileInfo || {};    
-
-    const db1 = request.getDb('xpaxr');
-
-    const sqlStmt = `select 	
-        ci.logo, ci.email_bg, ci.banner, c.*
-      from hris.company c
-        inner join hris.companyinfo ci on c.company_id=ci.company_id
-      where c.company_id=:luserCompanyId`;      
-        
-    const sequelize = db1.sequelize;
-    const companyInfoRAW = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: {                 
-            luserCompanyId,                
-        },
-    });    
-    const companyInfo = camelizeKeys(companyInfoRAW)[0];
-    const { companyId: foundCompanyId} = companyInfo || {};
-    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
-    
-    return h.response(companyInfo).code(200);
-  }
-  catch(error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Bad Request!' }).code(500);
-  }
-}
-
-const createCompanyStaff = async (request, h) => {
-  try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin'){
-      return h.response({error:true, message:'You are not authorized!'}).code(403);
-    }
-
-    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
-    const { email, password, accountType } = request.payload || {};
-    
-    if ( !(email && password && accountType)) {
-      return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
-    }
-
-    // Validating Email & Password
-    if (!validator.isEmail(email)) {
-      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
-    }
-    if (password.length < 8) {
-      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
-    } else if (password.length > 100) {
-      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
-    }
-    
-    // Checking account type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
-    if (!validAccountTypes.includes(accountType)) {
-      return h.response({ error: true, message: 'Invalid account type'}).code(400);
-    }
-
-    // Checking if User already Exists
-    const alreadyExistingUserRecord = await User.findOne({ where: { email }});
-    const record = alreadyExistingUserRecord && alreadyExistingUserRecord.toJSON();
-    if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
-    
-    const { credentials } = request.auth || {};
-    const { id: csaUserId } = credentials || {};
-    
-    // get the company of the companysuperadmin
-    const userRecord = await Userinfo.findOne({ where: { userId: csaUserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userProfileInfo = userRecord && userRecord.toJSON();
-    const { companyId, companyUuid } = userProfileInfo || {};                
-
-    // creating company recruiter
-    const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
-    const userTypeRecord = await Usertype.findOne({
-      where: {
-        user_type_name: accountType
-      }, 
-      attributes: ['userTypeId']
-    });
-    const { userTypeId } = userTypeRecord && userTypeRecord.toJSON();
-    const userRoleRecord = await Userrole.findOne({
-      where: {
-        role_name: accountType
-      }
-    });
-    const { roleId } = userRoleRecord && userRoleRecord.toJSON();
-    const emailLower = email.toLowerCase().trim();
-    const udata = await User.create({ email: emailLower, password: hashedPassword, });
-    const userRes = udata && udata.toJSON();
-    const { userId, userUuid } = userRes || {};
-    const uidata = await Userinfo.create({
-      userId,
-      userUuid,
-      email: emailLower,
-      roleId,
-      userTypeId,
-      active: false,
-      firstName: email.split('@')[0],
-      companyId,
-      companyUuid,
-    });
-    delete udata.dataValues.password; //remove hasedpassword when returning
-
-    await Profileauditlog.create({ 
-      affectedUserId: userId,
-      performerUserId: csaUserId,
-      actionName: 'Create a User',
-      actionType: 'CREATE',
-      actionDescription: `The user of userId ${csaUserId} has created the user of userId ${userId}, with the accountType of ${accountType}`
-    });
-
-    // SENDING THE VERIFICATION EMAIL (confirmation email)
-    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
-    const expiresInHrs = 1;                             // Specifying expiry time in hrs
-    let expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
-
-    const reqTokenRecord = await Requesttoken.create({ 
-      requestKey: token, 
-      userId,
-      expiresAt,
-      resourceType: 'user', 
-      actionType: 'account-creation-reset-password' 
-    });
-    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
-
-    let resetLink = getDomainURL();
-    resetLink += `/reset-password?token=${token}`;
-
-    const emailData = {
-      emails: [udata.email],
-      email: udata.email,
-      password,
-      ccEmails: [],
-      templateName: 'company-account-creation',
-      resetLink,      
-      isX0PATemplate: true,
-    };
-
-    const additionalEData = {
-      userId,
-      Emailtemplate,
-      Userinfo,
-      Companyinfo,
-      Emaillog,
-    };
-    sendEmailAsync(emailData, additionalEData);
-    // ----------------end of verification email sending
-
-    return h.response(udata).code(201);
-  } catch (error) {
-    console.error(error.stack);
-    return h.response({
-      error: true, message: 'Bad Request!'
-    }).code(400);
-  }
-};
-
-const getCompanyStaff = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-        
-    const { credentials } = request.auth || {};
-    const userId = credentials.id;
-
-    const { Userinfo } = request.getModels('xpaxr');
-    // get the company of the recruiter
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userProfileInfo = userRecord && userRecord.toJSON();
-    const { companyId } = userProfileInfo || {};
-
-    const { limit, offset, sort, search, userType } = request.query;            
-    const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-
-    // Checking user type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
-    const isUserTypeQueryValid = (userType && isArray(userType)) ? (
-      userType.every( req => validAccountTypes.includes(req))
-    ) : validAccountTypes.includes(userType);
-    if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
-    
-
-      // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
-      if (!sortType) sortType = 'asc';
-      const validSorts = ['first_name', 'last_name'];
-      const isSortReqValid = validSorts.includes(sortBy);
-      
-      const sortTypeLower = sortType.toLowerCase();
-      const validSortTypes = ['asc', 'desc'];
-      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
-
-      // pagination
-      const limitNum = limit ? Number(limit) : 10;
-      const offsetNum = offset ? Number(offset) : 0;
-
-      if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
-      if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
-      if(!isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
-      if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
-                          
-      if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
-      if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-      
-      const db1 = request.getDb('xpaxr');
-
-      // get sql statement for getting all company staff or its count        
-      const filters = { search, sortBy, sortType, userType }
-      function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userType } = obj;
-          let sqlStmt;
-          const type = queryType && queryType.toLowerCase();
-          if(type === 'count'){
-              sqlStmt = `select count(*)`;
-          } else {
-              sqlStmt = `select
-                c.display_name as company_name, ui.*, ur.role_name, ut.user_type_name`;
-          }
-
-          sqlStmt += `
-              from hris.userinfo ui
-                inner join hris.company c on c.company_id=ui.company_id
-                inner join hris.userrole ur on ur.role_id=ui.role_id
-                inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
-              where ui.company_id=:companyId`;
-           
-          // filters
-          if(userType){
-            sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
-          }
-          // search
-          if(search) {
-              sqlStmt += ` and (
-                  ui.first_name ilike :searchVal
-                  or ui.last_name ilike :searchVal                    
-                  or ui.email ilike :searchVal                    
-              )`;
-          }
-
-          if(type !== 'count') {
-              // sorts
-              sqlStmt += ` order by ${ sortBy } ${ sortType}`
-              // limit and offset
-              sqlStmt += ` limit :limitNum  offset :offsetNum`
-          };
-          
-          return sqlStmt;                
-        }
-        
-        const sequelize = db1.sequelize;
-      	const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
-            type: QueryTypes.SELECT,
-            replacements: { 
-                companyId,
-                userType,
-                limitNum, offsetNum,
-                searchVal,                
-            },
-        });
-      	const allSQLCompanyStaffCount = await sequelize.query(getSqlStmt('count'), {
-            type: QueryTypes.SELECT,
-            replacements: { 
-                companyId,
-                userType,
-                limitNum, offsetNum,
-                searchVal,                
-            },
-        });
-        const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
-
-        const paginatedResponse = { count: allSQLCompanyStaffCount[0].count, staff: allCompanyStaff };
-        return h.response(paginatedResponse).code(200);
-  }
-  catch(error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Bad Request!' }).code(500);
-  }
-}
-
-const getFellowCompanyStaff = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'employer' && luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-        
-    const { credentials } = request.auth || {};
-    const userId = credentials.id;
-
-    const { Userinfo } = request.getModels('xpaxr');
-    // get the company of the recruiter
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userProfileInfo = userRecord && userRecord.toJSON();
-    const { companyId } = userProfileInfo || {};
-
-    const { sort, search, userType, exclude } = request.query;            
-      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-
-      // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
-      if (!sortType) sortType = 'asc';
-      const validSorts = ['first_name', 'last_name'];
-      const isSortReqValid = validSorts.includes(sortBy);
-      
-      const sortTypeLower = sortType.toLowerCase();
-      const validSortTypes = ['asc', 'desc'];
-      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
-
-      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
-      
-      const validAccountTypes = ['employer', 'mentor'];
-      const isUserTypeQueryValid = (userType && isArray(userType)) ? (
-        userType.every( req => validAccountTypes.includes(req))
-      ) : validAccountTypes.includes(userType);
-
-      if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);    
-      
-      const db1 = request.getDb('xpaxr');
-      // get sql statement for getting all company staff or its count        
-      const filters = { search, sortBy, sortType, userType, exclude }
-      function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userType, exclude } = obj;
-          let sqlStmt;
-          const type = queryType && queryType.toLowerCase();
-          if(type === 'count'){
-              sqlStmt = `select count(*)`;
-          } else {
-              sqlStmt = `select
-                ui.first_name, ui.last_name, ui.email, ui.user_id, ur.role_name, ut.user_type_name`;
-          }
-
-          sqlStmt += `
-              from hris.userinfo ui
-                inner join hris.userrole ur on ur.role_id=ui.role_id
-                inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
-              where ui.company_id=:companyId and not ui.user_id=:userId and ui.active=true`;
-           
-          // filters
-          if(exclude){
-            sqlStmt += isArray(exclude) ? ` and not ui.user_id in (:exclude)` : ` and not ui.user_id=:exclude`;
-          }
-          if(userType){
-            sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
-          } else {
-            sqlStmt += ` and ut.user_type_name in ('employer', 'mentor')`;
-          }
-          // search
-          if(search) {
-              sqlStmt += ` and (
-                  ui.first_name ilike :searchVal
-                  or ui.last_name ilike :searchVal                    
-                  or ui.email ilike :searchVal                    
-              )`;
-          }
-
-          if(type !== 'count') {
-              // sorts
-              sqlStmt += ` order by ${ sortBy } ${ sortType}`              
-          };
-          
-          return sqlStmt;                
-        }
-        
-        const sequelize = db1.sequelize;
-      	const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
-            type: QueryTypes.SELECT,
-            replacements: { 
-                userId,
-                companyId,
-                userType,                
-                searchVal,                
-                exclude,
-            },
-        });
-        const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
-
-        const responses = { staff: allCompanyStaff };
-        return h.response(responses).code(200);
-  }
-  catch(error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Bad Request!' }).code(500);
-  }
-}
-
-const updateCompanyStaff = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    const { credentials } = request.auth || {};
-    const userId = credentials.id;
-
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-    
-    const updateDetails = request.payload;
-    const { userType } = updateDetails || {};
-    const validUpdateRequests = [
-      'active',     'userType',
-    ];
-    const requestedUpdateOperations = Object.keys(request.payload) || [];
-    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || typeof updateDetails.active !== 'boolean') return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
-    
-    // Checking account type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
-    if (userType && !validAccountTypes.includes(userType)) return h.response({ error: true, message: 'Invalid account type'}).code(400);
-    
-    const { Userinfo, Usertype, Profileauditlog, Userrole } = request.getModels('xpaxr');
-
-    if(userType){
-      const userTypeRecord = await Usertype.findOne({ where: { userTypeName: userType } });
-      const userTypeInfo = userTypeRecord && userTypeRecord.toJSON();
-      const { userTypeId: nUserTypeId } = userTypeInfo || {};
-      
-      const userRoleRecord = await Userrole.findOne({ where: { roleName: userType } });
-      const userRoleInfo = userRoleRecord && userRoleRecord.toJSON();
-      const { roleId: nRoleId } = userRoleInfo || {};
-
-      updateDetails.userTypeId = nUserTypeId;
-      updateDetails.roleId = nRoleId
-    }
-            
-    const userRecord = await Userinfo.findOne({ where: { userId } });
-    const luser = userRecord && userRecord.toJSON();
-    const { userId: luserId, isAdmin, companyId: luserCompanyId } = luser || {};
-    
-    const { userUuid } = request.params || {};
-    const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
-    const { userId: staffUserId, companyId: ruserCompanyId, active: oldActive, userTypeId: oldUserTypeId } = requestedForUser && requestedForUser.toJSON();
-
-    if (luserCompanyId !== ruserCompanyId) {
-      return h.response({ error: true, message: 'Bad Request! You are not authorized.'}).code(403);
-    }
-    if(updateDetails.active === oldActive)  return h.response({ error: true, message: `The user is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
-    if(updateDetails.userTypeId === oldUserTypeId)  return h.response({ error: true, message: `The user already has this userType!`}).code(400);
-
-    if(updateDetails.active === false){      
-      const db1 = request.getDb('xpaxr');
-      const sqlStmt = `DELETE
-        from hris.accesstoken ato          
-        where ato.user_id= :staffUserId`;
-      
-      const sequelize = db1.sequelize;
-      const ares = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: { staffUserId },
-      });
-    }
-    
-    await Userinfo.update(updateDetails, { where: { userUuid: userUuid }} );
-    const updatedUinfo = await Userinfo.findOne({
-        where:{ userUuid: userUuid },
-        attributes: { exclude: ['createdAt', 'updatedAt']
-      }
-    });
-    const uinfo = updatedUinfo && updatedUinfo.toJSON();
-
-    await Profileauditlog.create({ 
-      affectedUserId: staffUserId,
-      performerUserId: userId,
-      actionName: 'Update a User',
-      actionType: 'UPDATE',
-      actionDescription: `The user of userId ${userId} has updated the user of userId ${staffUserId}`
-    });
-
-    return h.response(uinfo).code(200);
-  }
-  catch(error) {
-    console.log(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error' }).code(500);
-  }
-}
-
 const getUser = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -1540,201 +839,6 @@ const updatePassword = async (request, h) => {
   }
 }
 
-const resendVerificationEmailBySuperadmin = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-    
-    const { Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
-    
-    const { credentials } = request.auth || {};
-    const luserId = credentials.id;
-    
-    const { userId } = request.payload || {};
-    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
-
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userInfo = userRecord && userRecord.toJSON();
-    const { email, active } = userInfo || {};
-    if(!email) return h.response({error:true, message:'No user found!'}).code(400);
-    if(active) return h.response({error:true, message:'Already verified!'}).code(400);
-
-    // SENDING THE VERIFICATION EMAIL (confirmation email)
-    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
-    const expiresInHrs = 1;                             // Specifying expiry time in hrs
-    let expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
-
-    const reqTokenRecord = await Requesttoken.create({ 
-      requestKey: token, 
-      userId,
-      expiresAt,
-      resourceType: 'user', 
-      actionType: 'email-verification' 
-    });
-    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
-
-    let resetLink = getDomainURL();
-    resetLink += `/verify-email?token=${token}`;
-
-    const emailData = {
-      emails: [email],
-      email: email,
-      ccEmails: [],
-      templateName: 'email-verification',
-      resetLink,      
-      isX0PATemplate: true,
-    };
-
-    const additionalEData = {
-      userId,
-      Emailtemplate,
-      Userinfo,
-      Companyinfo,
-      Emaillog,
-    };
-    sendEmailAsync(emailData, additionalEData);
-    // ----------------end of verification email sending
-
-    return h.response(reqToken).code(200);
-  }
-  catch(error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
-  }
-}
-
-const resendCompanyVerificationEmail = async (request, h) => {
-  try{
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-    
-    const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
-    
-    const { credentials } = request.auth || {};
-    const luserId = credentials.id;
-    
-    const luserRecord = await Userinfo.findOne({ where: { userId: luserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const { companyId } = luserRecord && luserRecord.toJSON();
-
-    const { userId } = request.payload || {};
-    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
-
-    const userRecord = await Userinfo.findOne({ where: { userId, companyId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userInfo = userRecord && userRecord.toJSON();
-    const { email, active } = userInfo || {};
-    if(!email) return h.response({error:true, message:'No staff found!'}).code(400);
-    if(active) return h.response({error:true, message:'Already verified!'}).code(400);
-
-    // SENDING THE VERIFICATION EMAIL (confirmation email)
-    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
-    const expiresInHrs = 1;                             // Specifying expiry time in hrs
-    let expiresAt = new Date();
-    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
-
-    const reqTokenRecord = await Requesttoken.create({ 
-      requestKey: token, 
-      userId,
-      expiresAt,
-      resourceType: 'user', 
-      actionType: 'reset-password' 
-    });
-    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
-
-    let resetLink = getDomainURL();
-    resetLink += `/reset-password?token=${token}`;
-
-    const emailData = {
-      emails: [email],
-      email: email,
-      ccEmails: [],
-      templateName: 'company-account-creation',
-      resetLink,      
-      isX0PATemplate: true,
-    };
-
-    const additionalEData = {
-      userId,
-      Emailtemplate,
-      Userinfo,
-      Companyinfo,
-      Emaillog,
-    };
-    sendEmailAsync(emailData, additionalEData);
-    // ----------------end of verification email sending
-
-    return h.response(reqToken).code(200);
-  }
-  catch(error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
-  }
-}
-
-const verifyEmail = async (request, h) => {
-  try {
-    const { requestKey } = request.params || {};
-    const { active } = request.payload || {};
-    
-    if (requestKey.length !== 16) {     // Token length is 16.
-      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
-    }  
-    if (active !== true) {     
-      return h.response({ error: true, message: 'Not a valid request!'}).code(400);
-    }  
-        
-    const { User, Userinfo, Profileauditlog, Requesttoken } = request.getModels('xpaxr');
-    
-    const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
-    const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
-    if (!requestToken) { 
-      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
-    }
-
-    const { expiresAt } = requestToken || {};
-    var now = new Date();
-    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);       // Checking for token expiration of 1hr
-    if (expiresAt - utcNow < 0) {         // Token expired!
-      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
-    }
-    const { userId } = requestToken || {};
-
-    const userRecord = await User.findOne({ where: { userId }});
-    const user = userRecord && userRecord.toJSON();
-    if (!user) { 
-      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
-    };
-    
-    const luserInfo = await Userinfo.findOne( { where: { userId }});
-    if (luserInfo.active) { 
-      return h.response({ error: true, message: 'Bad request! Email is already verified!'}).code(400);
-    };
-
-    await Userinfo.update({ active }, { where: { userId }});
-    await Profileauditlog.create({ 
-      affectedUserId: userId,
-      performerUserId: userId,
-      actionName: 'Verify Email',
-      actionType: 'UPDATE',
-      actionDescription: `The user of userId ${userId} has verified his email`
-    });
-
-    return h.response({message: 'Email Verification successful'}).code(200);
-  }
-  catch (error) {
-    console.error(error.stack);
-    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
-  }
-}
-
 const forgotPassword = async (request, h) => {
   try{
     const { email: rawEmail } = request.payload || {};
@@ -1851,110 +955,123 @@ const resetPassword = async (request, h) => {
   }
 }
 
-const getQuestionnaire = async (request, h, targetName) => {
+const resendVerificationEmailBySuperadmin = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { Questionnaire,Questiontarget,Questiontype,Questioncategory } = request.getModels('xpaxr');
-    let questions = await Questionnaire.findAll({
-      raw:true,
-      include:[{
-        model:Questiontype,
-        as:"questionType",
-        attributes:[],
-        required:true
-      },{
-        model: Questiontarget,
-        as:"questionTarget",
-        where:{targetName},
-        attributes:[]
-      },
-      {
-        model:Questioncategory,
-        as:"questionCategory",
-        attributes:[],
-        required:true
-      }
-    ],
-    where:{
-      isActive:true
-    },
-    attributes:["questionId","questionUuid","questionName","questionConfig","questionType.question_type_name","questionCategory.question_category_name"]});;
-    return h.response(camelizeKeys({ questions })).code(200);
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
+    if(luserTypeName !== 'superadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
+    
+    const { Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    
+    const { credentials } = request.auth || {};
+    const luserId = credentials.id;
+    
+    const { userId } = request.payload || {};
+    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
+
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userInfo = userRecord && userRecord.toJSON();
+    const { email, active } = userInfo || {};
+    if(!email) return h.response({error:true, message:'No user found!'}).code(400);
+    if(active) return h.response({error:true, message:'Already verified!'}).code(400);
+
+    // SENDING THE VERIFICATION EMAIL (confirmation email)
+    const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+    const expiresInHrs = 1;                             // Specifying expiry time in hrs
+    let expiresAt = new Date();
+    expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
+    const reqTokenRecord = await Requesttoken.create({ 
+      requestKey: token, 
+      userId,
+      expiresAt,
+      resourceType: 'user', 
+      actionType: 'email-verification' 
+    });
+    const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
+
+    let resetLink = getDomainURL();
+    resetLink += `/verify-email?token=${token}`;
+
+    const emailData = {
+      emails: [email],
+      email: email,
+      ccEmails: [],
+      templateName: 'email-verification',
+      resetLink,      
+      isX0PATemplate: true,
+    };
+
+    const additionalEData = {
+      userId,
+      Emailtemplate,
+      Userinfo,
+      Companyinfo,
+      Emaillog,
+    };
+    sendEmailAsync(emailData, additionalEData);
+    // ----------------end of verification email sending
+
+    return h.response(reqToken).code(200);
   }
-  catch (error) {
+  catch(error) {
     console.error(error.stack);
-    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
 
-const getProfile = async (request, h) => {
+const verifyEmail = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
-    }
-    let userType = request.auth.artifacts.decoded.userTypeName; 
+    const { requestKey } = request.params || {};
+    const { active } = request.payload || {};
     
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    if (requestKey.length !== 16) {     // Token length is 16.
+      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
+    }  
+    if (active !== true) {     
+      return h.response({ error: true, message: 'Not a valid request!'}).code(400);
+    }  
+        
+    const { User, Userinfo, Profileauditlog, Requesttoken } = request.getModels('xpaxr');
     
-    let quesResponses = [];
-    let targetId = 1;
-    let answerTable = 'userquesresponses';
-    
-    if(userType === 'candidate') {
-      quesResponses = await Userquesresponse.findAll({ where: { userId }});
-      targetId = 1;
-      answerTable = 'userquesresponses';
-    }    
-    if(userType === 'mentor') {
-      quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
-      targetId = 3;
-      answerTable = 'mentorquesresponses';
-    } 
-
-    const responses = [];
-    for (let response of quesResponses) {
-      const responseInfo = response && response.toJSON();
-      const { questionId, responseVal, timeTaken } = responseInfo || {};
-      const res = { questionId, answer:responseVal.answer, timeTaken };
-      responses.push(res);
+    const requestTokenRecord = await Requesttoken.findOne({ where: { requestKey }});
+    const requestToken = requestTokenRecord && requestTokenRecord.toJSON();
+    if (!requestToken) { 
+      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
     }
 
-    // attaching isComplete property
-    const db1 = request.getDb('xpaxr');
-    const sequelize = db1.sequelize;    
+    const { expiresAt } = requestToken || {};
+    var now = new Date();
+    var utcNow = new Date(now.getTime() + now.getTimezoneOffset() * 60000);       // Checking for token expiration of 1hr
+    if (expiresAt - utcNow < 0) {         // Token expired!
+      return h.response({ error: true, message: `Bad Request! URL might've expired!!` }).code(400);
+    }
+    const { userId } = requestToken || {};
 
-    const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
-    where qt.target_id=:targetId`;  
-
-    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
-        type: QueryTypes.SELECT,
-        replacements: { 
-          targetId,
-        },
-    });
-    const userQuesCount = allSQLUserQuesCount[0].count;
+    const userRecord = await User.findOne({ where: { userId }});
+    const user = userRecord && userRecord.toJSON();
+    if (!user) { 
+      return h.response({ error: true, message: 'Invalid URL!'}).code(400);
+    };
     
-    const sqlStmtForUserResCount = `select count(*) 
-      from hris.${ answerTable } uqr
-      where uqr.user_id=:userId`;        
+    const luserInfo = await Userinfo.findOne( { where: { userId }});
+    if (luserInfo.active) { 
+      return h.response({ error: true, message: 'Bad request! Email is already verified!'}).code(400);
+    };
 
-    const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
-        type: QueryTypes.SELECT,
-        replacements: { 
-          userId, 
-        },
+    await Userinfo.update({ active }, { where: { userId }});
+    await Profileauditlog.create({ 
+      affectedUserId: userId,
+      performerUserId: userId,
+      actionName: 'Verify Email',
+      actionType: 'UPDATE',
+      actionDescription: `The user of userId ${userId} has verified his email`
     });
-    const userResCount = allSQLUserResCount[0].count;
 
-    let isComplete = userQuesCount === userResCount;
-
-    if(userType !== 'mentor' && userType !== 'candidate') isComplete = true;
-    return h.response({ isComplete, responses }).code(200);
+    return h.response({message: 'Email Verification successful'}).code(200);
   }
   catch (error) {
     console.error(error.stack);
@@ -2049,7 +1166,80 @@ const createProfile = async (request, h) => {
     const userResCount = allSQLUserResCount[0].count;
 
     const isComplete = userQuesCount === userResCount;
-    return h.response({ isComplete, responses: createProfileResponse }).code(201);
+    return h.response({ isComplete, responses: createProfileResponse }).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
+const getProfile = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    let userType = request.auth.artifacts.decoded.userTypeName; 
+    
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    
+    let quesResponses = [];
+    let targetId = 1;
+    let answerTable = 'userquesresponses';
+    
+    if(userType === 'candidate') {
+      quesResponses = await Userquesresponse.findAll({ where: { userId }});
+      targetId = 1;
+      answerTable = 'userquesresponses';
+    }    
+    if(userType === 'mentor') {
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId }});
+      targetId = 3;
+      answerTable = 'mentorquesresponses';
+    } 
+
+    const responses = [];
+    for (let response of quesResponses) {
+      const responseInfo = response && response.toJSON();
+      const { questionId, responseVal, timeTaken } = responseInfo || {};
+      const res = { questionId, answer:responseVal.answer, timeTaken };
+      responses.push(res);
+    }
+
+    // attaching isComplete property
+    const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;    
+
+    const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
+    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+    where qt.target_id=:targetId`;  
+
+    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          targetId,
+        },
+    });
+    const userQuesCount = allSQLUserQuesCount[0].count;
+    
+    const sqlStmtForUserResCount = `select count(*) 
+      from hris.${ answerTable } uqr
+      where uqr.user_id=:userId`;        
+
+    const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: { 
+          userId, 
+        },
+    });
+    const userResCount = allSQLUserResCount[0].count;
+
+    let isComplete = userQuesCount === userResCount;
+
+    if(userType !== 'mentor' && userType !== 'candidate') isComplete = true;
+    return h.response({ isComplete, responses }).code(200);
   }
   catch (error) {
     console.error(error.stack);
@@ -2137,6 +1327,45 @@ const updateMetaData = async (request, h) => {
   }
 }
 
+
+const getQuestionnaire = async (request, h, targetName) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { Questionnaire,Questiontarget,Questiontype,Questioncategory } = request.getModels('xpaxr');
+    let questions = await Questionnaire.findAll({
+      raw:true,
+      include:[{
+        model:Questiontype,
+        as:"questionType",
+        attributes:[],
+        required:true
+      },{
+        model: Questiontarget,
+        as:"questionTarget",
+        where:{targetName},
+        attributes:[]
+      },
+      {
+        model:Questioncategory,
+        as:"questionCategory",
+        attributes:[],
+        required:true
+      }
+    ],
+    where:{
+      isActive:true
+    },
+    attributes:["questionId","questionUuid","questionName","questionConfig","questionType.question_type_name","questionCategory.question_category_name"]});;
+    return h.response(camelizeKeys({ questions })).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+  }
+}
+
 const getWebchatToken = async (request, h) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -2159,36 +1388,26 @@ const getWebchatToken = async (request, h) => {
 
 module.exports = {
   createUser,
-
   createCompanySuperAdmin,
-  getAllCompanyNames,
-  getCompanyOptions,
+
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
-
-  getOwnCompanyInfo,
-  getAnyCompanyInfo,
-  updateCompanyProfile,
-  createCompanyStaff,
-  getCompanyStaff,
-  getFellowCompanyStaff,
-  updateCompanyStaff,
-  
-  getUser,
-  updateUser,
+    
+  getUser, 
+  updateUser, 
   updatePassword,
+  forgotPassword, 
+  resetPassword, 
   resendVerificationEmailBySuperadmin,
-  resendCompanyVerificationEmail,
   verifyEmail,
-  forgotPassword,
-  resetPassword,
-
-  getProfile,
+  
+  createProfile,
+  getProfile, 
   getUserMetaData,
   updateMetaData,
-  createProfile,
+
   getQuestionnaire,
   getWebchatToken
 };
