@@ -1371,11 +1371,24 @@ const getWebchatToken = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
     const { credentials } = request.auth || {};
+    
+    let endpoint;
+    let secret;
 
-    let res = await axios.post(config.webchat.endpoint,{},
+    if (luserTypeName === "mentor"){
+      endpoint = config.webchat.empauwerUs.endpoint;
+      secret = config.webchat.empauwerUs.secret;
+    }else if (luserTypeName === "candidate"){
+      endpoint = config.webchat.empauwerMe.endpoint;
+      secret = config.webchat.empauwerMe.secret;
+    }else{
+      h.response({"error":true,"message":"Only candidate or mentor can access chat bot"}).code(400)
+    }
+    let res = await axios.post(endpoint,{},
       {
-        "headers":{"Authorization":`Bearer ${config.webchat.secret}`}
+        "headers":{"Authorization":`Bearer ${secret}`}
       }
     )
     return h.response(res.data).code(200);
