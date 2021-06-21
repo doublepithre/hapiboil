@@ -37,9 +37,33 @@ const manifest = {
         },
       },
       {
+        plugin: require('./routes/company'),
+        routes: {
+          prefix: `${apiRootPrefix}/company`,
+        },
+      },
+      {
         plugin: require('./routes/job'),
         routes: {
           prefix: `${apiRootPrefix}/job`,
+        },
+      },
+      {
+        plugin: require('./routes/mentor'),
+        routes: {
+          prefix: `${apiRootPrefix}/mentor`,
+        },
+      },
+      {
+        plugin: require('./routes/email'),
+        routes: {
+          prefix: `${apiRootPrefix}/email`,
+        },
+      }, 
+      {
+        plugin: require('./routes/nylas'),
+        routes: {
+          prefix: `${apiRootPrefix}/nylas`,
         },
       }, 
       {

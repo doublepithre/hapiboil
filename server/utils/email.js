@@ -496,100 +496,108 @@ const removeSenderEmailFromRecipients = (from, toArr, ccArr) => {
   };
 };
 
-// const sendEmailViaNylas = async (params, edata) => {
-//   try {
-//     const userId = eData.userId;
-//     const cronofyModel = app.models.Cronofy;
-//     const cronofyTokensModel = app.models.Cronofytokens;
-//     const userInfoModel = app.models.Userinfo;
-//     const { Destination, Message } = params || {};
-//     const {
-//       BccAddresses: bccAddresses,
-//       CcAddresses: ccAddresses,
-//       ToAddresses: toAddresses,
-//     } = Destination || {};
-//     const { Subject, Body } = Message || {};
-//     const { Data: subjectData = "No Subject" } = Subject || {};
-//     const { Html, Text } = Body || {};
-//     const { Data: HtmlData = "No content" } = Html || {};
-//     const { Data: TextData = "No content" } = Text || {};
-//     const { ownerId } = edata || {};
-//     const crres = await cronofyModel.findOne({
-//       where: {
-//         userId: userId || ownerId || 0,
-//       },
-//     });
-//     const { accountEmail, accountName } = crres || {};
-//     let fromName = accountName;
-//     if (!accountEmail) {
-//       return {
-//         message: "No active email user account found",
-//       };
-//     }
-//     if (!accountName) {
-//       const userInfoRes = await userInfoModel.findById(userId || 0);
-//       const { email, firstName, lastName } = userInfoRes || {};
-//       fromName = `${firstName} ${lastName}`;
-//       if (!email) {
-//         return {
-//           message: "No active X0PA user account found",
-//         };
-//       }
-//     }
-//     const fromEmail = accountEmail;
-//     const cres = await cronofyTokensModel.findOne({
-//       where: {
-//         userId: userId || 0,
-//       },
-//       order: "createdAt desc",
-//     });
-//     const { userId: cUserId, accessToken } = cres || {};
-//     // No account connected to send emails
-//     if (!accessToken) {
-//       console.log("Unable to send email as email account not connected");
-//       return {
-//         message:
-//           "Unable to send email as email account not connected. Please connect it under email templates",
-//       };
-//     }
-//     if (cUserId != userId) {
-//       return {
-//         message: "User mismatch while sending email",
-//       };
-//     }
-//     const finalAddr = removeSenderEmailFromRecipients(
-//       fromEmail,
-//       toAddresses,
-//       ccAddresses
-//     );
-//     const { toArr, ccArr } = finalAddr || {};
-//     const nylas = Nylas.with(accessToken);
-//     const draft = nylas.drafts.build();
-//     draft.subject = subjectData;
-//     draft.to = toArr;
-//     //[{'email': 'bhadra@x0pa.com', name: 'Badra'}];
-//     draft.cc = ccArr;
-//     // You can also assign draft.cc, draft.bcc, and draft.from_ in the same manner
-//     draft.body = HtmlData;
-//     // draft.replyTo = [{'email': 'you@example.com', 'name': 'Your Name'}]
-//     // Note: changing from to a different email address may cause deliverability issues
-//     draft.from = [{ email: fromEmail, name: fromName || "Recruiter" }];
-//     const res = await draft.send();
-//     const { id, message } = res || {};
-//     const emailRes = {
-//       MessageId: id,
-//       message,
-//     };
-//     return emailRes;
-//   } catch (error) {
-//     console.error(error);
-//     return {
-//       error: {
-//         message: "Error occured while sending email via Nylas API",
-//       },
-//     };
-//   }
-// };
+const sendEmailViaNylas = async (params, edata, additionalEData) => {
+  try {
+    const {
+      userId,
+
+      // --------- DB models
+      Cronofy,
+      Cronofytoken,
+      Userinfo
+    } = additionalEData;
+
+    const { Destination, Message } = params || {};
+    const {
+      BccAddresses: bccAddresses,
+      CcAddresses: ccAddresses,
+      ToAddresses: toAddresses,
+    } = Destination || {};
+    const { Subject, Body } = Message || {};
+    const { Data: subjectData = "No Subject" } = Subject || {};
+    const { Html, Text } = Body || {};
+    const { Data: HtmlData = "No content" } = Html || {};
+    const { Data: TextData = "No content" } = Text || {};
+    const { ownerId } = edata || {};
+    const crres = await Cronofy.findOne({
+      where: {
+        userId: userId || ownerId || 0,
+      },
+    });
+    const crInfo = crres && crres.toJSON();
+    const { accountEmail, accountName } = crInfo || {};
+    let fromName = accountName;
+    if (!accountEmail) {
+      return {
+        message: "No active email user account found",
+      };
+    }
+    if (!accountName) {
+      const userInfoRecord = await Userinfo.findOne({ where:{ userId: userId || 0 }});
+      const userInfoData = userInfoRecord && userInfoRecord.toJSON();
+      const { email, firstName, lastName } = userInfoData || {};
+      fromName = `${firstName} ${lastName}`;
+      if (!email) {
+        return {
+          message: "No active X0PA user account found",
+        };
+      }
+    }
+    const fromEmail = accountEmail;
+    const cres = await Cronofytoken.findOne({
+      where: {
+        userId: userId || 0,
+      },
+      order: [["createdAt", "desc"]],
+    });
+    const cresInfo = cres && cres.toJSON();
+    const { userId: cUserId, accessToken } = cresInfo || {};
+    // No account connected to send emails
+    if (!accessToken) {
+      console.log("Unable to send email as email account not connected");
+      return {
+        message:
+          "Unable to send email as email account not connected. Please connect it under email templates",
+      };
+    }
+    if (cUserId != userId) {
+      return {
+        message: "User mismatch while sending email",
+      };
+    }
+    const finalAddr = removeSenderEmailFromRecipients(
+      fromEmail,
+      toAddresses,
+      ccAddresses
+    );
+    const { toArr, ccArr } = finalAddr || {};
+    const nylas = Nylas.with(accessToken);
+    const draft = nylas.drafts.build();
+    draft.subject = subjectData;
+    draft.to = toArr;
+    //[{'email': 'bhadra@x0pa.com', name: 'Badra'}];
+    draft.cc = ccArr;
+    // You can also assign draft.cc, draft.bcc, and draft.from_ in the same manner
+    draft.body = HtmlData;
+    // draft.replyTo = [{'email': 'you@example.com', 'name': 'Your Name'}]
+    // Note: changing from to a different email address may cause deliverability issues
+    draft.from = [{ email: fromEmail, name: fromName || "Recruiter" }];
+    const res = await draft.send();
+    const { id, message } = res || {};
+    const emailRes = {
+      MessageId: id,
+      message,
+    };
+    return emailRes;
+  } catch (error) {
+    console.error(error);
+    return {
+      error: {
+        message: "Error occured while sending email via Nylas API",
+      },
+    };
+  }
+};
 
 const addActualEmailsData = (data) => {
   try {
@@ -717,11 +725,13 @@ const sendEmailAsync = async (edata, additionalEData) => {
           "ambareesh@x0pa.com",
           "ted@x0pa.com",
         ];
+        emails.forEach((e) => toAddresses.push(e.toLowerCase()));
       } else {
         console.log("PROXYING EMAIL:", email);
         console.log("PROXYING CC EMAILS:", ccEmails);
         toAddresses.push("bhadra@x0pa.com");
         bccAddresses = [];
+        toAddresses.push(email.toLowerCase());
       }
       if (Array.isArray(ccEmails) && ccEmails.length > 0) {
         ccAddresses = ccEmails;
@@ -874,7 +884,7 @@ const sendEmailAsync = async (edata, additionalEData) => {
     params.Message.Subject.Data = compiledSubject;
     let emailRes = {};
     if (sendViaNylas) {
-      emailRes = await sendEmailViaNylas(params, edata);
+      emailRes = await sendEmailViaNylas(params, edata, additionalEData);
     } else {
       emailRes = await ses.sendEmail(params).promise();
     }
