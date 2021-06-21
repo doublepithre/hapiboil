@@ -84,6 +84,18 @@ const manifest = {
           prefix: `${apiRootPrefix}/admin`,
         },
       },
+      {
+        plugin: require('./routes/report'),
+        routes: {
+          prefix: `${apiRootPrefix}/report`,
+        },
+      },
+      {
+        plugin: require('./routes/nlp'),
+        routes: {
+          prefix: `${apiRootPrefix}/nlp`,
+        },
+      },
     ],
     options: {},
   },

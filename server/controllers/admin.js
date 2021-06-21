@@ -337,7 +337,9 @@ const getAttributes = async (request, h) => {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Attributeset } = request.getModels('xpaxr');
-        let attributes = await Attributeset.findAll();
+        let attributes = await Attributeset.findAll({
+            order:[["attributeId","ASC"]]
+        });
         return h.response(attributes).code(200);
     }
 }
@@ -382,11 +384,13 @@ const editAttribute = async (request, h) => {
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
+    let attribute = JSON.parse(JSON.stringify(request.payload));
+    delete attribute.attributeId;
     if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         let { Attributeset } = request.getModels('xpaxr');
-        let res = await Attributeset.update({ attributeName: request.payload.attributeName }, {
+        let res = await Attributeset.update(attribute, {
             where: {
                 attributeId: request.payload.attributeId
             }
