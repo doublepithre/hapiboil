@@ -15,7 +15,7 @@ const getAbout = async (request, h) => {
         const { Report,Questionnaire,Userquesresponse } = request.getModels('xpaxr');
         let sequelize = db.sequelize;
         let {talentId} = request.query;
-        if (await checkReportAccess(sequelize,userId,talentId,userTypeName)){
+        if (await checkReportAccess(sequelize,userId,talentId,userTypeName) || userId === talentId ){
             // check if talent has at applied to at least 1 job posted by employer(userId)
             let about = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/about`,{ params: { talent_id: talentId } });
             return h.response(camelizeKeys(about.data)).code(200);  
@@ -40,7 +40,7 @@ const getUserStats = async (request, h) => {
         let db = request.getDb('xpaxr');
         let sequelize = db.sequelize;
         let {talentId} = request.query;
-        if (await checkReportAccess(sequelize,userId,talentId,userTypeName)){
+        if (await checkReportAccess(sequelize,userId,talentId,userTypeName) || userId === talentId ){
             // check if talent has at applied to at least 1 job posted by employer(userId)
             let talentProfile = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/stats`,{ params: { talent_id: talentId } });
             return h.response(camelizeKeys(talentProfile.data)).code(200);
