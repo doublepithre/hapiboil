@@ -4,7 +4,8 @@ import {
   getAllMentorCandidates,
   replaceMentorForOne,
   replaceMentorForAll,
-  deleteMentorCandidateMappingRecord,  
+  deleteMentorCandidateMappingRecord,
+  getMentorApplicantProfile, 
 } from "../controllers/mentor";
 
 const xmentor = {
@@ -71,6 +72,16 @@ register: async (server, options) => {
           mode: 'try',
         },
         handler: deleteMentorCandidateMappingRecord,
+      },
+    });
+    server.route({
+      method: 'GET',
+      path: '/mentee/{jobId}/{userId}',
+      options: {
+        auth: {
+          mode: 'try',
+        },
+        handler: getMentorApplicantProfile,
       },
     });
   } 
