@@ -407,7 +407,7 @@ const updateCompanyStaff = async (request, h) => {
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || typeof updateDetails.active !== 'boolean') return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isAllReqsValid || (updateDetails.active && typeof updateDetails.active !== 'boolean')) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     
     // Checking account type
     const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
@@ -433,13 +433,16 @@ const updateCompanyStaff = async (request, h) => {
     const { userId: luserId, isAdmin, companyId: luserCompanyId } = luser || {};
     
     const { userUuid } = request.params || {};
-    const requestedForUser = await Userinfo.findOne({ where: { userUuid }}) || {};
-    const { userId: staffUserId, companyId: ruserCompanyId, active: oldActive, userTypeId: oldUserTypeId } = requestedForUser && requestedForUser.toJSON();
+    const requestedForUser = await Userinfo.findOne({ where: { userUuid }});;
+    const requestedForUserInfo = requestedForUser && requestedForUser.toJSON();
+    const { userId: staffUserId, companyId: ruserCompanyId, active: oldActive, userTypeId: oldUserTypeId } = requestedForUserInfo || {};
 
+    
+    if(!staffUserId)  return h.response({ error: true, message: `No user found!`}).code(400);
     if (luserCompanyId !== ruserCompanyId) {
       return h.response({ error: true, message: 'Bad Request! You are not authorized.'}).code(403);
     }
-    if(updateDetails.active === oldActive)  return h.response({ error: true, message: `The user is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
+    if(updateDetails.active && updateDetails.active === oldActive)  return h.response({ error: true, message: `The user is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
     if(updateDetails.userTypeId === oldUserTypeId)  return h.response({ error: true, message: `The user already has this userType!`}).code(400);
 
     if(updateDetails.active === false){      
