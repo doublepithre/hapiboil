@@ -2163,6 +2163,7 @@ const getApplicantProfile = async (request, h) => {
       });
       const applicantInfo = camelizeKeys(userinfoSQL)[0];
       const { userId: auserId, applicationId, jobCreatorCompanyId } = applicantInfo || {};
+      
       if(!auserId) return h.response({ error: true, message: 'No applicant found!' }).code(400);
 
        // does (s)he have access to do this?
