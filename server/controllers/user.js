@@ -813,7 +813,7 @@ const updatePassword = async (request, h) => {
     }
 
     const isPasswordMatching = bcrypt.compareSync(oldPassword, oldDBPassword);
-    if (!isPasswordMatching) return h.response({ error: true, message: 'Please check your credentials'}).code(400);
+    if (!isPasswordMatching) return h.response({ error: true, message: 'Old password did not match!'}).code(400);
 
     const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
     await User.update({ password: hashedPassword }, { where: { userId }} );
