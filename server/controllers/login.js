@@ -14,7 +14,7 @@ const loginUser = async (request, h) => {
     const email = rEmail?.toLowerCase();
     
     if ( !(email && password) ) {
-      return h.response({ error: true, message: 'Please provide necessary credentials'}).code(400);
+      return h.response({ error: true, message: 'Wrong email or password!'}).code(400);
     }
 
     if (!validator.isEmail(email)) {
