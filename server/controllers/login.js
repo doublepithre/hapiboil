@@ -14,7 +14,7 @@ const loginUser = async (request, h) => {
     const email = rEmail?.toLowerCase();
     
     if ( !(email && password) ) {
-      return h.response({ error: true, message: 'Wrong email or password!'}).code(400);
+      return h.response({ error: true, message: 'Please provide necessary credentials'}).code(400);
     }
 
     if (!validator.isEmail(email)) {
@@ -32,12 +32,12 @@ const loginUser = async (request, h) => {
     });
     const user = udata && udata.toJSON();
     if (!user) {
-      return h.response({ error: true, message: 'Please check your credentials'}).code(400);
+      return h.response({ error: true, message: 'Wrong Email or Password!'}).code(400);
     }
     const {password: passwordStored, user_id} = udata && udata.toJSON();
     const isPasswordMatching = bcrypt.compareSync(password, passwordStored);
     if (!isPasswordMatching) {
-      return h.response({ error: true, message: 'Please check your credentials'}).code(400);
+      return h.response({ error: true, message: 'Wrong Email or Password!'}).code(400);
     }
 
     const uidata = await Userinfo.findOne({
