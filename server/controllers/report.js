@@ -12,10 +12,12 @@ const getAbout = async (request, h) => {
         let userTypeName = request.auth.artifacts.decoded.userTypeName;   
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
-        const { Report,Questionnaire,Userquesresponse } = request.getModels('xpaxr');
+        const { Userinfo } = request.getModels('xpaxr');
         let sequelize = db.sequelize;
         let {talentId} = request.query;
-        if (await checkReportAccess(sequelize,userId,talentId,userTypeName) || userId === talentId ){
+        const userRecord = await Userinfo.findOne({ where: { userId:talentId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+        const { inTalentPool } = userRecord || {};
+        if ( inTalentPool || await checkReportAccess(sequelize,userId,talentId,userTypeName) || userId === talentId){
             // check if talent has at applied to at least 1 job posted by employer(userId)
             let about = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/about`,{ params: { talent_id: talentId } });
             return h.response(camelizeKeys(about.data)).code(200);  
