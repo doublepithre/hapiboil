@@ -779,7 +779,7 @@ const resendCompanyVerificationEmail = async (request, h) => {
     sendEmailAsync(emailData, additionalEData);
     // ----------------end of verification email sending
 
-    return h.response(reqToken).code(200);
+    return h.response({ message: `We've emailed him/her instructions for verifying his/her account. He/She should receive them shortly. If he/she doesn't receive an email, please make sure he/she checked his/her spam folder.` }).code(200);
   }
   catch(error) {
     console.error(error.stack);

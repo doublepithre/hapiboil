@@ -527,22 +527,9 @@ paths:
             application/json:                 
               schema: 
                 properties:
-                  requestId:
-                    type: number
-                  requestKey:
+                  message:
                     type: string
-                  userId:
-                    type: number 
-                  expiresAt:
-                    type: string
-                  resourceType:
-                    type: string
-                  actionType:
-                    type: string
-                  createdAt:
-                    type: string
-                  updatedAt:
-                    type: string   
+                    example: We've emailed him/her instructions for verifying his/her account. He/She should receive them shortly. If he/she doesn't receive an email, please make sure he/she checked his/her spam folder.
     
   /account/verify/{emailVerificationToken}:     
     patch: 
@@ -597,22 +584,9 @@ paths:
             application/json: 
              schema: 
               properties:
-                requestId:
-                  type: number
-                requestKey:
+                message:
                   type: string
-                userId:
-                  type: number 
-                expiresAt:
-                  type: string
-                resourceType:
-                  type: string
-                actionType:
-                  type: string
-                createdAt:
-                  type: string
-                updatedAt:
-                  type: string
+                  example: We've emailed you instructions for resetting your password, if an account exists with the email you entered. You should receive them shortly. If you don't receive an email, please make sure you've entered the address you registered with, and check your spam folder.
   
   /account/reset-password/{passwordResetToken}:
     patch: 
@@ -1113,22 +1087,9 @@ paths:
             application/json:                 
               schema: 
                 properties:
-                  requestId:
-                    type: number
-                  requestKey:
+                  message:
                     type: string
-                  userId:
-                    type: number 
-                  expiresAt:
-                    type: string
-                  resourceType:
-                    type: string
-                  actionType:
-                    type: string
-                  createdAt:
-                    type: string
-                  updatedAt:
-                    type: string   
+                    example: We've emailed him/her instructions for verifying his/her account. He/She should receive them shortly. If he/she doesn't receive an email, please make sure he/she checked his/her spam folder.
  
   /company/jobs/{companyId}?limit={limit}&offset={skip}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&startDate={lowerDate}&endDate={upperDate}:
     get: 

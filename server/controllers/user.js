@@ -891,7 +891,7 @@ const forgotPassword = async (request, h) => {
       Emaillog,
     };
     sendEmailAsync(emailData, additionalEData);
-    return h.response(reqToken).code(200);
+    return h.response({ message: `We've emailed you instructions for resetting your password, if an account exists with the email you entered. You should receive them shortly. If you don't receive an email, please make sure you've entered the address you registered with, and check your spam folder.` }).code(200);
   }
   catch(error) {
     console.error(error.stack);
@@ -1015,7 +1015,7 @@ const resendVerificationEmailBySuperadmin = async (request, h) => {
     sendEmailAsync(emailData, additionalEData);
     // ----------------end of verification email sending
 
-    return h.response(reqToken).code(200);
+    return h.response({ message: `We've emailed him/her instructions for verifying his/her account. He/She should receive them shortly. If he/she doesn't receive an email, please make sure he/she checked his/her spam folder.` }).code(200);
   }
   catch(error) {
     console.error(error.stack);
@@ -1326,7 +1326,6 @@ const updateMetaData = async (request, h) => {
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
-
 
 const getQuestionnaire = async (request, h, targetName) => {
   try{
