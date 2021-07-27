@@ -191,6 +191,8 @@ const initRelations = (model) =>{
   const Jobhiremember = model.Jobhiremember;
   const Mentorcandidatemapping = model.Mentorcandidatemapping;
   const Mentorquesresponse = model.Mentorquesresponse;
+  const Onboarding = model.Onboarding;
+  const Onboardingtask = model.Onboardingtask;
   const Profileauditlog = model.Profileauditlog;
   const Usermeta = model.Usermeta;
   const Userquesresponse = model.Userquesresponse;
@@ -216,6 +218,9 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorcandidatemappings", foreignKey: "candidateId"});
   Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorMentorcandidatemappings", foreignKey: "mentorId"});
   Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
+  Userinfo.hasMany(Onboarding, { as: "onboardings", foreignKey: "onboardee"});
+  Userinfo.hasMany(Onboarding, { as: "onboarderOnboardings", foreignKey: "onboarder"});
+  Userinfo.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "asignee"});
   Userinfo.hasMany(Profileauditlog, { as: "profileauditlogs", foreignKey: "affectedUserId"});
   Userinfo.hasMany(Profileauditlog, { as: "performerUserProfileauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});

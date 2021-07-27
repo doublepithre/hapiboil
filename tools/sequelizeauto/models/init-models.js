@@ -25,6 +25,10 @@ var _Jobsrecommendationlog = require("./jobsrecommendationlog");
 var _Jobtype = require("./jobtype");
 var _Mentorcandidatemapping = require("./mentorcandidatemapping");
 var _Mentorquesresponse = require("./mentorquesresponse");
+var _Onboardingfixedtask = require("./onboardingfixedtask");
+var _Onboarding = require("./onboarding");
+var _Onboardingtask = require("./onboardingtask");
+var _Onboardingtasktype = require("./onboardingtasktype");
 var _Profileauditlog = require("./profileauditlog");
 var _Qaattribute = require("./qaattribute");
 var _Questioncategory = require("./questioncategory");
@@ -73,6 +77,10 @@ function initModels(sequelize) {
   var Jobtype = _Jobtype(sequelize, DataTypes);
   var Mentorcandidatemapping = _Mentorcandidatemapping(sequelize, DataTypes);
   var Mentorquesresponse = _Mentorquesresponse(sequelize, DataTypes);
+  var Onboardingfixedtask = _Onboardingfixedtask(sequelize, DataTypes);
+  var Onboarding = _Onboarding(sequelize, DataTypes);
+  var Onboardingtask = _Onboardingtask(sequelize, DataTypes);
+  var Onboardingtasktype = _Onboardingtasktype(sequelize, DataTypes);
   var Profileauditlog = _Profileauditlog(sequelize, DataTypes);
   var Qaattribute = _Qaattribute(sequelize, DataTypes);
   var Questioncategory = _Questioncategory(sequelize, DataTypes);
@@ -140,6 +148,12 @@ function initModels(sequelize) {
   Job.hasMany(Recommendation, { as: "recommendations", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
   Jobtype.hasMany(Job, { as: "jobs", foreignKey: "jobTypeId"});
+  Onboardingtask.belongsTo(Onboardingfixedtask, { as: "task", foreignKey: "taskId"});
+  Onboardingfixedtask.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "taskId"});
+  Onboardingtask.belongsTo(Onboarding, { as: "onboarding", foreignKey: "onboardingId"});
+  Onboarding.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "onboardingId"});
+  Onboardingfixedtask.belongsTo(Onboardingtasktype, { as: "taskType", foreignKey: "taskTypeId"});
+  Onboardingtasktype.hasMany(Onboardingfixedtask, { as: "onboardingfixedtasks", foreignKey: "taskTypeId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questioncategory.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionCategoryId"});
   Jobsquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
@@ -194,6 +208,12 @@ function initModels(sequelize) {
   Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorMentorcandidatemappings", foreignKey: "mentorId"});
   Mentorquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});
+  Onboarding.belongsTo(Userinfo, { as: "onboardeeUserinfo", foreignKey: "onboardee"});
+  Userinfo.hasMany(Onboarding, { as: "onboardings", foreignKey: "onboardee"});
+  Onboarding.belongsTo(Userinfo, { as: "onboarderUserinfo", foreignKey: "onboarder"});
+  Userinfo.hasMany(Onboarding, { as: "onboarderOnboardings", foreignKey: "onboarder"});
+  Onboardingtask.belongsTo(Userinfo, { as: "asigneeUserinfo", foreignKey: "asignee"});
+  Userinfo.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "asignee"});
   Profileauditlog.belongsTo(Userinfo, { as: "affectedUser", foreignKey: "affectedUserId"});
   Userinfo.hasMany(Profileauditlog, { as: "profileauditlogs", foreignKey: "affectedUserId"});
   Profileauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
@@ -236,6 +256,10 @@ function initModels(sequelize) {
     Jobtype,
     Mentorcandidatemapping,
     Mentorquesresponse,
+    Onboardingfixedtask,
+    Onboarding,
+    Onboardingtask,
+    Onboardingtasktype,
     Profileauditlog,
     Qaattribute,
     Questioncategory,

@@ -2526,7 +2526,7 @@ const updateApplicationStatus = async (request, h) => {
         const validStatus = ['shortlisted', 'interview', 'closed', 'offer', 'hired'];
         if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status' }).code(400);
 
-        const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+        const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
@@ -2570,6 +2570,28 @@ const updateApplicationStatus = async (request, h) => {
 
         await Jobapplication.update({ status }, { where: { applicationId } });
         const updatedRecord = await Jobapplication.findOne({ where: { applicationId } });
+        const updatedData = updatedRecord && updatedRecord.toJSON();
+
+        if (updatedData.status === 'hired') {
+            const onboardingRecord = await Onboarding.create({
+                onboardee: updatedData.userId,
+                onboarder: userId,
+                status: 'ongoing',
+            });
+            const onboardingData = onboardingRecord && onboardingRecord.toJSON();
+
+            // creating onboarding tasks (copying the fixed x0pa given tasks)
+            const allFixedTasks = await Onboardingfixedtask.findAll({ attributes: { exclude: ['createdAt', 'updatedAt'] } });
+            for (let record of allFixedTasks) {
+                const defaultData = record.toJSON();
+                Onboardingtask.create({
+                    onboardingId: onboardingData.onboardingId,
+                    taskId: defaultData.taskId,
+                    asignee: userId,
+                    status: 'ongoing',
+                });
+            }
+        }
 
         await Applicationauditlog.create({
             affectedApplicationId: applicationId,
