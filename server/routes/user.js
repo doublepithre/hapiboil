@@ -19,6 +19,7 @@ import {
   getProfile, 
   getUserMetaData,
   updateMetaData,
+  getAllUserMetaData,
 
   getQuestionnaire,
   getWebchatToken
@@ -186,6 +187,16 @@ const xuser = {
             mode: 'try',
           },
           handler: getUserMetaData,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/me/meta/all',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllUserMetaData,
         },
       });
       server.route({

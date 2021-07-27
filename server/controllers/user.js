@@ -1327,6 +1327,33 @@ const updateMetaData = async (request, h) => {
   }
 }
 
+const getAllUserMetaData = async (request, h) => {
+  try{
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+
+    const { exclude } = request.query;
+
+    const excludeMetaKeys = isArray(exclude) ? exclude : [exclude];
+    const { Usermeta } = request.getModels('xpaxr');    
+    const userMetaRecord = await Usermeta.findAll({ where: { userId, [Op.not]: [{ metaKey: [...excludeMetaKeys]}] }, attributes: ['metaKey', 'metaValue']});
+
+    const metaObj = {};
+    for (let item of userMetaRecord) {
+      metaObj[item.metaKey] = item.metaValue;
+    }
+
+    return h.response(metaObj).code(200);
+  }
+  catch(error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
 const getQuestionnaire = async (request, h, targetName) => {
   try{
     if (!request.auth.isAuthenticated) {
@@ -1406,6 +1433,7 @@ module.exports = {
   getProfile, 
   getUserMetaData,
   updateMetaData,
+  getAllUserMetaData,
 
   getQuestionnaire,
   getWebchatToken
