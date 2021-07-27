@@ -32,6 +32,7 @@ import {
   updateSharedApplication,
   deleteApplicationAccessRecord,
   updateApplicationStatus,
+  updateOnboardingTaskStatus,
 
   getRecommendedTalents,
   getTalentsAndApplicants,
@@ -303,6 +304,16 @@ const xjob = {
             mode: 'try',
           },
           handler: updateApplicationStatus,
+        },
+      });    
+      server.route({
+        method: 'PATCH',
+        path: '/onboarding-task-status/{onboardingtaskId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateOnboardingTaskStatus,
         },
       });    
       server.route({

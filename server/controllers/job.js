@@ -2642,6 +2642,87 @@ const updateApplicationStatus = async (request, h) => {
     }
 }
 
+const updateOnboardingTaskStatus = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { onboardingtaskId } = request.params || {};
+        const { status } = request.payload || {};
+
+        const validUpdateRequests = ['status'];
+        const requestedUpdateOperations = Object.keys(request.payload) || [];
+        const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
+        if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
+
+        const validStatus = ['ongoing', 'complete', 'incomplete', 'not applicable'];
+        if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status' }).code(400);
+
+        const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+        const sqlStmt = `select  
+                otask.*, ob.company_id, ob.onboarder
+            from hris.onboardingtasks otask
+                inner join hris.onboardings ob on ob.onboarding_id=otask.onboarding_id
+				inner join  hris.company c on c.company_id=ob.company_id
+            where otask.onboardingtask_id=:onboardingtaskId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const onboardingTaskDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                onboardingtaskId
+            },
+        });
+        const onboardingTaskDetails = camelizeKeys(onboardingTaskDetailsSQL)[0];
+        const { onboardingtaskId: existingOnboardingtaskId, onboardingId, onboarder, companyId: creatorCompanyId, status: oldStatus } = onboardingTaskDetails || {};
+
+        if (!existingOnboardingtaskId) return h.response({ error: true, message: `No task found!` }).code(400);
+        if (luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: `You are not authorized!` }).code(403);
+
+        // can (s)he update this application?
+        if (userId !== onboarder) return h.response({ error: true, message: 'You are not authorized to update the task!' }).code(403);
+
+        // if (oldStatus === 'complete') return h.response({ error: true, message: 'Already hired. So the status can not change!' }).code(400);
+        if (oldStatus === status) return h.response({ error: true, message: 'Already has this status!' }).code(400);
+
+        await Onboardingtask.update({ status }, { where: { onboardingtaskId } });
+        const updatedRecord = await Onboardingtask.findOne({ where: { onboardingtaskId } });
+        const updatedData = updatedRecord && updatedRecord.toJSON();
+
+        if (updatedData.status === 'complete') {
+            const allTasks = await Onboardingtask.findAll({ where: { onboardingId } });
+            const isAllComplete = allTasks.every(item => {
+                const record = item.toJSON();
+                return record.status === 'complete';
+            });
+            if (isAllComplete) {
+                await Onboarding.update({ status: 'complete' }, { where: { onboardingId } });
+            } else {
+                await Onboarding.update({ status: 'ongoing' }, { where: { onboardingId } });
+            }
+        }
+        return h.response(updatedRecord).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+    }
+}
+
 const getRecommendedTalents = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -3106,6 +3187,7 @@ module.exports = {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+    updateOnboardingTaskStatus,
 
     getRecommendedTalents,
     getTalentsAndApplicants,
