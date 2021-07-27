@@ -2703,17 +2703,16 @@ const updateOnboardingTaskStatus = async (request, h) => {
         const updatedRecord = await Onboardingtask.findOne({ where: { onboardingtaskId } });
         const updatedData = updatedRecord && updatedRecord.toJSON();
 
-        if (updatedData.status === 'complete') {
-            const allTasks = await Onboardingtask.findAll({ where: { onboardingId } });
-            const isAllComplete = allTasks.every(item => {
-                const record = item.toJSON();
-                return record.status === 'complete';
-            });
-            if (isAllComplete) {
-                await Onboarding.update({ status: 'complete' }, { where: { onboardingId } });
-            } else {
-                await Onboarding.update({ status: 'ongoing' }, { where: { onboardingId } });
-            }
+        const allTasks = await Onboardingtask.findAll({ where: { onboardingId } });
+        const isAllComplete = allTasks.every(item => {
+            const record = item.toJSON();
+            return record.status === 'complete';
+        });
+        if (isAllComplete) {
+            await Onboarding.update({ status: 'complete' }, { where: { onboardingId } });
+        }
+        else {
+            await Onboarding.update({ status: 'ongoing' }, { where: { onboardingId } });
         }
         return h.response(updatedRecord).code(200);
     }
