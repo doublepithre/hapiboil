@@ -371,6 +371,22 @@ paths:
                 type: object
                 $ref: "#/components/schemas/User"
   
+  /account/me/meta/all?exclude={metaKey}:
+    get: 
+      summary: Get user's all meta data
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get user's all meta data information
+          content:
+            application/json: 
+              schema:
+                type: object
+                $ref: "#/components/schemas/allMeta"
+ 
   /account/me/meta?metaKey={metaKey}:
     get: 
       summary: Get user's meta data
@@ -2892,6 +2908,20 @@ components:
           type: string
         metaValue:
           type: string
+    
+    allMeta:
+      type: object
+      description: This is the schema for user's all meta data.      
+      properties:
+        metaKey:
+          type: string
+          example: 'metaValue'
+        metaKey1:
+          type: string
+          example: 'metaValue1'
+        metaKey2:
+          type: string
+          example: 'metaValue2'
         
     mentorCandidateMapping:
       type: object
