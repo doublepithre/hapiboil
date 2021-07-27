@@ -26,3 +26,8 @@ Ensure you are in the docs directory.
 npx redoc-cli bundle apidocs.json
 ```
 This will generate `redoc-static.html`
+
+SHORTCUT
+```
+../node_modules/.bin/snippet-enricher-cli --targets="node_request" --input=apidocs.yaml > apidocs.json && npx redoc-cli bundle apidocs.json
+```

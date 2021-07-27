@@ -2024,7 +2024,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication" 
 
-  /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
+  /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&type={type}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents and applicants
       tags:
@@ -2032,6 +2032,13 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+        - name: type
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applicant, talent]
+        
         - name: sort
           in: query          
           required: false
@@ -2046,7 +2053,11 @@ paths:
             application/json:
               schema:
                 type: object                
-                $ref: "#/components/schemas/paginatedUsers" 
+                allOf:
+                  - $ref: "#/components/schemas/paginatedUsers"
+                properties:
+                  type:
+                    type: string
   
   /job/j/talents?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
