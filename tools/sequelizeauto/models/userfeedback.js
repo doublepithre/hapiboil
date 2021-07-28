@@ -1,17 +1,28 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Onboardingtasktype', {
-    onboardingtasktypeId: {
+  return sequelize.define('Userfeedback', {
+    userfeedbackId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      field: 'onboardingtasktype_id'
+      field: 'userfeedback_id'
     },
-    taskTypeName: {
-      type: DataTypes.STRING,
+    userId: {
+      type: DataTypes.BIGINT,
       allowNull: false,
-      field: 'task_type_name'
+      references: {
+        model: {
+          tableName: 'userinfo',
+          schema: 'hris'
+        },
+        key: 'user_id'
+      },
+      field: 'user_id'
+    },
+    feedback: {
+      type: DataTypes.STRING,
+      allowNull: false
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -27,15 +38,15 @@ module.exports = function(sequelize, DataTypes) {
     }
   }, {
     sequelize,
-    tableName: 'onboardingtasktypes',
+    tableName: 'userfeedback',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "onboardingtasktypes_pkey",
+        name: "userfeedback_pkey",
         unique: true,
         fields: [
-          { name: "onboardingtasktype_id" },
+          { name: "userfeedback_id" },
         ]
       },
     ]

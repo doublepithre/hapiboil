@@ -43,6 +43,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'updated_at'
+    },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'company',
+          schema: 'hris'
+        },
+        key: 'company_id'
+      },
+      field: 'company_id'
     }
   }, {
     sequelize,
@@ -66,10 +78,12 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Onboarding = model.Onboarding;
+  const Company = model.Company;
   const Onboardingtask = model.Onboardingtask;
   const Userinfo = model.Userinfo;
 
 
+  Onboarding.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Onboarding.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "onboardingId"});
   Onboarding.belongsTo(Userinfo, { as: "onboardeeUserinfo", foreignKey: "onboardee"});
   Onboarding.belongsTo(Userinfo, { as: "onboarderUserinfo", foreignKey: "onboarder"});

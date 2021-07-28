@@ -18,18 +18,6 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       field: 'task_description'
     },
-    taskTypeId: {
-      type: DataTypes.BIGINT,
-      allowNull: true,
-      references: {
-        model: {
-          tableName: 'onboardingtasktypes',
-          schema: 'hris'
-        },
-        key: 'onboardingtasktype_id'
-      },
-      field: 'task_type_id'
-    },
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -41,6 +29,15 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
+    },
+    type: {
+      type: DataTypes.STRING,
+      allowNull: true
+    },
+    subType: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'sub_type'
     }
   }, {
     sequelize,
@@ -65,10 +62,8 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Onboardingfixedtask = model.Onboardingfixedtask;
   const Onboardingtask = model.Onboardingtask;
-  const Onboardingtasktype = model.Onboardingtasktype;
 
 
   Onboardingfixedtask.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "taskId"});
-  Onboardingfixedtask.belongsTo(Onboardingtasktype, { as: "taskType", foreignKey: "taskTypeId"});
 
 }

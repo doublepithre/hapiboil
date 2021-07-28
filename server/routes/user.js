@@ -20,6 +20,7 @@ import {
   getUserMetaData,
   updateMetaData,
 
+  saveUserFeedback,
   getQuestionnaire,
   getWebchatToken
 } from "../controllers/user";
@@ -196,6 +197,16 @@ const xuser = {
             mode: 'try',
           },
           handler: updateMetaData,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/feedback',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: saveUserFeedback,
         },
       });
       server.route({

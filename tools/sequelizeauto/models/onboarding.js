@@ -43,6 +43,18 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'updated_at'
+    },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'company',
+          schema: 'hris'
+        },
+        key: 'company_id'
+      },
+      field: 'company_id'
     }
   }, {
     sequelize,

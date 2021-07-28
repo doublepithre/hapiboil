@@ -194,6 +194,7 @@ const initRelations = (model) =>{
   const Onboarding = model.Onboarding;
   const Onboardingtask = model.Onboardingtask;
   const Profileauditlog = model.Profileauditlog;
+  const Userfeedback = model.Userfeedback;
   const Usermeta = model.Usermeta;
   const Userquesresponse = model.Userquesresponse;
   const Userrole = model.Userrole;
@@ -224,6 +225,7 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Profileauditlog, { as: "profileauditlogs", foreignKey: "affectedUserId"});
   Userinfo.hasMany(Profileauditlog, { as: "performerUserProfileauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
+  Userinfo.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "userId"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
   Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
   Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
