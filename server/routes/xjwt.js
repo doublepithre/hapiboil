@@ -23,6 +23,23 @@ const xjwt = {
                     });
                 const uinfo = formatQueryRes(ares);
                 const { userId } = uinfo || {};
+
+                // if leadership or sponsors, don't allow to log in
+                const sqlStmt2 = `select * from hris.userinfo ui
+                    inner join hris.userrole ur on ur.role_id=ui.role_id
+                    inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+                where user_id=:userId`;
+                const ares2 = await sequelize.query(sqlStmt2, {
+                        type: QueryTypes.SELECT,
+                        replacements: { userId },
+                    });
+                const uinfoData = formatQueryRes(ares2);
+                const { userTypeName } = uinfoData || {};
+                
+                if (userTypeName === 'leadership' || userTypeName === 'supportstaff') {
+                    return { isValid: false, credentials: {}, artifacts: {} };
+                }
+
                 if(userId) {
                     const credentials = { id: userId, token };
                     const artifacts = { luser: uinfo, };    // as per docs, artifacts saves only token & decoded info. So luser info won't be saved.
