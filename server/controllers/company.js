@@ -283,7 +283,7 @@ const createCompanyStaff = async (request, h) => {
     }
     
     // Checking account type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'supportstaff', 'leadership'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -320,13 +320,15 @@ const createCompanyStaff = async (request, h) => {
     const udata = await User.create({ email: emailLower, password: hashedPassword, });
     const userRes = udata && udata.toJSON();
     const { userId, userUuid } = userRes || {};
+
+    const isDormantType = accountType === 'leadership' || accountType === 'supportstaff';
     const uidata = await Userinfo.create({
       userId,
       userUuid,
       email: emailLower,
       roleId,
       userTypeId,
-      active: false,
+      active: isDormantType ? true : false,
       firstName: email.split('@')[0],
       companyId,
       companyUuid,
@@ -504,7 +506,7 @@ const getCompanyStaff = async (request, h) => {
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // Checking user type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'leadership', 'supportstaff'];
     const isUserTypeQueryValid = (userType && isArray(userType)) ? (
       userType.every( req => validAccountTypes.includes(req))
     ) : validAccountTypes.includes(userType);
