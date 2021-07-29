@@ -41,10 +41,10 @@ const getUserStats = async (request, h) => {
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
         let sequelize = db.sequelize;
-        let {talentId} = request.query;
+        let {talentId,limit} = request.query;
         if (await checkReportAccess(sequelize,userId,talentId,userTypeName) || userId === talentId ){
             // check if talent has at applied to at least 1 job posted by employer(userId)
-            let talentProfile = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/stats`,{ params: { talent_id: talentId } });
+            let talentProfile = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/stats`,{ params: { talent_id: talentId,limit} });
             return h.response(camelizeKeys(talentProfile.data)).code(200);
         }else{
             return h.response({error:true,message:"Not authorized"}).code(401);
@@ -66,7 +66,8 @@ const getMentorStats = async (request, h) => {
         let db = request.getDb('xpaxr');
         console.log(userTypeName);
         if (userTypeName === "mentor"){
-            let talentProfile = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/mentor/stats`,{ params: { mentor_id: userId } });
+            let {limit} = request.query;
+            let talentProfile = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/mentor/stats`,{ params: { mentor_id: userId,limit } });
             return h.response(camelizeKeys(talentProfile.data)).code(200);
         }else{
             return h.response({error:true,message:"Not authorized"}).code(401);
