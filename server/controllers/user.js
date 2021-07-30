@@ -1279,47 +1279,47 @@ const updateMetaData = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { credentials } = request.auth || {};
-    const userId = credentials.id;
-    const { metaKey, metaValue } = request.payload || {};
-
-    if (!(metaKey && metaValue)) {     
-      return h.response({ error: true, message: 'Please provide the necessary details!'}).code(400);
-    }  
+    const userId = credentials.id;           
+    const metaDataItems = isArray(request.payload) ? request.payload : [request.payload];
 
     const { Usermeta, Profileauditlog } = request.getModels('xpaxr');        
 
-    const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-    const userMetaData = userMetaRecord && userMetaRecord.toJSON();
-    const { umetaId, metaValue: oldMetaValue } = userMetaData || {};
+    for (let metaDataItem of metaDataItems) {
+      const { metaKey, metaValue } = metaDataItem;
+      
+      const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+      const userMetaData = userMetaRecord && userMetaRecord.toJSON();
+      const { umetaId, metaValue: oldMetaValue } = userMetaData || {};
 
-    if(!umetaId){      
-      await Usermeta.create({ userId, metaKey, metaValue });
-      await Profileauditlog.create({ 
-        affectedUserId: userId,
-        performerUserId: userId,
-        actionName: 'Create User metadata',
-        actionType: 'CREATE',
-        actionDescription: `The user of userId ${userId} has created the metadata of metaKey ${metaKey} with the value of ${metaValue}`
-      });
-    } else {
-      if(metaValue === oldMetaValue) h.response({ error: true, message: 'This metaKey already has this metaValue!' }).code(400);
-      await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId, umetaId }} );
-      await Profileauditlog.create({ 
-        affectedUserId: userId,
-        performerUserId: userId,
-        actionName: 'Update User metadata',
-        actionType: 'UPDATE',
-        actionDescription: `The user of userId ${userId} has updated the metadata of metaKey ${metaKey}. Previous value was ${oldMetaValue}, Current value is ${metaValue}`
-      });
+      if(!umetaId){      
+        await Usermeta.create({ userId, metaKey, metaValue });
+        await Profileauditlog.create({ 
+          affectedUserId: userId,
+          performerUserId: userId,
+          actionName: 'Create User metadata',
+          actionType: 'CREATE',
+          actionDescription: `The user of userId ${userId} has created the metadata of metaKey ${metaKey} with the value of ${metaValue}`
+        });
+      } else {
+        if(metaValue === oldMetaValue) return h.response({ error: true, message: `This "${ metaKey }" metaKey already has this "${ metaValue }" metaValue!` }).code(400);
+        await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId, umetaId }} );
+        await Profileauditlog.create({ 
+          affectedUserId: userId,
+          performerUserId: userId,
+          actionName: 'Update User metadata',
+          actionType: 'UPDATE',
+          actionDescription: `The user of userId ${userId} has updated the metadata of metaKey ${metaKey}. Previous value was ${oldMetaValue}, Current value is ${metaValue}`
+        });
+      }
+    }
+    const updatedUserMetaRecords = await Usermeta.findAll({ where: { userId } });
+
+    const metaObj = {};
+    for (let item of updatedUserMetaRecords) {
+      metaObj[item.metaKey] = item.metaValue;
     }
 
-    const updatedMetaData = await Usermeta.findOne({
-        where:{ userId: userId, metaKey },
-        attributes: { exclude: ['createdAt', 'updatedAt']
-      }
-    });
-
-    return h.response(updatedMetaData).code(200);
+    return h.response(metaObj).code(200);
   }
   catch(error) {
     console.error(error.stack);
