@@ -24,6 +24,11 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
+    },
+    workaccommodationDescription: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'workaccommodation_description'
     }
   }, {
     sequelize,

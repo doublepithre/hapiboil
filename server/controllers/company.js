@@ -48,7 +48,7 @@ const getCompanyOptions = async (request, h) => {
       const { Companyindustry, Workaccommodation } = request.getModels('xpaxr');
     const [companyIndustries, workAccommodations] = await Promise.all([
       Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] }),
-      Workaccommodation.findAll({ attributes: ['workaccommodationId', 'workaccommodationTitle',]})
+      Workaccommodation.findAll({ attributes: ['workaccommodationId', 'workaccommodationTitle', 'workaccommodationDescription']})
       ]);
       const responses = {
         industry: companyIndustries,
@@ -157,7 +157,7 @@ const updateCompanyProfile = async (request, h) => {
     const { 
       companyName, website, description, 
       companyIndustryId, noOfEmployees, foundedYear,
-      emailBg, rolesAndResponsibilities, workAccommodationIds
+      emailBg, rolesAndResponsibilities, workaccommodationIds
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
     const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
@@ -168,11 +168,11 @@ const updateCompanyProfile = async (request, h) => {
       'noOfEmployees',        'foundedYear',
       'logo',     'banner',   'emailBg',
       'rolesAndResponsibilities',
-      'workAccommodationIds',
+      'workaccommodationIds',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    const isValidWorkAccommodationIds = (isArray(workAccommodationIds) && workAccommodationIds.every(item=> !isNaN(Number(item)))) ? true : false;
+    const isValidWorkAccommodationIds = (isArray(workaccommodationIds) && workaccommodationIds.every(item=> !isNaN(Number(item)))) ? true : false;
     if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
     if (!isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!'}).code(400);
 
@@ -222,7 +222,7 @@ const updateCompanyProfile = async (request, h) => {
         displayName: companyName,
         website, description, companyIndustryId, 
         noOfEmployees, foundedYear, rolesAndResponsibilities,
-        workAccommodationIds,
+        workaccommodationIds,
       }, { where: { companyId: rCompanyId }} 
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };

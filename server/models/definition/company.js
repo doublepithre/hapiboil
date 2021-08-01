@@ -76,10 +76,10 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: true,
       field: 'roles_and_responsibilities'
     },
-    workAccommodationIds: {
+    workaccommodationIds: {
       type: DataTypes.ARRAY(DataTypes.BIGINT),
       allowNull: true,
-      field: 'work_accommodation_ids'
+      field: 'workaccommodation_ids'
     }
   }, {
     sequelize,
