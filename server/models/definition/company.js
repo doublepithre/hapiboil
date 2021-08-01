@@ -70,6 +70,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'founded_year'
+    },
+    rolesAndResponsibilities: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'roles_and_responsibilities'
     }
   }, {
     sequelize,

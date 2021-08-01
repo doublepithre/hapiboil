@@ -50,6 +50,7 @@ var _Userquesresponse = require("./userquesresponse");
 var _Userrecommendationlog = require("./userrecommendationlog");
 var _Userrole = require("./userrole");
 var _Usertype = require("./usertype");
+var _Workaccommodation = require("./workaccommodation");
 
 function initModels(sequelize) {
   var Accesstoken = _Accesstoken(sequelize, DataTypes);
@@ -103,6 +104,7 @@ function initModels(sequelize) {
   var Userrecommendationlog = _Userrecommendationlog(sequelize, DataTypes);
   var Userrole = _Userrole(sequelize, DataTypes);
   var Usertype = _Usertype(sequelize, DataTypes);
+  var Workaccommodation = _Workaccommodation(sequelize, DataTypes);
 
   Job.belongsToMany(User, { through: Recommendation, foreignKey: "jobId", otherKey: "userId" });
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
@@ -285,6 +287,7 @@ function initModels(sequelize) {
     Userrecommendationlog,
     Userrole,
     Usertype,
+    Workaccommodation,
   };
 }
 module.exports = initModels;

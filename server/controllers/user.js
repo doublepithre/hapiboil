@@ -167,7 +167,8 @@ const createCompanySuperAdmin = async (request, h) => {
     if (record) { return h.response({ error: true, message: 'Account with this email already exists!' }).code(400); }
 
     // creating company
-    const cdata = await Company.create({ companyName: companyName.toLowerCase().trim(), displayName: companyName, active: true });
+    const rolesAndResponsibilities = `Every company has some roles and responsibilities!`;
+    const cdata = await Company.create({ companyName: companyName.toLowerCase().trim(), displayName: companyName, active: true, rolesAndResponsibilities });
     const companyRes = cdata && cdata.toJSON();
     const { companyId, companyUuid } = companyRes || {};
 
