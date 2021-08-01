@@ -143,6 +143,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'deleted_at'
+    },
+    jobskillIds: {
+      type: DataTypes.ARRAY(DataTypes.BIGINT),
+      allowNull: true,
+      field: 'jobskill_ids'
     }
   }, {
     sequelize,

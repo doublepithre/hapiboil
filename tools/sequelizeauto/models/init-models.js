@@ -20,6 +20,7 @@ var _Jobindustry = require("./jobindustry");
 var _Joblocation = require("./joblocation");
 var _Jobname = require("./jobname");
 var _Job = require("./job");
+var _Jobskill = require("./jobskill");
 var _Jobsquesresponse = require("./jobsquesresponse");
 var _Jobsrecommendationlog = require("./jobsrecommendationlog");
 var _Jobtype = require("./jobtype");
@@ -74,6 +75,7 @@ function initModels(sequelize) {
   var Joblocation = _Joblocation(sequelize, DataTypes);
   var Jobname = _Jobname(sequelize, DataTypes);
   var Job = _Job(sequelize, DataTypes);
+  var Jobskill = _Jobskill(sequelize, DataTypes);
   var Jobsquesresponse = _Jobsquesresponse(sequelize, DataTypes);
   var Jobsrecommendationlog = _Jobsrecommendationlog(sequelize, DataTypes);
   var Jobtype = _Jobtype(sequelize, DataTypes);
@@ -257,6 +259,7 @@ function initModels(sequelize) {
     Joblocation,
     Jobname,
     Job,
+    Jobskill,
     Jobsquesresponse,
     Jobsrecommendationlog,
     Jobtype,
