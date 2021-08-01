@@ -70,6 +70,16 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'founded_year'
+    },
+    rolesAndResponsibilities: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'roles_and_responsibilities'
+    },
+    workaccommodationIds: {
+      type: DataTypes.ARRAY(DataTypes.BIGINT),
+      allowNull: true,
+      field: 'workaccommodation_ids'
     }
   }, {
     sequelize,
@@ -103,12 +113,14 @@ const initRelations = (model) =>{
   const Company = model.Company;
   const Companyauditlog = model.Companyauditlog;
   const Companyinfo = model.Companyinfo;
+  const Onboarding = model.Onboarding;
   const Userinfo = model.Userinfo;
   const Companyindustry = model.Companyindustry;
 
 
   Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
+  Company.hasMany(Onboarding, { as: "onboardings", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
   Company.belongsTo(Companyindustry, { as: "companyIndustry", foreignKey: "companyIndustryId"});

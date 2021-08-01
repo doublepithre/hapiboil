@@ -13,6 +13,12 @@ module.exports = (sequelize, DataTypes) => {
       allowNull: false,
       field: 'task_type_name'
     },
+    createdAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      defaultValue: Sequelize.fn('now'),
+      field: 'created_at'
+    },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
@@ -41,9 +47,7 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Onboardingtasktype = model.Onboardingtasktype;
-  const Onboardingfixedtask = model.Onboardingfixedtask;
 
 
-  Onboardingtasktype.hasMany(Onboardingfixedtask, { as: "onboardingfixedtasks", foreignKey: "taskTypeId"});
 
 }

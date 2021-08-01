@@ -45,10 +45,14 @@ const getCompanyOptions = async (request, h) => {
       if (!request.auth.isAuthenticated) {
           return h.response({ message: 'Forbidden'}).code(403);
       }
-      const { Companyindustry } = request.getModels('xpaxr');
-      const companyIndustries = await Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName']});
+      const { Companyindustry, Workaccommodation } = request.getModels('xpaxr');
+    const [companyIndustries, workAccommodations] = await Promise.all([
+      Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] }),
+      Workaccommodation.findAll({ attributes: ['workaccommodationId', 'workaccommodationTitle', 'workaccommodationDescription']})
+      ]);
       const responses = {
-          industry: companyIndustries,
+        industry: companyIndustries,
+        workAccommodations: workAccommodations,
       };
       return h.response(responses).code(200);
   }
@@ -153,7 +157,7 @@ const updateCompanyProfile = async (request, h) => {
     const { 
       companyName, website, description, 
       companyIndustryId, noOfEmployees, foundedYear,
-      emailBg      
+      emailBg, rolesAndResponsibilities, workaccommodationIds
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
     const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
@@ -162,11 +166,15 @@ const updateCompanyProfile = async (request, h) => {
       'companyName',      'website',
       'description',    'companyIndustryId',
       'noOfEmployees',        'foundedYear',
-      'logo',      'banner',    'emailBg',
+      'logo',     'banner',   'emailBg',
+      'rolesAndResponsibilities',
+      'workaccommodationIds',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+    const isValidWorkAccommodationIds = (isArray(workaccommodationIds) && workaccommodationIds.every(item=> !isNaN(Number(item)))) ? true : false;
     if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!'}).code(400);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -213,7 +221,8 @@ const updateCompanyProfile = async (request, h) => {
         companyName: companyName?.toLowerCase().trim(),
         displayName: companyName,
         website, description, companyIndustryId, 
-        noOfEmployees, foundedYear        
+        noOfEmployees, foundedYear, rolesAndResponsibilities,
+        workaccommodationIds,
       }, { where: { companyId: rCompanyId }} 
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
@@ -283,7 +292,7 @@ const createCompanyStaff = async (request, h) => {
     }
     
     // Checking account type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'supportstaff', 'leadership'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type'}).code(400);
     }
@@ -320,13 +329,15 @@ const createCompanyStaff = async (request, h) => {
     const udata = await User.create({ email: emailLower, password: hashedPassword, });
     const userRes = udata && udata.toJSON();
     const { userId, userUuid } = userRes || {};
+
+    const isDormantType = accountType === 'leadership' || accountType === 'supportstaff';
     const uidata = await Userinfo.create({
       userId,
       userUuid,
       email: emailLower,
       roleId,
       userTypeId,
-      active: false,
+      active: isDormantType ? true : false,
       firstName: email.split('@')[0],
       companyId,
       companyUuid,
@@ -504,7 +515,7 @@ const getCompanyStaff = async (request, h) => {
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // Checking user type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'leadership', 'supportstaff'];
     const isUserTypeQueryValid = (userType && isArray(userType)) ? (
       userType.every( req => validAccountTypes.includes(req))
     ) : validAccountTypes.includes(userType);

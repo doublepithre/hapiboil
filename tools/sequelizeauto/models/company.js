@@ -70,6 +70,16 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'founded_year'
+    },
+    rolesAndResponsibilities: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'roles_and_responsibilities'
+    },
+    workaccommodationIds: {
+      type: DataTypes.ARRAY(DataTypes.BIGINT),
+      allowNull: true,
+      field: 'workaccommodation_ids'
     }
   }, {
     sequelize,

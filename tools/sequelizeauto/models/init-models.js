@@ -43,12 +43,14 @@ var _Report = require("./report");
 var _Reportfilter = require("./reportfilter");
 var _Requesttoken = require("./requesttoken");
 var _User = require("./user");
+var _Userfeedback = require("./userfeedback");
 var _Userinfo = require("./userinfo");
 var _Usermetum = require("./usermetum");
 var _Userquesresponse = require("./userquesresponse");
 var _Userrecommendationlog = require("./userrecommendationlog");
 var _Userrole = require("./userrole");
 var _Usertype = require("./usertype");
+var _Workaccommodation = require("./workaccommodation");
 
 function initModels(sequelize) {
   var Accesstoken = _Accesstoken(sequelize, DataTypes);
@@ -95,12 +97,14 @@ function initModels(sequelize) {
   var Reportfilter = _Reportfilter(sequelize, DataTypes);
   var Requesttoken = _Requesttoken(sequelize, DataTypes);
   var User = _User(sequelize, DataTypes);
+  var Userfeedback = _Userfeedback(sequelize, DataTypes);
   var Userinfo = _Userinfo(sequelize, DataTypes);
   var Usermetum = _Usermetum(sequelize, DataTypes);
   var Userquesresponse = _Userquesresponse(sequelize, DataTypes);
   var Userrecommendationlog = _Userrecommendationlog(sequelize, DataTypes);
   var Userrole = _Userrole(sequelize, DataTypes);
   var Usertype = _Usertype(sequelize, DataTypes);
+  var Workaccommodation = _Workaccommodation(sequelize, DataTypes);
 
   Job.belongsToMany(User, { through: Recommendation, foreignKey: "jobId", otherKey: "userId" });
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
@@ -120,6 +124,8 @@ function initModels(sequelize) {
   Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
+  Onboarding.belongsTo(Company, { as: "company", foreignKey: "companyId"});
+  Company.hasMany(Onboarding, { as: "onboardings", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
@@ -152,8 +158,6 @@ function initModels(sequelize) {
   Onboardingfixedtask.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "taskId"});
   Onboardingtask.belongsTo(Onboarding, { as: "onboarding", foreignKey: "onboardingId"});
   Onboarding.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "onboardingId"});
-  Onboardingfixedtask.belongsTo(Onboardingtasktype, { as: "taskType", foreignKey: "taskTypeId"});
-  Onboardingtasktype.hasMany(Onboardingfixedtask, { as: "onboardingfixedtasks", foreignKey: "taskTypeId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questioncategory.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionCategoryId"});
   Jobsquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
@@ -220,6 +224,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Profileauditlog, { as: "performerUserProfileauditlogs", foreignKey: "performerUserId"});
   Questionnaire.belongsTo(Userinfo, { as: "createdByUserinfo", foreignKey: "createdBy"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
+  Userfeedback.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "userId"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Usermetum, { as: "usermeta", foreignKey: "userId"});
   Userquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
@@ -274,12 +280,14 @@ function initModels(sequelize) {
     Reportfilter,
     Requesttoken,
     User,
+    Userfeedback,
     Userinfo,
     Usermetum,
     Userquesresponse,
     Userrecommendationlog,
     Userrole,
     Usertype,
+    Workaccommodation,
   };
 }
 module.exports = initModels;

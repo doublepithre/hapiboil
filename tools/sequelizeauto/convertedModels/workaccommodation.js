@@ -1,22 +1,17 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Onboardingfixedtask', {
-    onboardingfixedtaskId: {
+module.exports = (sequelize, DataTypes) => {
+  const Workaccommodation = sequelize.define('Workaccommodation', {
+    workaccommodationId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
-      field: 'onboardingfixedtask_id'
+      field: 'workaccommodation_id'
     },
-    taskName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      field: 'task_name'
-    },
-    taskDescription: {
+    workaccommodationTitle: {
       type: DataTypes.STRING,
       allowNull: true,
-      field: 'task_description'
+      field: 'workaccommodation_title'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -30,28 +25,34 @@ module.exports = function(sequelize, DataTypes) {
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
     },
-    type: {
-      type: DataTypes.STRING,
-      allowNull: true
-    },
-    subType: {
+    workaccommodationDescription: {
       type: DataTypes.STRING,
       allowNull: true,
-      field: 'sub_type'
+      field: 'workaccommodation_description'
     }
   }, {
     sequelize,
-    tableName: 'onboardingfixedtasks',
+    tableName: 'workaccommodations',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "onboardingfixedtasks_pkey",
+        name: "workaccommodations_pkey",
         unique: true,
         fields: [
-          { name: "onboardingfixedtask_id" },
+          { name: "workaccommodation_id" },
         ]
       },
     ]
   });
-};
+  Workaccommodation.associate = function(model) {
+    initRelations(model);
+  }
+  return Workaccommodation;
+}
+const initRelations = (model) =>{
+  const Workaccommodation = model.Workaccommodation;
+
+
+
+}
