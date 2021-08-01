@@ -153,7 +153,7 @@ const updateCompanyProfile = async (request, h) => {
     const { 
       companyName, website, description, 
       companyIndustryId, noOfEmployees, foundedYear,
-      emailBg, rolesAndResponsibilities
+      emailBg, rolesAndResponsibilities, workAccommodationIds
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
     const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
@@ -164,10 +164,13 @@ const updateCompanyProfile = async (request, h) => {
       'noOfEmployees',        'foundedYear',
       'logo',     'banner',   'emailBg',
       'rolesAndResponsibilities',
+      'workAccommodationIds',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
+    const isValidWorkAccommodationIds = (isArray(workAccommodationIds) && workAccommodationIds.every(item=> !isNaN(Number(item)))) ? true : false;
     if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
+    if (!isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!'}).code(400);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -214,7 +217,8 @@ const updateCompanyProfile = async (request, h) => {
         companyName: companyName?.toLowerCase().trim(),
         displayName: companyName,
         website, description, companyIndustryId, 
-        noOfEmployees, foundedYear, rolesAndResponsibilities      
+        noOfEmployees, foundedYear, rolesAndResponsibilities,
+        workAccommodationIds,
       }, { where: { companyId: rCompanyId }} 
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };

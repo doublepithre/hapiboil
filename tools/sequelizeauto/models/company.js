@@ -75,6 +75,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING,
       allowNull: true,
       field: 'roles_and_responsibilities'
+    },
+    workAccommodationIds: {
+      type: DataTypes.ARRAY(DataTypes.BIGINT),
+      allowNull: true,
+      field: 'work_accommodation_ids'
     }
   }, {
     sequelize,
