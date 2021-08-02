@@ -19,8 +19,8 @@ const createJob = async (request, h) => {
         }
 
         const jobDetails = request.payload || {};
-        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration, closeDate } = jobDetails;
-        if (!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp && closeDate)) {
+        const { jobName, jobDescription, jobIndustryId, jobLocationId, jobFunctionId, jobTypeId, minExp, duration, closeDate, jobSkills } = jobDetails;
+        if (!(jobName && jobDescription && jobIndustryId && jobLocationId && jobFunctionId && jobTypeId && minExp && closeDate && jobSkills)) {
             return h.response({ error: true, message: 'Please provide necessary details' }).code(400);
         }
 
@@ -31,7 +31,7 @@ const createJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { Job, Jobname, Jobhiremember, Jobauditlog, Userinfo, Jobtype } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobskill, Jobhiremember, Jobauditlog, Userinfo, Jobtype } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -69,8 +69,36 @@ const createJob = async (request, h) => {
             jobNameIdToSave = oldJobNameId;
         }
 
+        // job skills (if skill exist, use the existing id, if not create and then use that new id)
+        if (jobSkills && !isArray(jobSkills)) {
+            return h.response({ error: true, message: 'jobSkills must be an array of strings' }).code(400);
+        }
+        const jobskillIds = [];
+        if (jobSkills && isArray(jobSkills)) {
+            for (let i = 0; i < jobSkills.length; i++) {
+                const item = jobSkills[i];
+
+                // check if job skill name already exists
+                const jobskillRecord = await Jobskill.findOne({ where: { jobskillNameLower: item.toLowerCase() } });
+                const jobskillInfo = jobskillRecord && jobskillRecord.toJSON();
+                const { jobskillId: oldJobskillId } = jobskillInfo || {};
+
+                if (!oldJobskillId) {
+                    const newJobskillRecord = await Jobskill.create({
+                        jobskillName: item,
+                        jobskillNameLower: item.toLowerCase().trim(),
+                    });
+                    const newJobskillInfo = newJobskillRecord && newJobskillRecord.toJSON();
+                    const { jobskillId: newJobskillId } = newJobskillInfo || {};
+                    jobskillIds.push(newJobskillId);
+                } else {
+                    jobskillIds.push(oldJobskillId);
+                }
+            }
+        }
+
         // create job
-        const resRecord = await Job.create({ ...jobDetails, jobNameId: jobNameIdToSave, active: true, userId, companyId });
+        const resRecord = await Job.create({ ...jobDetails, jobNameId: jobNameIdToSave, active: true, userId, companyId, jobskillIds });
         const { jobId } = resRecord;
         await Jobhiremember.create({ accessLevel: 'creator', userId, jobId: resRecord.jobId, })
         await Jobauditlog.create({
