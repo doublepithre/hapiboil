@@ -1125,7 +1125,7 @@ const createProfile = async (request, h) => {
       createProfileResponse = resRecord;
       targetId = 1;
 
-    } else if (userTypeName === 'supervisor' && userTypeName === 'workbuddy') {
+    } else if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
       // create profile for a mentor
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
@@ -1199,7 +1199,7 @@ const getProfile = async (request, h) => {
       targetId = 1;
       answerTable = 'userquesresponses';
     }
-    if (userType === 'supervisor' && userType === 'workbuddy') {
+    if (userType === 'supervisor' || userType === 'workbuddy') {
       quesResponses = await Mentorquesresponse.findAll({ where: { userId } });
       targetId = 3;
       answerTable = 'mentorquesresponses';

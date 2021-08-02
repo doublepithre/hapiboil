@@ -2380,7 +2380,7 @@ const shareApplication = async (request, h) => {
         const { userTypeName: fuserTypeName } = fuserType || {};
 
         if (fuserTypeName !== 'employer' && fuserTypeName !== 'supervisor' && fuserTypeName !== 'workbuddy') return h.response({ error: true, message: 'The fellow user is not an employer or supervisor or workbuddy.' }).code(400);
-        if (accessLevel !== 'viewer' && fuserTypeName === 'supervisor' && fuserTypeName === 'workbuddy') return h.response({ error: true, message: 'The given access is not applicable for the supervisor/workbuddy.' }).code(400);
+        if (accessLevel !== 'viewer' && (fuserTypeName === 'supervisor' || fuserTypeName === 'workbuddy')) return h.response({ error: true, message: 'The given access is not applicable for the supervisor/workbuddy.' }).code(400);
         if (luserCompanyId !== fuserCompanyId) return h.response({ error: true, message: `The fellow ${fuserTypeName} is not from the same company.` }).code(400);
 
         // is already shared with this fellow recruiter
@@ -2471,7 +2471,7 @@ const updateSharedApplication = async (request, h) => {
         const { userTypeName: fuserTypeName } = fuserType || {};
 
         if (fuserTypeName !== 'employer' && fuserTypeName !== 'supervisor' && fuserTypeName !== 'workbuddy') return h.response({ error: true, message: 'The fellow user is not an employer or supervisor or workbuddy.' }).code(400);
-        if (accessLevel !== 'viewer' && fuserTypeName === 'supervisor' && fuserTypeName === 'workbuddy') return h.response({ error: true, message: 'The given access is not applicable for the supervisor/workbuddy.' }).code(400);
+        if (accessLevel !== 'viewer' && (fuserTypeName === 'supervisor' || fuserTypeName === 'workbuddy')) return h.response({ error: true, message: 'The given access is not applicable for the supervisor/workbuddy.' }).code(400);
         if (luserCompanyId !== fuserCompanyId) return h.response({ error: true, message: `The fellow ${fuserTypeName} is not from the same company.` }).code(400);
 
         // is already shared with this fellow recruiter
