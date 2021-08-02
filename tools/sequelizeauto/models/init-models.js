@@ -43,6 +43,7 @@ var _Recommendationmetric = require("./recommendationmetric");
 var _Report = require("./report");
 var _Reportfilter = require("./reportfilter");
 var _Requesttoken = require("./requesttoken");
+var _Resource = require("./resource");
 var _User = require("./user");
 var _Userfeedback = require("./userfeedback");
 var _Userinfo = require("./userinfo");
@@ -98,6 +99,7 @@ function initModels(sequelize) {
   var Report = _Report(sequelize, DataTypes);
   var Reportfilter = _Reportfilter(sequelize, DataTypes);
   var Requesttoken = _Requesttoken(sequelize, DataTypes);
+  var Resource = _Resource(sequelize, DataTypes);
   var User = _User(sequelize, DataTypes);
   var Userfeedback = _Userfeedback(sequelize, DataTypes);
   var Userinfo = _Userinfo(sequelize, DataTypes);
@@ -134,6 +136,10 @@ function initModels(sequelize) {
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
   Company.belongsTo(Companyindustry, { as: "companyIndustry", foreignKey: "companyIndustryId"});
   Companyindustry.hasMany(Company, { as: "companies", foreignKey: "companyIndustryId"});
+  Company.belongsTo(Country, { as: "country", foreignKey: "countryId"});
+  Country.hasMany(Company, { as: "companies", foreignKey: "countryId"});
+  Resource.belongsTo(Country, { as: "country", foreignKey: "countryId"});
+  Country.hasMany(Resource, { as: "resources", foreignKey: "countryId"});
   Applicationauditlog.belongsTo(Jobapplication, { as: "affectedApplication", foreignKey: "affectedApplicationId"});
   Jobapplication.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "affectedApplicationId"});
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
@@ -282,6 +288,7 @@ function initModels(sequelize) {
     Report,
     Reportfilter,
     Requesttoken,
+    Resource,
     User,
     Userfeedback,
     Userinfo,

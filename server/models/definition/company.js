@@ -80,6 +80,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.ARRAY(DataTypes.BIGINT),
       allowNull: true,
       field: 'workaccommodation_ids'
+    },
+    countryId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'country',
+          schema: 'hris'
+        },
+        key: 'country_id'
+      },
+      field: 'country_id'
     }
   }, {
     sequelize,
@@ -116,6 +128,7 @@ const initRelations = (model) =>{
   const Onboarding = model.Onboarding;
   const Userinfo = model.Userinfo;
   const Companyindustry = model.Companyindustry;
+  const Country = model.Country;
 
 
   Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
@@ -124,5 +137,6 @@ const initRelations = (model) =>{
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
   Company.belongsTo(Companyindustry, { as: "companyIndustry", foreignKey: "companyIndustryId"});
+  Company.belongsTo(Country, { as: "country", foreignKey: "countryId"});
 
 }

@@ -20,6 +20,7 @@ import {
   getUserMetaData,
   updateMetaData,
   getAllUserMetaData,
+  getResources,
 
   saveUserFeedback,
   getQuestionnaire,
@@ -208,6 +209,16 @@ const xuser = {
             mode: 'try',
           },
           handler: updateMetaData,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/resources',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getResources,
         },
       });
       server.route({

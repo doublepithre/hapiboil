@@ -1284,21 +1284,21 @@ const updateMetaData = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { credentials } = request.auth || {};
-    const userId = credentials.id;           
+    const userId = credentials.id;
     const metaDataItems = isArray(request.payload) ? request.payload : [request.payload];
 
     const { Usermeta, Profileauditlog } = request.getModels('xpaxr');
 
     for (let metaDataItem of metaDataItems) {
       const { metaKey, metaValue } = metaDataItem;
-      
-      const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+
+      const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
       const userMetaData = userMetaRecord && userMetaRecord.toJSON();
       const { umetaId, metaValue: oldMetaValue } = userMetaData || {};
 
-      if(!umetaId){      
+      if (!umetaId) {
         await Usermeta.create({ userId, metaKey, metaValue });
-        await Profileauditlog.create({ 
+        await Profileauditlog.create({
           affectedUserId: userId,
           performerUserId: userId,
           actionName: 'Create User metadata',
@@ -1306,9 +1306,9 @@ const updateMetaData = async (request, h) => {
           actionDescription: `The user of userId ${userId} has created the metadata of metaKey ${metaKey} with the value of ${metaValue}`
         });
       } else {
-        if(metaValue === oldMetaValue) return h.response({ error: true, message: `This "${ metaKey }" metaKey already has this "${ metaValue }" metaValue!` }).code(400);
-        await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId, umetaId }} );
-        await Profileauditlog.create({ 
+        if (metaValue === oldMetaValue) return h.response({ error: true, message: `This "${metaKey}" metaKey already has this "${metaValue}" metaValue!` }).code(400);
+        await Usermeta.update({ metaKey, metaValue }, { where: { userId: userId, umetaId } });
+        await Profileauditlog.create({
           affectedUserId: userId,
           performerUserId: userId,
           actionName: 'Update User metadata',
@@ -1326,14 +1326,14 @@ const updateMetaData = async (request, h) => {
 
     return h.response(metaObj).code(200);
   }
-  catch(error) {
+  catch (error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
 const getAllUserMetaData = async (request, h) => {
-  try{
+  try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
@@ -1343,8 +1343,8 @@ const getAllUserMetaData = async (request, h) => {
     const { exclude } = request.query;
 
     const excludeMetaKeys = isArray(exclude) ? exclude : [exclude];
-    const { Usermeta } = request.getModels('xpaxr');    
-    const userMetaRecord = await Usermeta.findAll({ where: { userId, [Op.not]: [{ metaKey: [...excludeMetaKeys]}] }, attributes: ['metaKey', 'metaValue']});
+    const { Usermeta } = request.getModels('xpaxr');
+    const userMetaRecord = await Usermeta.findAll({ where: { userId, [Op.not]: [{ metaKey: [...excludeMetaKeys] }] }, attributes: ['metaKey', 'metaValue'] });
 
     const metaObj = {};
     for (let item of userMetaRecord) {
@@ -1352,6 +1352,78 @@ const getAllUserMetaData = async (request, h) => {
     }
 
     return h.response(metaObj).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
+const getResources = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const userId = credentials.id;
+    let userTypeName = request.auth.artifacts.decoded.userTypeName;
+
+    const { Userinfo, Usertype, Company, Country, Resource, Mentorcandidatemapping } = request.getModels('xpaxr');
+
+    // get userTypeId and companyId
+    const userRecord = await Userinfo.findOne({
+      where: { userId },
+      include: [{
+        model: Company,
+        as: 'company'
+      }]
+    });
+    const userInfo = userRecord && userRecord.toJSON();
+    const { userTypeId, company } = userInfo || {};
+    const { countryId: luserCountryId } = company || {};
+
+    let countryId = luserCountryId;
+    if (userTypeName === 'candidate') { //if user is candidate find companyId of the mentor
+      const mentorRecord = await Mentorcandidatemapping.findOne({
+        where: {
+          candidateId: userId,
+        },
+        include: [{
+          model: Userinfo,
+          as: 'mentor',
+          required: true,
+          include: [{
+            model: Company,
+            as: 'company',
+          }]
+        }]
+      });
+      const mentorInfo = mentorRecord && mentorRecord.toJSON();
+      const { company: mCompany } = mentorInfo || {};
+      const { countryId: mentorCountryId } = mCompany || {};
+      countryId = mentorCountryId;
+    }
+
+    const anyCountryRecord = await Country.findOne({ where: { countryShort: '<ANY>' } });
+    const anyCountryData = anyCountryRecord && anyCountryRecord.toJSON();
+    const { countryId: anyCountryId } = anyCountryData || {};
+
+    // get resource records
+    const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;
+
+    const sqlStmtForResources = `SELECT * FROM hris.resources r
+    WHERE(case when position(':userTypeId' in array_to_string(usertype,',')) > 0 then true else false end) and country_id in(:countryId)`;
+
+    const allSQLResources = await sequelize.query(sqlStmtForResources, {
+      type: QueryTypes.SELECT,
+      replacements: {
+        userTypeId, countryId: [anyCountryId, countryId],
+      },
+    });
+    const resources = camelizeKeys(allSQLResources);
+
+    return h.response({resources}).code(200);
   }
   catch (error) {
     console.error(error.stack);
@@ -1466,6 +1538,7 @@ module.exports = {
   getUserMetaData,
   updateMetaData,
   getAllUserMetaData,
+  getResources,
 
   saveUserFeedback,
   getQuestionnaire,
