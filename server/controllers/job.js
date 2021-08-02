@@ -745,13 +745,13 @@ const updateJob = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { jobUuid } = request.params || {};
-        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration, closeDate } = request.payload || {};
+        const { jobName, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration, closeDate, jobSkills } = request.payload || {};
 
         const closeDateVal = closeDate && new Date(closeDate);
         const isValidCloseDate = closeDate ? !isNaN(Date.parse(closeDateVal)) : true;
         if (!isValidCloseDate) return h.response({ error: true, message: 'Invalid closeDate!' }).code(400);
 
-        const { Job, Jobname, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
+        const { Job, Jobname, Jobskill, Jobhiremember, Jobauditlog, Jobtype, Userinfo } = request.getModels('xpaxr');
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
@@ -825,7 +825,35 @@ const updateJob = async (request, h) => {
             }
         }
 
-        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal, closeDate: closeDateVal }, { where: { jobUuid } });
+        // job skills (if skill exist, use the existing id, if not create and then use that new id)
+        if (jobSkills && !isArray(jobSkills)) {
+            return h.response({ error: true, message: 'jobSkills must be an array of strings' }).code(400);
+        }
+        const jobskillIds = [];
+        if (jobSkills && isArray(jobSkills)) {
+            for (let i = 0; i < jobSkills.length; i++) {
+                const item = jobSkills[i];
+
+                // check if job skill name already exists
+                const jobskillRecord = await Jobskill.findOne({ where: { jobskillNameLower: item.toLowerCase() } });
+                const jobskillInfo = jobskillRecord && jobskillRecord.toJSON();
+                const { jobskillId: oldJobskillId } = jobskillInfo || {};
+
+                if (!oldJobskillId) {
+                    const newJobskillRecord = await Jobskill.create({
+                        jobskillName: item,
+                        jobskillNameLower: item.toLowerCase().trim(),
+                    });
+                    const newJobskillInfo = newJobskillRecord && newJobskillRecord.toJSON();
+                    const { jobskillId: newJobskillId } = newJobskillInfo || {};
+                    jobskillIds.push(newJobskillId);
+                } else {
+                    jobskillIds.push(oldJobskillId);
+                }
+            }
+        }
+
+        await Job.update({ jobNameId: jobNameIdToSave, jobDescription, jobIndustryId, jobFunctionId, jobTypeId, jobLocationId, minExp, isPrivate, duration: durationVal, closeDate: closeDateVal, jobskillIds }, { where: { jobUuid } });
         const record = await Job.findOne({ where: { jobUuid } });
 
         await Jobauditlog.create({
