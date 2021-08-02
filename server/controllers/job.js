@@ -1734,7 +1734,7 @@ const getAppliedJobs = async (request, h) => {
         if (!sortType && sortBy !== 'created_at') sortType = 'asc';
         if (!sortType && sortBy === 'created_at') sortType = 'desc';
 
-        const validSorts = ['status', 'created_at', 'job_name'];
+        const validSorts = ['status', 'created_at', 'job_name', 'last_updated'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         const validSortTypes = ['asc', 'desc'];
@@ -1821,6 +1821,8 @@ const getAppliedJobs = async (request, h) => {
                 // sorts
                 if (sortBy === 'job_name') {
                     sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+                } else if (sortBy === 'last_updated') {
+                    sqlStmt += ` order by ja.updated_at ${sortType}`;
                 } else {
                     sqlStmt += ` order by ja.${sortBy} ${sortType}`;
                 }
@@ -2636,7 +2638,7 @@ const updateApplicationStatus = async (request, h) => {
         if (oldStatus === 'hired') return h.response({ error: true, message: 'Already hired. So the status can not change!' }).code(400);
         if (oldStatus === status) return h.response({ error: true, message: 'Already has this status!' }).code(400);
 
-        await Jobapplication.update({ status }, { where: { applicationId } });
+        await Jobapplication.update({ status, updatedAt: new Date() }, { where: { applicationId } });
         const updatedRecord = await Jobapplication.findOne({ where: { applicationId } });
         const updatedData = updatedRecord && updatedRecord.toJSON();
 
