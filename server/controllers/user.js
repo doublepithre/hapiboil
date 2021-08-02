@@ -1104,6 +1104,7 @@ const createProfile = async (request, h) => {
     let data = []
     let createProfileResponse;
     let targetId;
+    let targetTable;
 
     if (userTypeName === "candidate") {
       // create profile for a candidate
@@ -1124,6 +1125,7 @@ const createProfile = async (request, h) => {
 
       createProfileResponse = resRecord;
       targetId = 1;
+      targetTable = 'userquesresponses'
 
     } else if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
       // create profile for a mentor
@@ -1143,6 +1145,7 @@ const createProfile = async (request, h) => {
       }
       createProfileResponse = resRecord;
       targetId = 3;
+      targetTable = 'mentorquesresponses'
     }
 
     // attaching isComplete property
@@ -1159,7 +1162,7 @@ const createProfile = async (request, h) => {
     const userQuesCount = allSQLUserQuesCount[0].count;
 
     const sqlStmtForUserRes = `select count(*) 
-      from hris.userquesresponses uqr
+      from hris.${ targetTable } uqr
       where uqr.user_id=:userId`;
 
     const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
