@@ -2181,7 +2181,7 @@ const getApplicantProfile = async (request, h) => {
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-        if (luserTypeName !== 'employer' && luserTypeName !== 'mentor') {
+        if (luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') {
             return h.response({ error: true, message: 'You are not authorized!' }).code(403);
         }
 
@@ -2242,7 +2242,7 @@ const getApplicantProfile = async (request, h) => {
         const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
         const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
 
-        if (luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator' && luserAccessLevel !== 'mentor') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+        if (luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator' && luserAccessLevel !== 'supervisor' && luserAccessLevel !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
         if (luserCompanyId !== jobCreatorCompanyId) return h.response({ error: true, message: 'You are not authorized!' }).code(403);
         delete applicantInfo.jobCreatorCompanyId;
 
@@ -2379,8 +2379,8 @@ const shareApplication = async (request, h) => {
         const { userType: fuserType, companyId: fuserCompanyId } = fellowUserProfileInfo || {};
         const { userTypeName: fuserTypeName } = fuserType || {};
 
-        if (fuserTypeName !== 'employer' && fuserTypeName !== 'mentor') return h.response({ error: true, message: 'The fellow user is not an employer or mentor.' }).code(400);
-        if (accessLevel !== 'viewer' && fuserTypeName === 'mentor') return h.response({ error: true, message: 'The given access is not applicable for the mentor.' }).code(400);
+        if (fuserTypeName !== 'employer' && fuserTypeName !== 'supervisor' && fuserTypeName !== 'workbuddy') return h.response({ error: true, message: 'The fellow user is not an employer or supervisor or workbuddy.' }).code(400);
+        if (accessLevel !== 'viewer' && fuserTypeName === 'supervisor' && fuserTypeName === 'workbuddy') return h.response({ error: true, message: 'The given access is not applicable for the supervisor/workbuddy.' }).code(400);
         if (luserCompanyId !== fuserCompanyId) return h.response({ error: true, message: `The fellow ${fuserTypeName} is not from the same company.` }).code(400);
 
         // is already shared with this fellow recruiter
@@ -2470,8 +2470,8 @@ const updateSharedApplication = async (request, h) => {
         const { userType: fuserType, companyId: fuserCompanyId } = fellowUserProfileInfo || {};
         const { userTypeName: fuserTypeName } = fuserType || {};
 
-        if (fuserTypeName !== 'employer' && fuserTypeName !== 'mentor') return h.response({ error: true, message: 'The fellow user is not an employer or mentor.' }).code(400);
-        if (accessLevel !== 'viewer' && fuserTypeName === 'mentor') return h.response({ error: true, message: 'The given access is not applicable for the mentor.' }).code(400);
+        if (fuserTypeName !== 'employer' && fuserTypeName !== 'supervisor' && fuserTypeName !== 'workbuddy') return h.response({ error: true, message: 'The fellow user is not an employer or supervisor or workbuddy.' }).code(400);
+        if (accessLevel !== 'viewer' && fuserTypeName === 'supervisor' && fuserTypeName === 'workbuddy') return h.response({ error: true, message: 'The given access is not applicable for the supervisor/workbuddy.' }).code(400);
         if (luserCompanyId !== fuserCompanyId) return h.response({ error: true, message: `The fellow ${fuserTypeName} is not from the same company.` }).code(400);
 
         // is already shared with this fellow recruiter

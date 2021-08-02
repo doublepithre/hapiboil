@@ -404,7 +404,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
     const userTypeLower = userType ? (isArray(userType) ? userType.map(ut => ut.toLowerCase()) : userType.toLowerCase()) : null;
 
     // Checking user type
-    const validAccountTypes = ['candidate', 'employer', 'mentor', 'companysuperadmin', 'superadmin'];
+    const validAccountTypes = ['candidate', 'employer', 'supervisor', 'workbuddy', 'companysuperadmin', 'superadmin'];
     const isUserTypeQueryValid = (userTypeLower && isArray(userTypeLower)) ? (
       userTypeLower.every(req => validAccountTypes.includes(req))
     ) : validAccountTypes.includes(userTypeLower);
@@ -1091,7 +1091,7 @@ const createProfile = async (request, h) => {
     }
     // Checking user type from jwt
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
-    if (userTypeName !== 'candidate' && userTypeName !== 'mentor') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+    if (userTypeName !== 'candidate' && userTypeName !== 'supervisor' && userTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -1125,7 +1125,7 @@ const createProfile = async (request, h) => {
       createProfileResponse = resRecord;
       targetId = 1;
 
-    } else if (userTypeName === 'mentor') {
+    } else if (userTypeName === 'supervisor' && userTypeName === 'workbuddy') {
       // create profile for a mentor
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
@@ -1199,7 +1199,7 @@ const getProfile = async (request, h) => {
       targetId = 1;
       answerTable = 'userquesresponses';
     }
-    if (userType === 'mentor') {
+    if (userType === 'supervisor' && userType === 'workbuddy') {
       quesResponses = await Mentorquesresponse.findAll({ where: { userId } });
       targetId = 3;
       answerTable = 'mentorquesresponses';
@@ -1243,7 +1243,7 @@ const getProfile = async (request, h) => {
 
     let isComplete = userQuesCount === userResCount;
 
-    if (userType !== 'mentor' && userType !== 'candidate') isComplete = true;
+    if (userType !== 'supervisor' && userType !== 'workbuddy' && userType !== 'candidate') isComplete = true;
     return h.response({ isComplete, responses }).code(200);
   }
   catch (error) {

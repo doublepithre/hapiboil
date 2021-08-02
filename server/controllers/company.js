@@ -292,7 +292,7 @@ const createCompanyStaff = async (request, h) => {
     }
 
     // Checking account type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'supportstaff', 'leadership'];
+    const validAccountTypes = ['employer', 'supervisor', 'workbuddy', 'companysuperadmin', 'supportstaff', 'leadership'];
     if (!validAccountTypes.includes(accountType)) {
       return h.response({ error: true, message: 'Invalid account type' }).code(400);
     }
@@ -421,7 +421,7 @@ const updateCompanyStaff = async (request, h) => {
     if (!isAllReqsValid || (updateDetails.active && typeof updateDetails.active !== 'boolean')) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
 
     // Checking account type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
+    const validAccountTypes = ['employer', 'supervisor', 'workbuddy', 'companysuperadmin'];
     if (userType && !validAccountTypes.includes(userType)) return h.response({ error: true, message: 'Invalid account type' }).code(400);
 
     const { Userinfo, Usertype, Profileauditlog, Userrole } = request.getModels('xpaxr');
@@ -516,7 +516,7 @@ const getCompanyStaff = async (request, h) => {
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // Checking user type
-    const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'leadership', 'supportstaff'];
+    const validAccountTypes = ['employer', 'supervisor', 'workbuddy', 'companysuperadmin', 'leadership', 'supportstaff'];
     const isUserTypeQueryValid = (userType && isArray(userType)) ? (
       userType.every(req => validAccountTypes.includes(req))
     ) : validAccountTypes.includes(userType);
@@ -627,7 +627,7 @@ const getFellowCompanyStaff = async (request, h) => {
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-    if (luserTypeName !== 'employer' && luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+    if (luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy' && luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -653,7 +653,7 @@ const getFellowCompanyStaff = async (request, h) => {
 
     if (!isSortReqValid || !isSortTypeReqValid) return h.response({ error: true, message: 'Invalid sort query parameter!' }).code(400);
 
-    const validAccountTypes = ['employer', 'mentor'];
+    const validAccountTypes = ['employer', 'supervisor', 'workbuddy'];
     const isUserTypeQueryValid = (userType && isArray(userType)) ? (
       userType.every(req => validAccountTypes.includes(req))
     ) : validAccountTypes.includes(userType);
@@ -687,7 +687,7 @@ const getFellowCompanyStaff = async (request, h) => {
       if (userType) {
         sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
       } else {
-        sqlStmt += ` and ut.user_type_name in ('employer', 'mentor')`;
+        sqlStmt += ` and ut.user_type_name in ('employer', 'supervisor', 'workbuddy')`;
       }
       // search
       if (search) {

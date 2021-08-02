@@ -85,16 +85,16 @@ const mentorCandidateLinking = async (request, h) => {
         const { userTypeName: cUserTypeName } = cUserType || {};
 
         if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
-        if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
+        if(mUserTypeName !== 'supervisor' && mUserTypeName !== 'workbuddy') return h.response({error: true, message: 'The user is not a supervisor/workbuddy.'}).code(400);
         if(cUserTypeName !== 'candidate') return h.response({error: true, message: 'The user is not a candidate.'}).code(400);
-        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The supervisor/workbuddy is not from the same company.'}).code(400);
 
         // is already linked
         const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId }});
         const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
         const { mentorcandidatemappingId } = alreadyLinkedInfo || {};
 
-        if(mentorcandidatemappingId) return h.response({ error: true, message: 'Already has a mentor!'}).code(400);
+        if(mentorcandidatemappingId) return h.response({ error: true, message: 'Already has a supervisor/workbuddy!'}).code(400);
 
         const record = await Mentorcandidatemapping.create({
             mentorId,
@@ -119,7 +119,7 @@ const getMentorCandidates = async (request, h) => {
       const { id: userId } = credentials || {};        
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-      if(luserTypeName !== 'mentor'){
+      if(luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy'){
           return h.response({error:true, message:'You are not authorized!'}).code(403);
       }        
       const mentorId = userId;
@@ -305,16 +305,16 @@ const replaceMentorForOne = async (request, h) => {
         const { userTypeName: cUserTypeName } = cUserType || {};
 
         if(!mUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
-        if(mUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
+        if(mUserTypeName !== 'supervisor' && mUserTypeName !== 'workbuddy') return h.response({error: true, message: 'The user is not a supervisor/workbuddy.'}).code(400);
         if(cUserTypeName !== 'candidate') return h.response({error: true, message: 'The user is not a candidate.'}).code(400);
-        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The mentor is not from the same company.'}).code(400);
+        if(luserCompanyId !== mCompanyId) return h.response({error: true, message: 'The supervisor/workbuddy is not from the same company.'}).code(400);
 
         // is already linked
         const alreadyLinkedRecord = await Mentorcandidatemapping.findOne({ where: { candidateId, mentorId }});
         const alreadyLinkedInfo = alreadyLinkedRecord && alreadyLinkedRecord.toJSON();
         const { mentorcandidatemappingId } = alreadyLinkedInfo || {};
 
-        if(mentorcandidatemappingId) return h.response({ error: true, message: 'This mentor is already mentoring this candidate!'}).code(400);
+        if(mentorcandidatemappingId) return h.response({ error: true, message: 'This supervisor/workbuddy is already mentoring this candidate!'}).code(400);
 
         await Mentorcandidatemapping.update({ mentorId }, { where: { candidateId } });
         return h.response({ message: `Mentor replacing successful!`}).code(200);
@@ -378,8 +378,8 @@ const replaceMentorForAll = async (request, h) => {
         if(luserCompanyId !== omCompanyId) return h.response({error: true, message: 'The old mentor is not from the same company.'}).code(400);
         
         if(!nmUserId) return h.response({error: true, message: 'No user found for this mentorId.'}).code(400);
-        if(nmUserTypeName !== 'mentor') return h.response({error: true, message: 'The user is not a mentor.'}).code(400);
-        if(luserCompanyId !== nmCompanyId) return h.response({error: true, message: 'The replacer mentor is not from the same company.'}).code(400);
+        if(nmUserTypeName !== 'supervisor' && nmUserTypeName !== 'workbuddy') return h.response({error: true, message: 'The user is not a supervisor/workbuddy.'}).code(400);
+        if(luserCompanyId !== nmCompanyId) return h.response({error: true, message: 'The replacer supervisor/workbuddy is not from the same company.'}).code(400);
         
         const sqlStmt = `
             UPDATE hris.mentorcandidatemapping mcm
@@ -454,7 +454,7 @@ const getMentorApplicantProfile = async (request, h) => {
       }
       // Checking user type from jwt
       let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-      if(luserTypeName !== 'mentor'){
+      if(luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy'){
         return h.response({error:true, message:'You are not authorized!'}).code(403);
       }
 
@@ -508,12 +508,6 @@ const getMentorApplicantProfile = async (request, h) => {
       const { userId: auserId, applicationId, jobCreatorCompanyId } = applicantInfo || {};
       if(!auserId) return h.response({ error: true, message: 'No applicant found!' }).code(400);
 
-       // does (s)he have access to do this?
-       // const doIhaveAccessRecord = await Applicationhiremember.findOne({ where: { applicationId, userId: luserId }});
-       // const doIhaveAccessInfo = doIhaveAccessRecord && doIhaveAccessRecord.toJSON();
-       // const { accessLevel: luserAccessLevel } = doIhaveAccessInfo || {};
-
-       // if(luserAccessLevel !== 'jobcreator' && luserAccessLevel !== 'administrator' && luserAccessLevel !== 'mentor') return h.response({ error: true, message: 'You are not authorized!'}).code(403);
        if(luserCompanyId !== jobCreatorCompanyId) return h.response({ error: true, message: 'You are not authorized!'}).code(403);
        delete applicantInfo.jobCreatorCompanyId;
        
