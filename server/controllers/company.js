@@ -8,78 +8,78 @@ const randtoken = require('rand-token');
 import { isArray } from 'lodash';
 import { formatQueryRes } from '../utils/index';
 import { getDomainURL } from '../utils/toolbox';
-import {camelizeKeys} from '../utils/camelizeKeys';
+import { camelizeKeys } from '../utils/camelizeKeys';
 import { update } from 'lodash';
 const uploadFile = require('../utils/uploadFile');
 
 const getAllCompanyNames = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
-      }
-      const db1 = request.getDb('xpaxr');
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const db1 = request.getDb('xpaxr');
 
-      // get sql statement for getting jobs or jobs count
-      const sqlStmt = `
+    // get sql statement for getting jobs or jobs count
+    const sqlStmt = `
         select 
           c.company_id, c.display_name as company_name
         from hris.company c`;
 
-      const sequelize = db1.sequelize;
-      const allCompaniesRAW = await sequelize.query(sqlStmt, {
-          type: QueryTypes.SELECT,
-      });
-      
-      const allCompanies = camelizeKeys(allCompaniesRAW);
-      
-      return h.response({ companies: allCompanies }).code(200);
+    const sequelize = db1.sequelize;
+    const allCompaniesRAW = await sequelize.query(sqlStmt, {
+      type: QueryTypes.SELECT,
+    });
+
+    const allCompanies = camelizeKeys(allCompaniesRAW);
+
+    return h.response({ companies: allCompanies }).code(200);
   }
   catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
 
 const getCompanyOptions = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
-      }
-      const { Companyindustry, Workaccommodation } = request.getModels('xpaxr');
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { Companyindustry, Workaccommodation } = request.getModels('xpaxr');
     const [companyIndustries, workAccommodations] = await Promise.all([
       Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] }),
-      Workaccommodation.findAll({ attributes: ['workaccommodationId', 'workaccommodationTitle', 'workaccommodationDescription']})
-      ]);
-      const responses = {
-        industry: companyIndustries,
-        workAccommodations: workAccommodations,
-      };
-      return h.response(responses).code(200);
+      Workaccommodation.findAll({ attributes: ['workaccommodationId', 'workaccommodationTitle', 'workaccommodationDescription'] })
+    ]);
+    const responses = {
+      industry: companyIndustries,
+      workAccommodations: workAccommodations,
+    };
+    return h.response(responses).code(200);
   }
   catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
 
 const getOwnCompanyInfo = async (request, h) => {
-  try{
+  try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-        
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
     const { Userinfo } = request.getModels('xpaxr');
 
     // get the company of the companysuperadmin
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
     const userProfileInfo = userRecord && userRecord.toJSON();
-    const { companyId: luserCompanyId } = userProfileInfo || {};    
+    const { companyId: luserCompanyId } = userProfileInfo || {};
 
     const db1 = request.getDb('xpaxr');
 
@@ -87,57 +87,57 @@ const getOwnCompanyInfo = async (request, h) => {
         ci.logo, ci.email_bg, ci.banner, c.*
       from hris.company c
         inner join hris.companyinfo ci on c.company_id=ci.company_id
-      where c.company_id=:luserCompanyId`;      
-        
+      where c.company_id=:luserCompanyId`;
+
     const sequelize = db1.sequelize;
     const companyInfoRAW = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: {                 
-            luserCompanyId,                
-        },
-    });    
+      type: QueryTypes.SELECT,
+      replacements: {
+        luserCompanyId,
+      },
+    });
     const companyInfo = camelizeKeys(companyInfoRAW)[0];
-    const { companyId: foundCompanyId} = companyInfo || {};
-    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
-    
+    const { companyId: foundCompanyId } = companyInfo || {};
+    if (!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
+
     return h.response(companyInfo).code(200);
   }
-  catch(error) {
+  catch (error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
 const getAnyCompanyInfo = async (request, h) => {
-  try{
+  try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
-    }            
-    const { credentials } = request.auth || {};    
+    }
+    const { credentials } = request.auth || {};
     const { companyId } = request.params;
 
     const db1 = request.getDb('xpaxr');
-    
+
     const sqlStmt = `select 	
         ci.logo, ci.email_bg, ci.banner, c.*
       from hris.company c
         inner join hris.companyinfo ci on c.company_id=ci.company_id
-      where c.company_id=:companyId`;      
-        
+      where c.company_id=:companyId`;
+
     const sequelize = db1.sequelize;
     const companyInfoRAW = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: {                 
-          companyId,                
-        },
-    });    
+      type: QueryTypes.SELECT,
+      replacements: {
+        companyId,
+      },
+    });
     const companyInfo = camelizeKeys(companyInfoRAW)[0];
-    const { companyId: foundCompanyId} = companyInfo || {};
-    if(!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
+    const { companyId: foundCompanyId } = companyInfo || {};
+    if (!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
 
     return h.response(companyInfo).code(200);
   }
-  catch(error) {
+  catch (error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
@@ -150,12 +150,12 @@ const updateCompanyProfile = async (request, h) => {
     }
 
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-    
-    const updateDetails = request.payload;    
-    const { 
-      companyName, website, description, 
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+    const updateDetails = request.payload;
+    const {
+      companyName, website, description,
       companyIndustryId, noOfEmployees, foundedYear,
       emailBg, rolesAndResponsibilities, workaccommodationIds
     } = updateDetails || {};
@@ -163,79 +163,79 @@ const updateCompanyProfile = async (request, h) => {
     const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
 
     const validUpdateRequests = [
-      'companyName',      'website',
-      'description',    'companyIndustryId',
-      'noOfEmployees',        'foundedYear',
-      'logo',     'banner',   'emailBg',
+      'companyName', 'website',
+      'description', 'companyIndustryId',
+      'noOfEmployees', 'foundedYear',
+      'logo', 'banner', 'emailBg',
       'rolesAndResponsibilities',
       'workaccommodationIds',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
-    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    const isValidWorkAccommodationIds = (isArray(workaccommodationIds) && workaccommodationIds.every(item=> !isNaN(Number(item)))) ? true : false;
-    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
-    if (!isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!'}).code(400);
+    const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
+    const isValidWorkAccommodationIds = (isArray(workaccommodationIds) && workaccommodationIds.every(item => !isNaN(Number(item)))) ? true : false;
+    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
+    if (!isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!' }).code(400);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const userRecord = await Userinfo.findOne({ where: { userId } });
     const luser = userRecord && userRecord.toJSON();
     const { userId: luserId, companyId: luserCompanyId } = luser || {};
-    
-    const requestedForCompany = await Company.findOne({ where: { companyUuid }});
+
+    const requestedForCompany = await Company.findOne({ where: { companyUuid } });
     const rCompanyInfo = requestedForCompany && requestedForCompany.toJSON();
     const { companyId: rCompanyId } = rCompanyInfo || {};
 
-    if (!rCompanyId) return h.response({ error: true, message: 'No Company found!'}).code(400);
+    if (!rCompanyId) return h.response({ error: true, message: 'No Company found!' }).code(400);
     if (luserCompanyId !== rCompanyId) {    // when request is (not from self-company)
-      return h.response({ error: true, message: 'Bad Request! You are not authorized!'}).code(403);
+      return h.response({ error: true, message: 'Bad Request! You are not authorized!' }).code(403);
     }
-    
+
     // upload picture to azure and use that generated link to save on db
-    if(updateDetails.logo){
+    if (updateDetails.logo) {
       const fileItem = updateDetails.logo;
-      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
+      if (isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!' }).code(400);
       const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
-      if(uploadRes.error) return h.response(uploadRes).code(400);
-      
+      if (uploadRes.error) return h.response(uploadRes).code(400);
+
       updateDetails.logo = uploadRes.vurl;
     }
 
-    if(updateDetails.banner){
+    if (updateDetails.banner) {
       const fileItem = updateDetails.banner;
-      if(isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!'}).code(400);
+      if (isArray(fileItem)) return h.response({ error: true, message: 'Send only one picture for upload!' }).code(400);
       const uploadRes = await uploadFile(fileItem, rCompanyId, ['png', 'jpg', 'jpeg']);
-      if(uploadRes.error) return h.response(uploadRes).code(400);
-      
+      if (uploadRes.error) return h.response(uploadRes).code(400);
+
       updateDetails.banner = uploadRes.vurl;
     }
-    
-    if(emailBg){
+
+    if (emailBg) {
       const RegEx = /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/;
       const isHexCode = RegEx.test(emailBg);
-      if(!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!'}).code(400);
+      if (!isHexCode) return h.response({ error: true, message: 'emailBg is NOT a valid hex code!' }).code(400);
     }
-        
+
     await Company.update(
       {
         companyName: companyName?.toLowerCase().trim(),
         displayName: companyName,
-        website, description, companyIndustryId, 
+        website, description, companyIndustryId,
         noOfEmployees, foundedYear, rolesAndResponsibilities,
         workaccommodationIds,
-      }, { where: { companyId: rCompanyId }} 
+      }, { where: { companyId: rCompanyId } }
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
-    await Companyinfo.update(companyInfoUpdateDetails, { where: { companyId: rCompanyId }});
+    await Companyinfo.update(companyInfoUpdateDetails, { where: { companyId: rCompanyId } });
 
-    await Companyauditlog.create({ 
+    await Companyauditlog.create({
       affectedCompanyId: rCompanyId,
       performerUserId: userId,
       actionName: 'Update a Company',
       actionType: 'UPDATE',
       actionDescription: `The user of userId ${userId} has updated the company of companyId ${rCompanyId}`,
     });
-    
+
     // find all company info (using SQL to avoid nested ugliness in the response)
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select * from hris.company c
@@ -244,15 +244,15 @@ const updateCompanyProfile = async (request, h) => {
 
     const sequelize = db1.sequelize;
     const SQLcompanyInfo = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: { 
-            rCompanyId
-        },
+      type: QueryTypes.SELECT,
+      replacements: {
+        rCompanyId
+      },
     });
     const responses = camelizeKeys(SQLcompanyInfo)[0];
     delete responses.companyName;
-    delete responses.active;       
-    
+    delete responses.active;
+
     return h.response(responses).code(200);
   } catch (error) {
     console.error(error.stack);
@@ -269,53 +269,53 @@ const createCompanyStaff = async (request, h) => {
     }
 
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin'){
-      return h.response({error:true, message:'You are not authorized!'}).code(403);
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin') {
+      return h.response({ error: true, message: 'You are not authorized!' }).code(403);
     }
 
     const { User, Userinfo, Usertype, Userrole, Profileauditlog, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType } = request.payload || {};
-    
-    if ( !(email && password && accountType)) {
-      return h.response({ error: true, message: 'Please provide necessary details'}).code(400);
+
+    if (!(email && password && accountType)) {
+      return h.response({ error: true, message: 'Please provide necessary details' }).code(400);
     }
 
     // Validating Email & Password
     if (!validator.isEmail(email)) {
-      return h.response({ error: true, message: 'Please provide a valid Email'}).code(400);
+      return h.response({ error: true, message: 'Please provide a valid Email' }).code(400);
     }
     if (password.length < 8) {
-      return h.response({ error: true, message: 'Password must contain atleast 8 characters'}).code(400);
+      return h.response({ error: true, message: 'Password must contain atleast 8 characters' }).code(400);
     } else if (password.length > 100) {
-      return h.response({ error: true, message: 'Password should be atmost 100 characters'}).code(400);
+      return h.response({ error: true, message: 'Password should be atmost 100 characters' }).code(400);
     }
-    
+
     // Checking account type
     const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'supportstaff', 'leadership'];
     if (!validAccountTypes.includes(accountType)) {
-      return h.response({ error: true, message: 'Invalid account type'}).code(400);
+      return h.response({ error: true, message: 'Invalid account type' }).code(400);
     }
 
     // Checking if User already Exists
-    const alreadyExistingUserRecord = await User.findOne({ where: { email }});
+    const alreadyExistingUserRecord = await User.findOne({ where: { email } });
     const record = alreadyExistingUserRecord && alreadyExistingUserRecord.toJSON();
-    if (record) { return h.response({ error: true, message: 'Account with this email already exists!'}).code(400); }
-    
+    if (record) { return h.response({ error: true, message: 'Account with this email already exists!' }).code(400); }
+
     const { credentials } = request.auth || {};
     const { id: csaUserId } = credentials || {};
-    
+
     // get the company of the companysuperadmin
-    const userRecord = await Userinfo.findOne({ where: { userId: csaUserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userRecord = await Userinfo.findOne({ where: { userId: csaUserId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
     const userProfileInfo = userRecord && userRecord.toJSON();
-    const { companyId, companyUuid } = userProfileInfo || {};                
+    const { companyId, companyUuid } = userProfileInfo || {};
 
     // creating company recruiter
     const hashedPassword = bcrypt.hashSync(password, 12);   // Hash the password
     const userTypeRecord = await Usertype.findOne({
       where: {
         user_type_name: accountType
-      }, 
+      },
       attributes: ['userTypeId']
     });
     const { userTypeId } = userTypeRecord && userTypeRecord.toJSON();
@@ -344,7 +344,7 @@ const createCompanyStaff = async (request, h) => {
     });
     delete udata.dataValues.password; //remove hasedpassword when returning
 
-    await Profileauditlog.create({ 
+    await Profileauditlog.create({
       affectedUserId: userId,
       performerUserId: csaUserId,
       actionName: 'Create a User',
@@ -358,12 +358,12 @@ const createCompanyStaff = async (request, h) => {
     let expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
 
-    const reqTokenRecord = await Requesttoken.create({ 
-      requestKey: token, 
+    const reqTokenRecord = await Requesttoken.create({
+      requestKey: token,
       userId,
       expiresAt,
-      resourceType: 'user', 
-      actionType: 'account-creation-reset-password' 
+      resourceType: 'user',
+      actionType: 'account-creation-reset-password'
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
@@ -376,7 +376,7 @@ const createCompanyStaff = async (request, h) => {
       password,
       ccEmails: [],
       templateName: 'company-account-creation',
-      resetLink,      
+      resetLink,
       isX0PATemplate: true,
     };
 
@@ -400,7 +400,7 @@ const createCompanyStaff = async (request, h) => {
 };
 
 const updateCompanyStaff = async (request, h) => {
-  try{
+  try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
@@ -408,29 +408,29 @@ const updateCompanyStaff = async (request, h) => {
     const userId = credentials.id;
 
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-    
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
     const updateDetails = request.payload;
     const { userType } = updateDetails || {};
     const validUpdateRequests = [
-      'active',     'userType',
+      'active', 'userType',
     ];
     const requestedUpdateOperations = Object.keys(request.payload) || [];
-    const isAllReqsValid = requestedUpdateOperations.every( req => validUpdateRequests.includes(req));
-    if (!isAllReqsValid || (updateDetails.active && typeof updateDetails.active !== 'boolean')) return h.response({ error: true, message: 'Invalid update request(s)'}).code(400);
-    
+    const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
+    if (!isAllReqsValid || (updateDetails.active && typeof updateDetails.active !== 'boolean')) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
+
     // Checking account type
     const validAccountTypes = ['employer', 'mentor', 'companysuperadmin'];
-    if (userType && !validAccountTypes.includes(userType)) return h.response({ error: true, message: 'Invalid account type'}).code(400);
-    
+    if (userType && !validAccountTypes.includes(userType)) return h.response({ error: true, message: 'Invalid account type' }).code(400);
+
     const { Userinfo, Usertype, Profileauditlog, Userrole } = request.getModels('xpaxr');
 
-    if(userType){
+    if (userType) {
       const userTypeRecord = await Usertype.findOne({ where: { userTypeName: userType } });
       const userTypeInfo = userTypeRecord && userTypeRecord.toJSON();
       const { userTypeId: nUserTypeId } = userTypeInfo || {};
-      
+
       const userRoleRecord = await Userrole.findOne({ where: { roleName: userType } });
       const userRoleInfo = userRoleRecord && userRoleRecord.toJSON();
       const { roleId: nRoleId } = userRoleInfo || {};
@@ -438,46 +438,47 @@ const updateCompanyStaff = async (request, h) => {
       updateDetails.userTypeId = nUserTypeId;
       updateDetails.roleId = nRoleId
     }
-            
+
     const userRecord = await Userinfo.findOne({ where: { userId } });
     const luser = userRecord && userRecord.toJSON();
     const { userId: luserId, isAdmin, companyId: luserCompanyId } = luser || {};
-    
+
     const { userUuid } = request.params || {};
-    const requestedForUser = await Userinfo.findOne({ where: { userUuid }});;
+    const requestedForUser = await Userinfo.findOne({ where: { userUuid } });;
     const requestedForUserInfo = requestedForUser && requestedForUser.toJSON();
     const { userId: staffUserId, companyId: ruserCompanyId, active: oldActive, userTypeId: oldUserTypeId } = requestedForUserInfo || {};
 
-    
-    if(!staffUserId)  return h.response({ error: true, message: `No user found!`}).code(400);
-    if (luserCompanyId !== ruserCompanyId) {
-      return h.response({ error: true, message: 'Bad Request! You are not authorized.'}).code(403);
-    }
-    if(updateDetails.active && updateDetails.active === oldActive)  return h.response({ error: true, message: `The user is already ${ updateDetails.active === true ? 'active' : 'deactivated'}!`}).code(400);
-    if(updateDetails.userTypeId === oldUserTypeId)  return h.response({ error: true, message: `The user already has this userType!`}).code(400);
 
-    if(updateDetails.active === false){      
+    if (!staffUserId) return h.response({ error: true, message: `No user found!` }).code(400);
+    if (luserCompanyId !== ruserCompanyId) {
+      return h.response({ error: true, message: 'Bad Request! You are not authorized.' }).code(403);
+    }
+    if (updateDetails.active && updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
+    if (updateDetails.userTypeId === oldUserTypeId) return h.response({ error: true, message: `The user already has this userType!` }).code(400);
+
+    if (updateDetails.active === false) {
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `DELETE
         from hris.accesstoken ato          
         where ato.user_id= :staffUserId`;
-      
+
       const sequelize = db1.sequelize;
       const ares = await sequelize.query(sqlStmt, {
         type: QueryTypes.SELECT,
         replacements: { staffUserId },
       });
     }
-    
-    await Userinfo.update(updateDetails, { where: { userUuid: userUuid }} );
+
+    await Userinfo.update(updateDetails, { where: { userUuid: userUuid } });
     const updatedUinfo = await Userinfo.findOne({
-        where:{ userUuid: userUuid },
-        attributes: { exclude: ['createdAt', 'updatedAt']
+      where: { userUuid: userUuid },
+      attributes: {
+        exclude: ['createdAt', 'updatedAt']
       }
     });
     const uinfo = updatedUinfo && updatedUinfo.toJSON();
 
-    await Profileauditlog.create({ 
+    await Profileauditlog.create({
       affectedUserId: staffUserId,
       performerUserId: userId,
       actionName: 'Update a User',
@@ -487,271 +488,271 @@ const updateCompanyStaff = async (request, h) => {
 
     return h.response(uinfo).code(200);
   }
-  catch(error) {
+  catch (error) {
     console.log(error.stack);
     return h.response({ error: true, message: 'Internal Server Error' }).code(500);
   }
 }
 
 const getCompanyStaff = async (request, h) => {
-  try{
+  try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-        
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
     const { Userinfo } = request.getModels('xpaxr');
     // get the company of the recruiter
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
     const userProfileInfo = userRecord && userRecord.toJSON();
     const { companyId } = userProfileInfo || {};
 
-    const { limit, offset, sort, search, userType } = request.query;            
+    const { limit, offset, sort, search, userType } = request.query;
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // Checking user type
     const validAccountTypes = ['employer', 'mentor', 'companysuperadmin', 'leadership', 'supportstaff'];
     const isUserTypeQueryValid = (userType && isArray(userType)) ? (
-      userType.every( req => validAccountTypes.includes(req))
+      userType.every(req => validAccountTypes.includes(req))
     ) : validAccountTypes.includes(userType);
-    if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);
-    
+    if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!' }).code(400);
 
-      // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
-      if (!sortType) sortType = 'asc';
-      const validSorts = ['first_name', 'last_name'];
-      const isSortReqValid = validSorts.includes(sortBy);
-      
-      const sortTypeLower = sortType.toLowerCase();
-      const validSortTypes = ['asc', 'desc'];
-      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
 
-      // pagination
-      const limitNum = limit ? Number(limit) : 10;
-      const offsetNum = offset ? Number(offset) : 0;
+    // sort query
+    let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+    if (!sortType) sortType = 'asc';
+    const validSorts = ['first_name', 'last_name'];
+    const isSortReqValid = validSorts.includes(sortBy);
 
-      if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
-      if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
-      if(!isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
-      if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
-                          
-      if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
-      if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-      
-      const db1 = request.getDb('xpaxr');
+    const sortTypeLower = sortType.toLowerCase();
+    const validSortTypes = ['asc', 'desc'];
+    const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
 
-      // get sql statement for getting all company staff or its count        
-      const filters = { search, sortBy, sortType, userType }
-      function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userType } = obj;
-          let sqlStmt;
-          const type = queryType && queryType.toLowerCase();
-          if(type === 'count'){
-              sqlStmt = `select count(*)`;
-          } else {
-              sqlStmt = `select
+    // pagination
+    const limitNum = limit ? Number(limit) : 10;
+    const offsetNum = offset ? Number(offset) : 0;
+
+    if (isNaN(limitNum)) return h.response({ error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!' }).code(400);
+    if (isNaN(offsetNum)) return h.response({ error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!' }).code(400);
+    if (!isSortReqValid) return h.response({ error: true, message: 'Invalid sort query parameter!' }).code(400);
+    if (!isSortTypeReqValid) return h.response({ error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!' }).code(400);
+
+    if (limitNum < 0) return h.response({ error: true, message: 'Limit must be greater than 0!' }).code(400);
+    if (limitNum > 100) return h.response({ error: true, message: 'Limit must not exceed 100!' }).code(400);
+
+    const db1 = request.getDb('xpaxr');
+
+    // get sql statement for getting all company staff or its count        
+    const filters = { search, sortBy, sortType, userType }
+    function getSqlStmt(queryType, obj = filters) {
+      const { search, sortBy, sortType, userType } = obj;
+      let sqlStmt;
+      const type = queryType && queryType.toLowerCase();
+      if (type === 'count') {
+        sqlStmt = `select count(*)`;
+      } else {
+        sqlStmt = `select
                 c.display_name as company_name, ui.*, ur.role_name, ut.user_type_name`;
-          }
+      }
 
-          sqlStmt += `
+      sqlStmt += `
               from hris.userinfo ui
                 inner join hris.company c on c.company_id=ui.company_id
                 inner join hris.userrole ur on ur.role_id=ui.role_id
                 inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
               where ui.company_id=:companyId`;
-           
-          // filters
-          if(userType){
-            sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
-          }
-          // search
-          if(search) {
-              sqlStmt += ` and (
+
+      // filters
+      if (userType) {
+        sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
+      }
+      // search
+      if (search) {
+        sqlStmt += ` and (
                   ui.first_name ilike :searchVal
                   or ui.last_name ilike :searchVal                    
                   or ui.email ilike :searchVal                    
               )`;
-          }
+      }
 
-          if(type !== 'count') {
-              // sorts
-              sqlStmt += ` order by ${ sortBy } ${ sortType}`
-              // limit and offset
-              sqlStmt += ` limit :limitNum  offset :offsetNum`
-          };
-          
-          return sqlStmt;                
-        }
-        
-        const sequelize = db1.sequelize;
-      	const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
-            type: QueryTypes.SELECT,
-            replacements: { 
-                companyId,
-                userType,
-                limitNum, offsetNum,
-                searchVal,                
-            },
-        });
-      	const allSQLCompanyStaffCount = await sequelize.query(getSqlStmt('count'), {
-            type: QueryTypes.SELECT,
-            replacements: { 
-                companyId,
-                userType,
-                limitNum, offsetNum,
-                searchVal,                
-            },
-        });
-        const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
+      if (type !== 'count') {
+        // sorts
+        sqlStmt += ` order by ${sortBy} ${sortType}`
+        // limit and offset
+        sqlStmt += ` limit :limitNum  offset :offsetNum`
+      };
 
-        const paginatedResponse = { count: allSQLCompanyStaffCount[0].count, staff: allCompanyStaff };
-        return h.response(paginatedResponse).code(200);
+      return sqlStmt;
+    }
+
+    const sequelize = db1.sequelize;
+    const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
+      type: QueryTypes.SELECT,
+      replacements: {
+        companyId,
+        userType,
+        limitNum, offsetNum,
+        searchVal,
+      },
+    });
+    const allSQLCompanyStaffCount = await sequelize.query(getSqlStmt('count'), {
+      type: QueryTypes.SELECT,
+      replacements: {
+        companyId,
+        userType,
+        limitNum, offsetNum,
+        searchVal,
+      },
+    });
+    const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
+
+    const paginatedResponse = { count: allSQLCompanyStaffCount[0].count, staff: allCompanyStaff };
+    return h.response(paginatedResponse).code(200);
   }
-  catch(error) {
+  catch (error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
 const getFellowCompanyStaff = async (request, h) => {
-  try{
+  try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'employer' && luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-        
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'employer' && luserTypeName !== 'mentor' && luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
     const { Userinfo } = request.getModels('xpaxr');
     // get the company of the recruiter
-    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
     const userProfileInfo = userRecord && userRecord.toJSON();
     const { companyId } = userProfileInfo || {};
 
-    const { sort, search, userType, exclude } = request.query;            
-      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+    const { sort, search, userType, exclude } = request.query;
+    const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
-      // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
-      if (!sortType) sortType = 'asc';
-      const validSorts = ['first_name', 'last_name'];
-      const isSortReqValid = validSorts.includes(sortBy);
-      
-      const sortTypeLower = sortType.toLowerCase();
-      const validSortTypes = ['asc', 'desc'];
-      const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
+    // sort query
+    let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+    if (!sortType) sortType = 'asc';
+    const validSorts = ['first_name', 'last_name'];
+    const isSortReqValid = validSorts.includes(sortBy);
 
-      if(!isSortReqValid || !isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
-      
-      const validAccountTypes = ['employer', 'mentor'];
-      const isUserTypeQueryValid = (userType && isArray(userType)) ? (
-        userType.every( req => validAccountTypes.includes(req))
-      ) : validAccountTypes.includes(userType);
+    const sortTypeLower = sortType.toLowerCase();
+    const validSortTypes = ['asc', 'desc'];
+    const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
 
-      if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!'}).code(400);    
-      
-      const db1 = request.getDb('xpaxr');
-      // get sql statement for getting all company staff or its count        
-      const filters = { search, sortBy, sortType, userType, exclude }
-      function getSqlStmt(queryType, obj = filters){            
-          const { search, sortBy, sortType, userType, exclude } = obj;
-          let sqlStmt;
-          const type = queryType && queryType.toLowerCase();
-          if(type === 'count'){
-              sqlStmt = `select count(*)`;
-          } else {
-              sqlStmt = `select
+    if (!isSortReqValid || !isSortTypeReqValid) return h.response({ error: true, message: 'Invalid sort query parameter!' }).code(400);
+
+    const validAccountTypes = ['employer', 'mentor'];
+    const isUserTypeQueryValid = (userType && isArray(userType)) ? (
+      userType.every(req => validAccountTypes.includes(req))
+    ) : validAccountTypes.includes(userType);
+
+    if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!' }).code(400);
+
+    const db1 = request.getDb('xpaxr');
+    // get sql statement for getting all company staff or its count        
+    const filters = { search, sortBy, sortType, userType, exclude }
+    function getSqlStmt(queryType, obj = filters) {
+      const { search, sortBy, sortType, userType, exclude } = obj;
+      let sqlStmt;
+      const type = queryType && queryType.toLowerCase();
+      if (type === 'count') {
+        sqlStmt = `select count(*)`;
+      } else {
+        sqlStmt = `select
                 ui.first_name, ui.last_name, ui.email, ui.user_id, ur.role_name, ut.user_type_name`;
-          }
+      }
 
-          sqlStmt += `
+      sqlStmt += `
               from hris.userinfo ui
                 inner join hris.userrole ur on ur.role_id=ui.role_id
                 inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
               where ui.company_id=:companyId and not ui.user_id=:userId and ui.active=true`;
-           
-          // filters
-          if(exclude){
-            sqlStmt += isArray(exclude) ? ` and not ui.user_id in (:exclude)` : ` and not ui.user_id=:exclude`;
-          }
-          if(userType){
-            sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
-          } else {
-            sqlStmt += ` and ut.user_type_name in ('employer', 'mentor')`;
-          }
-          // search
-          if(search) {
-              sqlStmt += ` and (
+
+      // filters
+      if (exclude) {
+        sqlStmt += isArray(exclude) ? ` and not ui.user_id in (:exclude)` : ` and not ui.user_id=:exclude`;
+      }
+      if (userType) {
+        sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
+      } else {
+        sqlStmt += ` and ut.user_type_name in ('employer', 'mentor')`;
+      }
+      // search
+      if (search) {
+        sqlStmt += ` and (
                   ui.first_name ilike :searchVal
                   or ui.last_name ilike :searchVal                    
                   or ui.email ilike :searchVal                    
               )`;
-          }
+      }
 
-          if(type !== 'count') {
-              // sorts
-              sqlStmt += ` order by ${ sortBy } ${ sortType}`              
-          };
-          
-          return sqlStmt;                
-        }
-        
-        const sequelize = db1.sequelize;
-      	const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
-            type: QueryTypes.SELECT,
-            replacements: { 
-                userId,
-                companyId,
-                userType,                
-                searchVal,                
-                exclude,
-            },
-        });
-        const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
+      if (type !== 'count') {
+        // sorts
+        sqlStmt += ` order by ${sortBy} ${sortType}`
+      };
 
-        const responses = { staff: allCompanyStaff };
-        return h.response(responses).code(200);
+      return sqlStmt;
+    }
+
+    const sequelize = db1.sequelize;
+    const allSQLCompanyStaff = await sequelize.query(getSqlStmt(), {
+      type: QueryTypes.SELECT,
+      replacements: {
+        userId,
+        companyId,
+        userType,
+        searchVal,
+        exclude,
+      },
+    });
+    const allCompanyStaff = camelizeKeys(allSQLCompanyStaff);
+
+    const responses = { staff: allCompanyStaff };
+    return h.response(responses).code(200);
   }
-  catch(error) {
+  catch (error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
 
 const resendCompanyVerificationEmail = async (request, h) => {
-  try{
+  try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-    if(luserTypeName !== 'companysuperadmin') return h.response({error:true, message:'You are not authorized!'}).code(403);
-    
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
     const { User, Emailtemplate, Userinfo, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
-    
+
     const { credentials } = request.auth || {};
     const luserId = credentials.id;
-    
-    const luserRecord = await Userinfo.findOne({ where: { userId: luserId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+
+    const luserRecord = await Userinfo.findOne({ where: { userId: luserId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
     const { companyId } = luserRecord && luserRecord.toJSON();
 
     const { userId } = request.payload || {};
-    if(!userId) return h.response({error:true, message:'Please provide a userId!'}).code(400);
+    if (!userId) return h.response({ error: true, message: 'Please provide a userId!' }).code(400);
 
-    const userRecord = await Userinfo.findOne({ where: { userId, companyId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
+    const userRecord = await Userinfo.findOne({ where: { userId, companyId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
     const userInfo = userRecord && userRecord.toJSON();
     const { email, active } = userInfo || {};
-    if(!email) return h.response({error:true, message:'No staff found!'}).code(400);
-    if(active) return h.response({error:true, message:'Already verified!'}).code(400);
+    if (!email) return h.response({ error: true, message: 'No staff found!' }).code(400);
+    if (active) return h.response({ error: true, message: 'Already verified!' }).code(400);
 
     // SENDING THE VERIFICATION EMAIL (confirmation email)
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
@@ -759,12 +760,12 @@ const resendCompanyVerificationEmail = async (request, h) => {
     let expiresAt = new Date();
     expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
 
-    const reqTokenRecord = await Requesttoken.create({ 
-      requestKey: token, 
+    const reqTokenRecord = await Requesttoken.create({
+      requestKey: token,
       userId,
       expiresAt,
-      resourceType: 'user', 
-      actionType: 'reset-password' 
+      resourceType: 'user',
+      actionType: 'reset-password'
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
@@ -776,7 +777,7 @@ const resendCompanyVerificationEmail = async (request, h) => {
       email: email,
       ccEmails: [],
       templateName: 'company-account-creation',
-      resetLink,      
+      resetLink,
       isX0PATemplate: true,
     };
 
@@ -792,97 +793,97 @@ const resendCompanyVerificationEmail = async (request, h) => {
 
     return h.response({ message: `We've emailed him/her instructions for verifying his/her account. He/She should receive them shortly. If he/she doesn't receive an email, please make sure he/she checked his/her spam folder.` }).code(200);
   }
-  catch(error) {
+  catch (error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
 
 const getAllJobsForAParticularCompany = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+
+    const { Company, Jobapplication } = request.getModels('xpaxr');
+
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    const { companyId } = request.params;
+
+    const companyRecord = await Company.findOne({ where: { companyId } });
+    const companyInfo = companyRecord && companyRecord.toJSON();
+    const { companyId: existingCompanyId } = companyInfo || {};
+
+    if (!existingCompanyId) return h.response({ error: true, message: 'No company found for this companyId!' }).code(400);
+
+    const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
+    const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+    // sort query
+    let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
+    if (!sortType && sortBy !== 'created_at') sortType = 'asc';
+    if (!sortType && sortBy === 'created_at') sortType = 'desc';
+
+    const validSorts = ['created_at', 'job_name'];
+    const isSortReqValid = validSorts.includes(sortBy);
+    const validSortTypes = ['asc', 'desc'];
+    const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
+
+    // pagination query
+    const limitNum = limit ? Number(limit) : 10;
+    const offsetNum = offset ? Number(offset) : 0;
+
+    // query validation
+    if (isNaN(limitNum)) return h.response({ error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!' }).code(400);
+    if (isNaN(offsetNum)) return h.response({ error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!' }).code(400);
+
+    if (!sortBy || !isSortReqValid) return h.response({ error: true, message: 'Invalid sort query parameter!' }).code(400);
+    if (!isSortTypeReqValid) return h.response({ error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!' }).code(400);
+
+    if (limitNum < 0) return h.response({ error: true, message: 'Limit must be greater than 0!' }).code(400);
+    if (limitNum > 100) return h.response({ error: true, message: 'Limit must not exceed 100!' }).code(400);
+
+    // custom date search query
+    let lowerDateRange;
+    let upperDateRange;
+    if (!startDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
+
+    if (startDate) {
+      if (startDate && !endDate) {
+        lowerDateRange = new Date(startDate);
+        upperDateRange = new Date(); //Now()
       }
-      const { credentials } = request.auth || {};
-      const { id: userId } = credentials || {};  
-      
-      const { Company, Jobapplication } = request.getModels('xpaxr');
-
-      // Checking user type from jwt
-      let luserTypeName = request.auth.artifacts.decoded.userTypeName;   
-      const { companyId } = request.params;
-
-      const companyRecord = await Company.findOne({ where: { companyId }});
-      const companyInfo = companyRecord && companyRecord.toJSON();
-      const { companyId: existingCompanyId } = companyInfo || {};
-
-      if(!existingCompanyId) return h.response({error:true, message:'No company found for this companyId!'}).code(400);
-
-      const { limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
-      const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-
-      // sort query
-      let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
-      if (!sortType && sortBy !== 'created_at') sortType = 'asc';
-      if (!sortType && sortBy === 'created_at') sortType = 'desc';
-      
-      const validSorts = [ 'created_at', 'job_name'];
-      const isSortReqValid = validSorts.includes(sortBy);
-      const validSortTypes = [ 'asc', 'desc'];
-      const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
-
-      // pagination query
-      const limitNum = limit ? Number(limit) : 10;
-      const offsetNum = offset ? Number(offset) : 0;        
-
-      // query validation
-      if(isNaN(limitNum)) return h.response({error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!'}).code(400);
-      if(isNaN(offsetNum)) return h.response({error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!'}).code(400);
-
-      if(!sortBy || !isSortReqValid) return h.response({error: true, message: 'Invalid sort query parameter!'}).code(400);
-      if(!isSortTypeReqValid) return h.response({error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!'}).code(400);
-                          
-      if(limitNum<0) return h.response({error: true, message: 'Limit must be greater than 0!'}).code(400);
-      if(limitNum>100) return h.response({error: true, message: 'Limit must not exceed 100!'}).code(400);
-
-      // custom date search query
-      let lowerDateRange;
-      let upperDateRange;
-      if(!startDate && endDate) return h.response({error: true, message: `You can't send endDate without startDate!`}).code(400);
-
-      if(startDate){
-          if(startDate && !endDate) {
-              lowerDateRange = new Date(startDate);
-              upperDateRange = new Date(); //Now()
-          }
-          if(startDate && endDate) {
-              lowerDateRange = new Date(startDate);
-              upperDateRange = new Date(endDate);
-          }
-
-          const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
-          if(!isValidDate) return h.response({error: true, message: 'Invalid startDate or endDate query parameter!'}).code(400);
-          const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-          if(!isValidDateRange) return h.response({error: true, message: 'endDate must be after startDate!'}).code(400);
+      if (startDate && endDate) {
+        lowerDateRange = new Date(startDate);
+        upperDateRange = new Date(endDate);
       }
-      
-      const db1 = request.getDb('xpaxr');
-      const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate };
 
-      // get sql statement for getting jobs or jobs count      
-      const timeNow = new Date();
-      function getSqlStmt(queryType, obj = filters){
-          const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate } = obj;
-          let sqlStmt;
-          const type = queryType && queryType.toLowerCase();
-          if(type === 'count'){
-              sqlStmt = `select count(*)`;
-          } else {
-              sqlStmt = `select
+      const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+      if (!isValidDate) return h.response({ error: true, message: 'Invalid startDate or endDate query parameter!' }).code(400);
+      const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+      if (!isValidDateRange) return h.response({ error: true, message: 'endDate must be after startDate!' }).code(400);
+    }
+
+    const db1 = request.getDb('xpaxr');
+    const filters = { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate };
+
+    // get sql statement for getting jobs or jobs count      
+    const timeNow = new Date();
+    function getSqlStmt(queryType, obj = filters) {
+      const { jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, search, sortBy, sortType, startDate } = obj;
+      let sqlStmt;
+      const type = queryType && queryType.toLowerCase();
+      if (type === 'count') {
+        sqlStmt = `select count(*)`;
+      } else {
+        sqlStmt = `select
                   jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
-          }
+      }
 
-          sqlStmt += `
+      sqlStmt += `
           from hris.jobs j
               inner join hris.jobname jn on jn.job_name_id=j.job_name_id
               inner join hris.company c on c.company_id=j.company_id
@@ -891,27 +892,27 @@ const getAllJobsForAParticularCompany = async (request, h) => {
               inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
               inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
           where j.active=true and j.is_deleted=false 
-              and j.is_private=false and j.company_id=:companyId and j.close_date > :timeNow`;            
-                      
-          if(startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
-          // filters
-          if(jobTypeId){
-              sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
-          } 
-          if(jobFunctionId){
-              sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
-          } 
-          if(jobIndustryId){
-              sqlStmt += isArray(jobIndustryId) ? ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
-          }         
-          if(jobLocationId){
-              sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
-          }         
-          if(minExp) sqlStmt += ` and j.min_exp=:minExp`;
+              and j.is_private=false and j.company_id=:companyId and j.close_date > :timeNow`;
 
-          // search
-          if(search) {
-              sqlStmt += ` and (
+      if (startDate) sqlStmt += ` and j.created_at >= :lowerDateRange and j.created_at <= :upperDateRange`;
+      // filters
+      if (jobTypeId) {
+        sqlStmt += isArray(jobTypeId) ? ` and j.job_type_id in (:jobTypeId)` : ` and j.job_type_id=:jobTypeId`;
+      }
+      if (jobFunctionId) {
+        sqlStmt += isArray(jobFunctionId) ? ` and j.job_function_id in (:jobFunctionId)` : ` and j.job_function_id=:jobFunctionId`;
+      }
+      if (jobIndustryId) {
+        sqlStmt += isArray(jobIndustryId) ? ` and j.job_industry_id in (:jobIndustryId)` : ` and j.job_industry_id=:jobIndustryId`;
+      }
+      if (jobLocationId) {
+        sqlStmt += isArray(jobLocationId) ? ` and j.job_location_id in (:jobLocationId)` : ` and j.job_location_id=:jobLocationId`;
+      }
+      if (minExp) sqlStmt += ` and j.min_exp=:minExp`;
+
+      // search
+      if (search) {
+        sqlStmt += ` and (
                   jn.job_name ilike :searchVal
                   or jt.job_type_name ilike :searchVal
                   or jf.job_function_name ilike :searchVal
@@ -919,98 +920,98 @@ const getAllJobsForAParticularCompany = async (request, h) => {
                   or jl.job_location_name ilike :searchVal
                   or j.job_description ilike :searchVal
               )`;
-          }
+      }
 
-          if(type !== 'count') {
-              // sorts (order)            
-              if(sortBy === 'job_name') {
-                  sqlStmt += ` order by jn.${sortBy} ${sortType}`;
-              } else {
-                  sqlStmt += ` order by j.${sortBy} ${sortType}`;
-              }            
-              // limit and offset
-              sqlStmt += ` limit :limitNum  offset :offsetNum`
-          };
-
-          return sqlStmt;
+      if (type !== 'count') {
+        // sorts (order)            
+        if (sortBy === 'job_name') {
+          sqlStmt += ` order by jn.${sortBy} ${sortType}`;
+        } else {
+          sqlStmt += ` order by j.${sortBy} ${sortType}`;
+        }
+        // limit and offset
+        sqlStmt += ` limit :limitNum  offset :offsetNum`
       };
 
-      const sequelize = db1.sequelize;
-      const allSQLJobs = await sequelize.query(getSqlStmt(), {
-          type: QueryTypes.SELECT,
-          replacements: { timeNow, companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+      return sqlStmt;
+    };
+
+    const sequelize = db1.sequelize;
+    const allSQLJobs = await sequelize.query(getSqlStmt(), {
+      type: QueryTypes.SELECT,
+      replacements: { timeNow, companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+    });
+    const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
+      type: QueryTypes.SELECT,
+      replacements: { timeNow, companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
+    });
+    const allJobs = camelizeKeys(allSQLJobs);
+
+    // check if already applied
+    if (luserTypeName === 'candidate') {
+      const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId } });
+      const appliedJobIds = [];
+      rawAllAppliedJobs.forEach(aj => {
+        const { jobId } = aj || {};
+        if (jobId) {
+          appliedJobIds.push(Number(jobId));
+        }
       });
-      const allSQLJobsCount = await sequelize.query(getSqlStmt('count'), {
-          type: QueryTypes.SELECT,
-          replacements: { timeNow, companyId, jobTypeId, jobFunctionId, jobIndustryId, jobLocationId, minExp, sortBy, sortType, limitNum, offsetNum, searchVal, lowerDateRange, upperDateRange },
-      });           
-      const allJobs = camelizeKeys(allSQLJobs);
 
-      // check if already applied
-      if(luserTypeName === 'candidate'){
-          const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
-          const appliedJobIds = [];
-          rawAllAppliedJobs.forEach(aj => {
-              const { jobId } = aj || {};
-              if(jobId) {
-                  appliedJobIds.push(Number(jobId));
-              }
-          });
+      allJobs.forEach(j => {
+        const { jobId } = j || {};
+        if (appliedJobIds.includes(Number(jobId))) {
+          j.isApplied = true;
+        } else {
+          j.isApplied = false;
+        }
+      });
 
-          allJobs.forEach(j => {
-              const { jobId } = j || {};
-              if(appliedJobIds.includes(Number(jobId))) {
-                  j.isApplied = true;
-              } else {
-                  j.isApplied = false;
-              }
-          });      
-
-      }
-      const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };                          
-      return h.response(responses).code(200);
+    }
+    const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };
+    return h.response(responses).code(200);
 
   } catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
 
 const getCompanyJobDetails = async (request, h) => {
-  try{
-      if (!request.auth.isAuthenticated) {
-          return h.response({ message: 'Forbidden'}).code(403);
-      }        
-      const { credentials } = request.auth || {};
-      const { id: userId } = credentials || {};  
-      const { jobUuid } = request.params || {};        
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { jobUuid } = request.params || {};
 
-      // Checking user type from jwt
-      let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-      
-      const { Jobapplication, Userinfo } = request.getModels('xpaxr');
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
 
-      // get the company of the luser (using it only if he is a recruiter)
-      const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] }});
-      const luserProfileInfo = luserRecord && luserRecord.toJSON();
-      const { companyId: recruiterCompanyId } = luserProfileInfo || {};                
-              
-      const db1 = request.getDb('xpaxr');
+    const { Jobskill, Jobapplication, Userinfo } = request.getModels('xpaxr');
 
-      // get sql statement for getting jobs or jobs count
-      const isCandidateView = luserTypeName === 'candidate';
-      function getSqlStmt(queryType){            
-          let sqlStmt;            
-          const type = queryType && queryType.toLowerCase();
-          if(type === 'count'){
-              sqlStmt = `select count(*)`;
-          } else {
-              sqlStmt = `select
+    // get the company of the luser (using it only if he is a recruiter)
+    const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+    const luserProfileInfo = luserRecord && luserRecord.toJSON();
+    const { companyId: recruiterCompanyId } = luserProfileInfo || {};
+
+    const db1 = request.getDb('xpaxr');
+
+    // get sql statement for getting jobs or jobs count
+    const isCandidateView = luserTypeName === 'candidate';
+    function getSqlStmt(queryType) {
+      let sqlStmt;
+      const type = queryType && queryType.toLowerCase();
+      if (type === 'count') {
+        sqlStmt = `select count(*)`;
+      } else {
+        sqlStmt = `select
               jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
-              if(isCandidateView) sqlStmt += `,jqr.response_id,jqr.question_id,jqr.response_val`;
-          }
+        if (isCandidateView) sqlStmt += `,jqr.response_id,jqr.question_id,jqr.response_val`;
+      }
 
-          sqlStmt += `
+      sqlStmt += `
           from hris.jobs j
               inner join hris.jobname jn on jn.job_name_id=j.job_name_id
               left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
@@ -1019,90 +1020,101 @@ const getCompanyJobDetails = async (request, h) => {
               inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
               inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
               inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
-          
-          // if he is an employer
-          sqlStmt += ` where j.active=true and j.is_deleted=false and j.job_uuid=:jobUuid and j.is_private=false`;        
-          
-          return sqlStmt;
-      };
 
-      const sequelize = db1.sequelize;
-      const sqlJobArray = await sequelize.query(getSqlStmt(), {
-          type: QueryTypes.SELECT,
-          replacements: { jobUuid, recruiterCompanyId, userId },
-      });      	        
-      const rawJobArray = camelizeKeys(sqlJobArray);
-      const jobRecord = rawJobArray[0] || {};
-      const { jobId: foundJobId } = jobRecord;
+      // if he is an employer
+      sqlStmt += ` where j.active=true and j.is_deleted=false and j.job_uuid=:jobUuid and j.is_private=false`;
 
-      if(!foundJobId) return h.response({error: true, message: 'No job found!'}).code(400);
+      return sqlStmt;
+    };
 
-      let responseJob = jobRecord;
-      // check if already applied
-      if(luserTypeName === 'candidate'){
-          const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId }});           
-          const appliedJobIds = [];
-          rawAllAppliedJobs.forEach(aj => {
-              const { jobId } = aj || {};
-              if(jobId) {
-                  appliedJobIds.push(Number(jobId));
-              }
-          });
+    const sequelize = db1.sequelize;
+    const sqlJobArray = await sequelize.query(getSqlStmt(), {
+      type: QueryTypes.SELECT,
+      replacements: { jobUuid, recruiterCompanyId, userId },
+    });
+    const rawJobArray = camelizeKeys(sqlJobArray);
+    const jobRecord = rawJobArray[0] || {};
+    const { jobId: foundJobId } = jobRecord;
 
-          rawJobArray.forEach(j => {
-              const { jobId } = j || {};
-              if(appliedJobIds.includes(Number(jobId))) {
-                  j.isApplied = true;
-              } else {
-                  j.isApplied = false;
-              }
-          });   
+    if (!foundJobId) return h.response({ error: true, message: 'No job found!' }).code(400);
 
-          const jobsMap = new Map();
-          const jobQuesMap = {};
-          const fres = [];
-  
-          // attaching jobQuestionResponses
-          if(Array.isArray(rawJobArray) && rawJobArray.length) {
-              rawJobArray.forEach(r => {
-                  const { jobId, questionId, responseId, responseVal, ...rest } = r || {};
-                  jobsMap.set(jobId, { jobId, ...rest });
-                  
-                  if(responseId){
-                      if(jobQuesMap[jobId]) {
-                          jobQuesMap[jobId].push({questionId, responseId, responseVal});
-                          } else {
-                          jobQuesMap[jobId] = [{questionId, responseId, responseVal}];
-                      }
-                  }
-              });
-              jobsMap.forEach((jqrObj, jm) => {
-                  const records = jobQuesMap[jm] || [];
-  
-                  const questions = [];
-                  for (let response of records) {
-                      const { questionId, responseVal } = response;
-                      const res = { questionId, answer:responseVal.answer };
-                      questions.push(res);
-                  }
-                  jqrObj.jobQuestionResponses = questions;
-                  fres.push(jqrObj);
-              });                
-          }   
-          responseJob = fres[0];    
+    let responseJob = jobRecord;
+    // check if already applied
+    if (luserTypeName === 'candidate') {
+      const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId } });
+      const appliedJobIds = [];
+      rawAllAppliedJobs.forEach(aj => {
+        const { jobId } = aj || {};
+        if (jobId) {
+          appliedJobIds.push(Number(jobId));
+        }
+      });
+
+      rawJobArray.forEach(j => {
+        const { jobId } = j || {};
+        if (appliedJobIds.includes(Number(jobId))) {
+          j.isApplied = true;
+        } else {
+          j.isApplied = false;
+        }
+      });
+
+      const jobsMap = new Map();
+      const jobQuesMap = {};
+      const fres = [];
+
+      // attaching jobQuestionResponses
+      if (Array.isArray(rawJobArray) && rawJobArray.length) {
+        rawJobArray.forEach(r => {
+          const { jobId, questionId, responseId, responseVal, ...rest } = r || {};
+          jobsMap.set(jobId, { jobId, ...rest });
+
+          if (responseId) {
+            if (jobQuesMap[jobId]) {
+              jobQuesMap[jobId].push({ questionId, responseId, responseVal });
+            } else {
+              jobQuesMap[jobId] = [{ questionId, responseId, responseVal }];
+            }
+          }
+        });
+        jobsMap.forEach((jqrObj, jm) => {
+          const records = jobQuesMap[jm] || [];
+
+          const questions = [];
+          for (let response of records) {
+            const { questionId, responseVal } = response;
+            const res = { questionId, answer: responseVal.answer };
+            questions.push(res);
+          }
+          jqrObj.jobQuestionResponses = questions;
+          fres.push(jqrObj);
+        });
       }
-      
-      return h.response(responseJob).code(200);
+      responseJob = fres[0];
+    }
+
+    // attaching skills
+    const { jobskillIds } = responseJob;
+    const jobskillRecords = await Jobskill.findAll({ where: { jobskillId: jobskillIds }, attributes: ['jobskillName'] });
+    // const jobskillData = jobskillRecords && jobskillRecords.toJSON();
+    const jobSkills = [];
+
+    for (let item of jobskillRecords) {
+      const { jobskillName } = item;
+      if (jobskillName) jobSkills.push(jobskillName);
+    }
+    responseJob.jobSkills = jobSkills;
+    return h.response(responseJob).code(200);
 
   } catch (error) {
-      console.error(error.stack);
-      return h.response({error: true, message: 'Internal Server Error!'}).code(500);
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
   }
 }
 
 
 module.exports = {
- 
+
   getAllCompanyNames,
   getCompanyOptions,
 
@@ -1110,16 +1122,16 @@ module.exports = {
   getAnyCompanyInfo,
 
   updateCompanyProfile,
-  
+
   createCompanyStaff,
   updateCompanyStaff,
-  getCompanyStaff,  
+  getCompanyStaff,
   getFellowCompanyStaff,
-   
+
   resendCompanyVerificationEmail,
 
   getAllJobsForAParticularCompany,
   getCompanyJobDetails,
-  
+
 };
 

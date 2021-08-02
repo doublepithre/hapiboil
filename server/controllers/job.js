@@ -216,7 +216,7 @@ const getSingleJob = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'candidate' && luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
-        const { Jobapplication, Userinfo } = request.getModels('xpaxr');
+        const { Jobskill, Jobapplication, Userinfo } = request.getModels('xpaxr');
 
         // get the company of the luser (using it only if he is a recruiter)
         const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
@@ -325,6 +325,18 @@ const getSingleJob = async (request, h) => {
             });
         }
         const responseJob = fres[0];
+
+        // attaching skills
+        const { jobskillIds } = responseJob;
+        const jobskillRecords = await Jobskill.findAll({ where: { jobskillId: jobskillIds }, attributes: ['jobskillName'] });
+        // const jobskillData = jobskillRecords && jobskillRecords.toJSON();
+        const jobSkills = [];
+
+        for (let item of jobskillRecords){
+            const { jobskillName } = item;
+            if (jobskillName) jobSkills.push(jobskillName);
+        }
+        responseJob.jobSkills = jobSkills;
         return h.response(responseJob).code(200);
 
     } catch (error) {
