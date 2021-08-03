@@ -332,7 +332,7 @@ const getSingleJob = async (request, h) => {
         // const jobskillData = jobskillRecords && jobskillRecords.toJSON();
         const jobSkills = [];
 
-        for (let item of jobskillRecords){
+        for (let item of jobskillRecords) {
             const { jobskillName } = item;
             if (jobskillName) jobSkills.push(jobskillName);
         }
@@ -2028,13 +2028,8 @@ const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
             return h.response({ error: true, message: 'You are not authorized!' }).code(403);
         }
 
-        const { limit, offset, sort, search, status } = request.query;
+        const { limit, offset, sort, search, status, startDate: qStartDate, endDate } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-
-        // get latest applications within last 14 days
-        const startDate = new Date();
-        startDate.setDate(startDate.getDate() - 14);
-        const endDate = new Date();
 
         // Checking if application status is valid
         const validStatus = ['applied', 'shortlisted', 'interview', 'closed', 'offer', 'hired'];
@@ -2070,8 +2065,14 @@ const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
         // custom date search query
         let lowerDateRange;
         let upperDateRange;
-        if (!startDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
+        let startDate = qStartDate;
+        if (!qStartDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
 
+        if (!qStartDate) {
+            // get latest applications within last 14 days
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - 14);
+        }
         if (startDate) {
             if (startDate && !endDate) {
                 lowerDateRange = new Date(startDate);
