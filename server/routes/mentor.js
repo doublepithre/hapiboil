@@ -2,10 +2,13 @@ import {
   mentorCandidateLinking,
   getMentorCandidates,
   getAllMentorCandidates,
+  
   replaceMentorForOne,
   replaceMentorForAll,
   deleteMentorCandidateMappingRecord,
-  getMentorApplicantProfile, 
+
+  getMentorApplicantProfile,
+  getAllMentorApplicantsSelectiveProfile,
 } from "../controllers/mentor";
 
 const xmentor = {
@@ -82,6 +85,16 @@ register: async (server, options) => {
           mode: 'try',
         },
         handler: getMentorApplicantProfile,
+      },
+    });
+    server.route({
+      method: 'GET',
+      path: '/all-applications',
+      options: {
+        auth: {
+          mode: 'try',
+        },
+        handler: getAllMentorApplicantsSelectiveProfile,
       },
     });
   } 
