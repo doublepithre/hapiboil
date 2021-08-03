@@ -2015,6 +2015,160 @@ const withdrawFromAppliedJob = async (request, h) => {
     }
 }
 
+const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') {
+            return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+        }
+
+        const { limit, offset, sort, search, status } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+        // get latest applications within last 14 days
+        const startDate = new Date();
+        startDate.setDate(startDate.getDate() - 14);
+        const endDate = new Date();
+
+        // Checking if application status is valid
+        const validStatus = ['applied', 'shortlisted', 'interview', 'closed', 'offer', 'hired'];
+        const isStatusReqValid = (status && isArray(status)) ? (
+            status.every(req => validStatus.includes(req))
+        ) : validStatus.includes(status);
+        if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!' }).code(400);
+
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['application_date', 'desc'];
+        if (!sortType && sortBy !== 'application_date') sortType = 'asc';
+        if (!sortType && sortBy === 'application_date') sortType = 'desc';
+
+        const validSorts = ['first_name', 'last_name', 'application_date', 'status'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
+        const validSortTypes = ['asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortType.toLowerCase());
+
+        // pagination
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
+
+        //   query validation
+        if (isNaN(limitNum)) return h.response({ error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!' }).code(400);
+        if (isNaN(offsetNum)) return h.response({ error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!' }).code(400);
+        if (!sortBy || !isSortReqValid) return h.response({ error: true, message: 'Invalid sort query parameter!' }).code(400);
+        if (!isSortTypeReqValid) return h.response({ error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!' }).code(400);
+
+        if (limitNum < 0) return h.response({ error: true, message: 'Limit must be greater than 0!' }).code(400);
+        if (limitNum > 100) return h.response({ error: true, message: 'Limit must not exceed 100!' }).code(400);
+
+        // custom date search query
+        let lowerDateRange;
+        let upperDateRange;
+        if (!startDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
+
+        if (startDate) {
+            if (startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if (startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if (!isValidDate) return h.response({ error: true, message: 'Invalid startDate or endDate query parameter!' }).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if (!isValidDateRange) return h.response({ error: true, message: 'endDate must be after startDate!' }).code(400);
+        }
+
+        const db1 = request.getDb('xpaxr');
+        // get sql statement for getting all applications or all applications' count        
+        const filters = { startDate, status, search, sortBy, sortType }
+        function getSqlStmt(queryType, obj = filters) {
+            const { startDate, status, search, sortBy, sortType } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if (type === 'count') {
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select ui.*, ja.*, ja.created_at as application_date`;
+            }
+
+            sqlStmt += `
+                from hris.jobapplications ja
+                    inner join hris.applicationhiremember ahm on ahm.application_id=ja.application_id
+                    inner join hris.userinfo ui on ui.user_id=ja.user_id                    
+                where ja.is_withdrawn=false 
+                    and ahm.access_level in ('jobcreator', 'viewer', 'administrator')
+                    and ahm.user_id=:userId`;
+
+            if (startDate) sqlStmt += ` and ja.created_at >= :lowerDateRange and ja.created_at <= :upperDateRange`;
+            // filters
+            if (status) {
+                sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
+            }
+            // search
+            if (search) {
+                sqlStmt += ` and (
+                    ui.first_name ilike :searchVal
+                    or ui.last_name ilike :searchVal                    
+                )`;
+            }
+
+            if (type !== 'count') {
+                // sorts
+                if (sortBy === 'application_date') {
+                    sqlStmt += ` order by ja.created_at ${sortType}`;
+                } else {
+                    sqlStmt += ` order by ${sortBy} ${sortType}`;
+                }
+
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+
+            return sqlStmt;
+        }
+
+        const sequelize = db1.sequelize;
+        const allSQLApplications = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId,
+                limitNum, offsetNum,
+                searchVal,
+                status,
+                lowerDateRange, upperDateRange,
+            },
+        });
+        const allSQLApplicationsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId,
+                limitNum, offsetNum,
+                searchVal,
+                status,
+                lowerDateRange, upperDateRange,
+            },
+        });
+        const allApplicantions = camelizeKeys(allSQLApplications);
+
+        const paginatedResponse = { count: allSQLApplicationsCount[0].count, applications: allApplicantions };
+        return h.response(paginatedResponse).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
 const getAllApplicantsSelectiveProfile = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -3248,6 +3402,7 @@ module.exports = {
     getAppliedJobs,
     withdrawFromAppliedJob,
 
+    getAllEmployerApplicantsSelectiveProfile,
     getAllApplicantsSelectiveProfile,
     getApplicantProfile,
 

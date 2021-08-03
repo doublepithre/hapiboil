@@ -24,6 +24,7 @@ import {
   getAppliedJobs,
   withdrawFromAppliedJob,
 
+  getAllEmployerApplicantsSelectiveProfile,
   getAllApplicantsSelectiveProfile,
   getApplicantProfile,
   
@@ -234,6 +235,16 @@ const xjob = {
             mode: 'try',
           },
           handler: withdrawFromAppliedJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/all-applications',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllEmployerApplicantsSelectiveProfile,
         },
       });
       server.route({
