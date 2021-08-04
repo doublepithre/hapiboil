@@ -2913,6 +2913,47 @@ const getOnboardingTaskLists = async (request, h) => {
     }
 }
 
+const getOnboardingLists = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+        const sqlStmt = `select ui.*, onb.* from hris.onboardings onb
+            inner join hris.userinfo ui on ui.user_id=onb.onboardee
+        where onb.onboarder=:userId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const onboardingListSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId,
+            },
+        });
+        const onboardings = camelizeKeys(onboardingListSQL);
+        const responses = { onboardings };
+        return h.response(responses).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+    }
+}
+
 const getOnboardingDetails = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -3502,8 +3543,9 @@ module.exports = {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
 
-    updateOnboardingTaskStatus,
+    updateOnboardingTaskStatus,    
     getOnboardingTaskLists,
+    getOnboardingLists,
     getOnboardingDetails,
 
     getRecommendedTalents,

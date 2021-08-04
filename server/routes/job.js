@@ -36,6 +36,7 @@ import {
 
   updateOnboardingTaskStatus,
   getOnboardingTaskLists,
+  getOnboardingLists,
   getOnboardingDetails,
 
   getRecommendedTalents,
@@ -338,6 +339,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getOnboardingTaskLists,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/onboardings',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getOnboardingLists,
         },
       });
       server.route({
