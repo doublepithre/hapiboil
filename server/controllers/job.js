@@ -2879,9 +2879,9 @@ const getOnboardingTaskLists = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { onboardingId } = request.params || {};        
+        const { onboardingId } = request.params || {};
 
-        
+
         const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -2926,26 +2926,87 @@ const getOnboardingLists = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+        const { limit, offset, sort, search } = request.query;
+        const searchVal = `%${search ? search.toLowerCase() : ''}%`;
+
+        // sort query
+        let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
+        if (!sortType) sortType = 'asc';
+        const validSorts = ['first_name', 'last_name'];
+        const isSortReqValid = validSorts.includes(sortBy);
+
+        const sortTypeLower = sortType.toLowerCase();
+        const validSortTypes = ['asc', 'desc'];
+        const isSortTypeReqValid = validSortTypes.includes(sortTypeLower);
+
+        // pagination
+        const limitNum = limit ? Number(limit) : 10;
+        const offsetNum = offset ? Number(offset) : 0;
+
+        if (isNaN(limitNum)) return h.response({ error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!' }).code(400);
+        if (isNaN(offsetNum)) return h.response({ error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!' }).code(400);
+        if (!isSortReqValid) return h.response({ error: true, message: 'Invalid sort query parameter!' }).code(400);
+        if (!isSortTypeReqValid) return h.response({ error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!' }).code(400);
+
+        if (limitNum < 0) return h.response({ error: true, message: 'Limit must be greater than 0!' }).code(400);
+        if (limitNum > 100) return h.response({ error: true, message: 'Limit must not exceed 100!' }).code(400);
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
 
-        const sqlStmt = `select ui.*, onb.* from hris.onboardings onb
-            inner join hris.userinfo ui on ui.user_id=onb.onboardee
-        where onb.onboarder=:userId`;
+        const filters = { search, sortBy, sortType }
+        function getSqlStmt(queryType, obj = filters) {
+            const { search, sortBy, sortType } = obj;
+            let sqlStmt;
+            const type = queryType && queryType.toLowerCase();
+            if (type === 'count') {
+                sqlStmt = `select count(*)`;
+            } else {
+                sqlStmt = `select ui.*, onb.*`;
+            }
+
+            sqlStmt += `
+                from hris.onboardings onb
+                    inner join hris.userinfo ui on ui.user_id=onb.onboardee
+                where onb.onboarder=:userId`;
+
+            // search
+            if (search) {
+                sqlStmt += ` and (
+                        ui.first_name ilike :searchVal
+                        or ui.last_name ilike :searchVal                    
+                        or ui.email ilike :searchVal                    
+                    )`;
+            }
+
+            if (type !== 'count') {
+                // sorts
+                sqlStmt += ` order by ${sortBy} ${sortType}`
+                // limit and offset
+                sqlStmt += ` limit :limitNum  offset :offsetNum`
+            };
+
+            return sqlStmt;
+        }
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
-        const onboardingListSQL = await sequelize.query(sqlStmt, {
+        const onboardingListSQL = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: {
-                userId,
+                userId, limitNum, offsetNum, searchVal,
+            },
+        });
+        const allSQLonboardingsCount = await sequelize.query(getSqlStmt('count'), {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId, limitNum, offsetNum, searchVal,
             },
         });
         const onboardings = camelizeKeys(onboardingListSQL);
-        const responses = { onboardings };
+        const responses = { count: allSQLonboardingsCount[0].count, onboardings };
         return h.response(responses).code(200);
     }
     catch (error) {
@@ -2967,7 +3028,7 @@ const getOnboardingDetails = async (request, h) => {
         const { id: userId } = credentials || {};
 
         const { onboardingId } = request.params || {};
-            
+
         const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -3543,7 +3604,7 @@ module.exports = {
     deleteApplicationAccessRecord,
     updateApplicationStatus,
 
-    updateOnboardingTaskStatus,    
+    updateOnboardingTaskStatus,
     getOnboardingTaskLists,
     getOnboardingLists,
     getOnboardingDetails,
