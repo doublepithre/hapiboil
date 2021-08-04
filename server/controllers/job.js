@@ -2812,7 +2812,7 @@ const updateApplicationStatus = async (request, h) => {
                 Onboardingtask.create({
                     onboardingId: onboardingData.onboardingId,
                     taskId: defaultData.onboardingfixedtaskId,
-                    asignee: userId,
+                    // asignee: userId,
                     status: 'ongoing',
                 });
             }
@@ -2860,6 +2860,95 @@ const updateApplicationStatus = async (request, h) => {
 
 
         return h.response(updatedRecord).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+    }
+}
+
+const getOnboardingTaskLists = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { onboardingId } = request.params || {};        
+
+        
+        const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+        const sqlStmt = `select onb.onboarder, onb.onboardee, ot.*, oft.*
+            from hris.onboardingtasks ot
+                inner join hris.onboardingfixedtasks oft on oft.onboardingfixedtask_id=ot.task_id
+                inner join hris.onboardings onb on onb.onboarding_id=ot.onboarding_id
+            where ot.onboarding_id=:onboardingId and onb.onboarder=:userId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const onboardingTaskListSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                onboardingId, userId,
+            },
+        });
+        const onboardingTasks = camelizeKeys(onboardingTaskListSQL);
+        const responses = { onboardingTasks };
+        return h.response(responses).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+    }
+}
+
+const getOnboardingDetails = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { onboardingId } = request.params || {};
+            
+        const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+        const sqlStmt = `select ui.*, onb.* from hris.onboardings onb
+            inner join hris.userinfo ui on ui.user_id=onb.onboardee
+        where onb.onboarding_id=:onboardingId and onb.onboarder=:userId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const onboardingTaskDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                onboardingId, userId,
+            },
+        });
+        const onboardingTaskDetails = camelizeKeys(onboardingTaskDetailsSQL)[0];
+        const responses = onboardingTaskDetails;
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -3412,7 +3501,10 @@ module.exports = {
     updateSharedApplication,
     deleteApplicationAccessRecord,
     updateApplicationStatus,
+
     updateOnboardingTaskStatus,
+    getOnboardingTaskLists,
+    getOnboardingDetails,
 
     getRecommendedTalents,
     getTalentsAndApplicants,
