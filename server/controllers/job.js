@@ -2811,7 +2811,7 @@ const updateApplicationStatus = async (request, h) => {
                 const defaultData = record.toJSON();
                 Onboardingtask.create({
                     onboardingId: onboardingData.onboardingId,
-                    taskId: defaultData.taskId,
+                    taskId: defaultData.onboardingfixedtaskId,
                     asignee: userId,
                     status: 'ongoing',
                 });
