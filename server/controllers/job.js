@@ -3170,18 +3170,6 @@ const getOnboardingTaskLists = async (request, h) => {
         });
         const onboardingTasks = camelizeKeys(onboardingTaskListSQL);
 
-
-        // const i = {
-        //     preday1: {
-        //         general: [],
-        //         subtype1: [],
-        //         // ...
-        //     },
-        //     day1: {
-        //         general: []
-        //     },
-        // }
-
         const struc = {};
         onboardingTasks.forEach(item => {
             const { type, subType } = item || {};
@@ -3198,7 +3186,6 @@ const getOnboardingTaskLists = async (request, h) => {
                 }
             }
         });
-
 
         const responses = { onboardingTasks: struc };
         return h.response(responses).code(200);
