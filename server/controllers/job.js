@@ -2125,7 +2125,7 @@ const getApplicationPieChart = async (request, h) => {
 
         // here out is for application pie chart data
         let total = 0;
-        Object.entries(out).forEach(([key, value])=> total+= Number(value));
+        Object.entries(out).forEach(([key, value]) => total += Number(value));
         const responses = {
             total,
             status: out,
@@ -2266,7 +2266,7 @@ const getJobApplicationPieChart = async (request, h) => {
 
         // here out is for application pie chart data
         let total = 0;
-        Object.entries(jobBasedOut).forEach(([key, value])=> total+= Number(value));
+        Object.entries(jobBasedOut).forEach(([key, value]) => total += Number(value));
         const responses = {
             total,
             status: jobBasedOut,
@@ -3169,7 +3169,38 @@ const getOnboardingTaskLists = async (request, h) => {
             },
         });
         const onboardingTasks = camelizeKeys(onboardingTaskListSQL);
-        const responses = { onboardingTasks };
+
+
+        // const i = {
+        //     preday1: {
+        //         general: [],
+        //         subtype1: [],
+        //         // ...
+        //     },
+        //     day1: {
+        //         general: []
+        //     },
+        // }
+
+        const struc = {};
+        onboardingTasks.forEach(item => {
+            const { type, subType } = item || {};
+            if (type) {
+                if (subType) {
+                    if(!struc.hasOwnProperty(type)) struc[type] = {};
+                    if (!struc[type].hasOwnProperty(subType)) struc[type][subType] = [];
+                    
+                    struc[type][subType].push(item);
+
+                } else {
+                    if(!struc.hasOwnProperty(type)) struc[type] = {};
+                    struc[type]['general'] = item;
+                }
+            }
+        });
+
+
+        const responses = { onboardingTasks: struc };
         return h.response(responses).code(200);
     }
     catch (error) {
