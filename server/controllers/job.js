@@ -3043,7 +3043,7 @@ const updateApplicationStatus = async (request, h) => {
             },
         });
         const applicationJobDetails = camelizeKeys(applicationJobDetailsSQL)[0];
-        const { applicationId: existingApplicationId, companyId: creatorCompanyId, candidateEmail, candidateFirstName, companyName, jobName, status: oldStatus } = applicationJobDetails || {};
+        const { applicationId: existingApplicationId, companyId: creatorCompanyId, candidateEmail, candidateFirstName, companyName, jobId, jobName, status: oldStatus } = applicationJobDetails || {};
 
         if (!existingApplicationId) return h.response({ error: true, message: `No application found!` }).code(400);
         if (luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: `You are not authorized!` }).code(403);
@@ -3067,6 +3067,7 @@ const updateApplicationStatus = async (request, h) => {
                 onboardee: updatedData.userId,
                 onboarder: userId,
                 status: 'ongoing',
+                jobId: jobId,
             });
             const onboardingData = onboardingRecord && onboardingRecord.toJSON();
 
@@ -3077,7 +3078,7 @@ const updateApplicationStatus = async (request, h) => {
                 Onboardingtask.create({
                     onboardingId: onboardingData.onboardingId,
                     taskId: defaultData.onboardingfixedtaskId,
-                    // asignee: userId,
+                    // asignee: userId,                    
                     status: 'ongoing',
                 });
             }
@@ -3154,11 +3155,14 @@ const getOnboardingTaskLists = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
 
-        const sqlStmt = `select onb.onboarder, onb.onboardee, ot.*, oft.*
-            from hris.onboardingtasks ot
-                inner join hris.onboardingfixedtasks oft on oft.onboardingfixedtask_id=ot.task_id
-                inner join hris.onboardings onb on onb.onboarding_id=ot.onboarding_id
-            where ot.onboarding_id=:onboardingId and onb.onboarder=:userId`;
+        const sqlStmt = `select jn.job_name, jl.job_location_name, onb.onboarder, onb.onboardee, ot.*, oft.*
+        from hris.onboardingtasks ot
+            inner join hris.onboardingfixedtasks oft on oft.onboardingfixedtask_id=ot.task_id
+            inner join hris.onboardings onb on onb.onboarding_id=ot.onboarding_id
+            inner join hris.jobs j on onb.job_id=j.job_id
+            inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+            inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
+        where ot.onboarding_id=:onboardingId and onb.onboarder=:userId`;
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
@@ -3247,12 +3251,15 @@ const getOnboardingLists = async (request, h) => {
             if (type === 'count') {
                 sqlStmt = `select count(*)`;
             } else {
-                sqlStmt = `select ui.*, onb.*`;
+                sqlStmt = `select jn.job_name, jl.job_location_name, ui.*, onb.*`;
             }
 
             sqlStmt += `
                 from hris.onboardings onb
                     inner join hris.userinfo ui on ui.user_id=onb.onboardee
+                    inner join hris.jobs j on onb.job_id=j.job_id
+                    inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                    inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
                 where onb.onboarder=:userId`;
 
             // search
@@ -3319,8 +3326,11 @@ const getOnboardingDetails = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
 
-        const sqlStmt = `select ui.*, onb.* from hris.onboardings onb
+        const sqlStmt = `select jn.job_name, jl.job_location_name, ui.*, onb.* from hris.onboardings onb
             inner join hris.userinfo ui on ui.user_id=onb.onboardee
+            inner join hris.jobs j on onb.job_id=j.job_id
+            inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+            inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
         where onb.onboarding_id=:onboardingId and onb.onboarder=:userId`;
 
         const db1 = request.getDb('xpaxr');

@@ -37,11 +37,13 @@ module.exports = (sequelize, DataTypes) => {
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      defaultValue: Sequelize.fn('now'),
       field: 'created_at'
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
     },
     companyId: {
@@ -55,6 +57,18 @@ module.exports = (sequelize, DataTypes) => {
         key: 'company_id'
       },
       field: 'company_id'
+    },
+    jobId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'jobs',
+          schema: 'hris'
+        },
+        key: 'job_id'
+      },
+      field: 'job_id'
     }
   }, {
     sequelize,
@@ -79,11 +93,13 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Onboarding = model.Onboarding;
   const Company = model.Company;
+  const Job = model.Job;
   const Onboardingtask = model.Onboardingtask;
   const Userinfo = model.Userinfo;
 
 
   Onboarding.belongsTo(Company, { as: "company", foreignKey: "companyId"});
+  Onboarding.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Onboarding.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "onboardingId"});
   Onboarding.belongsTo(Userinfo, { as: "onboardeeUserinfo", foreignKey: "onboardee"});
   Onboarding.belongsTo(Userinfo, { as: "onboarderUserinfo", foreignKey: "onboarder"});
