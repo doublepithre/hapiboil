@@ -3195,10 +3195,11 @@ const getOnboardingTaskLists = async (request, h) => {
                     if (!struc[type].hasOwnProperty(subType)) struc[type][subType] = [];
                     
                     struc[type][subType].push(item);
-
+                    
                 } else {
                     if(!struc.hasOwnProperty(type)) struc[type] = {};
-                    struc[type]['general'] = item;
+                    if (!struc[type].hasOwnProperty('general')) struc[type]['general'] = [];
+                    struc[type]['general'].push(item);
                 }
             }
         });
