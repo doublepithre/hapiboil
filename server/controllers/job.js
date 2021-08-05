@@ -3068,6 +3068,7 @@ const updateApplicationStatus = async (request, h) => {
                 onboarder: userId,
                 status: 'ongoing',
                 jobId: jobId,
+                companyId: creatorCompanyId,
             });
             const onboardingData = onboardingRecord && onboardingRecord.toJSON();
 
