@@ -37,11 +37,13 @@ module.exports = function(sequelize, DataTypes) {
     createdAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      defaultValue: Sequelize.fn('now'),
       field: 'created_at'
     },
     updatedAt: {
       type: DataTypes.DATE,
       allowNull: true,
+      defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
     },
     companyId: {
@@ -55,6 +57,18 @@ module.exports = function(sequelize, DataTypes) {
         key: 'company_id'
       },
       field: 'company_id'
+    },
+    jobId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'jobs',
+          schema: 'hris'
+        },
+        key: 'job_id'
+      },
+      field: 'job_id'
     }
   }, {
     sequelize,

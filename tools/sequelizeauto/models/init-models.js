@@ -158,6 +158,8 @@ function initModels(sequelize) {
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
   Jobsrecommendationlog.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasOne(Jobsrecommendationlog, { as: "jobsrecommendationlog", foreignKey: "jobId"});
+  Onboarding.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Job.hasMany(Onboarding, { as: "onboardings", foreignKey: "jobId"});
   Recommendation.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasMany(Recommendation, { as: "recommendations", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
