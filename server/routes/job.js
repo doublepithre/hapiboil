@@ -24,6 +24,9 @@ import {
   getAppliedJobs,
   withdrawFromAppliedJob,
 
+  getApplicationPieChart,
+  getJobApplicationPieChart,
+
   getAllEmployerApplicantsSelectiveProfile,
   getAllApplicantsSelectiveProfile,
   getApplicantProfile,
@@ -239,6 +242,26 @@ const xjob = {
             mode: 'try',
           },
           handler: withdrawFromAppliedJob,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/chart/application',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getApplicationPieChart,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/chart/job-application',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobApplicationPieChart,
         },
       });
       server.route({

@@ -2015,6 +2015,264 @@ const withdrawFromAppliedJob = async (request, h) => {
     }
 }
 
+const getApplicationPieChart = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { onboardingId } = request.params || {};
+
+        const { Userinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+        const sqlStmt = `select count(status), ja.job_id, ja.status
+            from hris.jobapplications ja
+                inner join hris.jobhiremember jhm on jhm.job_id=ja.job_id and jhm.user_id=:userId and jhm.access_level in ('creator', 'administrator')
+            where true 
+                and ja.status not in ('withdrawn','closed')
+            group by ja.job_id, status
+            order by status`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const onboardingTaskDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId,
+            },
+        });
+        const d = camelizeKeys(onboardingTaskDetailsSQL);
+        /* grouped by status and jobId, so the items are same jobId 
+        but different status and same status but different jobId
+        d = [
+          {
+            count,
+            jobId,
+            status
+          }
+        ] 
+        */
+
+        // the status priority/power defining
+        const hstatusMap = {
+            applied: 1,
+            shortlisted: 2,
+            interview: 3,
+            offer: 4,
+        };
+
+        const hiredJobs = {}; //we could have used an array (pushing the hired jobIds and then using includes() method), but it is less efficient than hashMap, so using this obj (hashMap)
+        const jhstatus = {};//loop through js status and count applied shortlisted etc counts
+        const jstatuscounts = {};//the counts for statuses based on each job
+
+        d.forEach(r => {
+            const { jobId, status, count } = r || {};
+            if (count > 0) {
+                if (jstatuscounts[jobId]) {
+                    jstatuscounts[jobId][status] = count;
+                } else {
+                    jstatuscounts[jobId] = {
+                        [status]: count
+                    }
+                }
+                if (status === 'hired' && count > 0) {
+                    hiredJobs[jobId] = true;
+                }
+                // const jstatusMapValue: number = hstatusMap[status];
+                // const jhstatusValue: number = hstatusMap[jhstatus[jobId]: status string];
+                if (hstatusMap[status] > hstatusMap[jhstatus[jobId]]) {
+                    jhstatus[jobId] = status;
+                }
+                else if (!jhstatus[jobId]) {
+                    jhstatus[jobId] = status;
+                }
+            }
+        });
+
+
+        // jhstatus = {
+        //     123: 'interview',
+        //     124: 'offer',
+        //     125: 'offer',
+        // }
+        const out = {
+            applied: 0,
+            shortlisted: 0,
+            interview: 0,
+            offer: 0,
+        };
+        d.forEach(r => {
+            const { jobId, status, count } = r || {};
+            if (count > 0 && !hiredJobs[jobId]) {
+                if (out[status]) {
+                    out[status] = Number(out[status]) + Number(count);
+                } else {
+                    out[status] = Number(count);
+                }
+            }
+
+        });
+
+
+        // here out is for application pie chart data
+        // const responses = { out, jhstatus, jr, jstatuscounts };
+
+        return h.response(out).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+    }
+}
+
+const getJobApplicationPieChart = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { onboardingId } = request.params || {};
+
+        const { Userinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+        const sqlStmt = `select count(status), ja.job_id, ja.status
+            from hris.jobapplications ja
+                inner join hris.jobhiremember jhm on jhm.job_id=ja.job_id and jhm.user_id=:userId and jhm.access_level in ('creator', 'administrator')
+            where true 
+                and ja.status not in ('withdrawn','closed')
+            group by ja.job_id, status
+            order by status`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const onboardingTaskDetailsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId,
+            },
+        });
+        const d = camelizeKeys(onboardingTaskDetailsSQL);
+        /* grouped by status and jobId, so the items are same jobId 
+        but different status and same status but different jobId
+        d = [
+          {
+            count,
+            jobId,
+            status
+          }
+        ] 
+        */
+
+        // the status priority/power defining
+        const hstatusMap = {
+            applied: 1,
+            shortlisted: 2,
+            interview: 3,
+            offer: 4,
+        };
+
+        const hiredJobs = {}; //we could have used an array (pushing the hired jobIds and then using includes() method), but it is less efficient than hashMap, so using this obj (hashMap)
+        const jhstatus = {};//loop through js status and count applied shortlisted etc counts
+        const jstatuscounts = {};//the counts for statuses based on each job
+
+        d.forEach(r => {
+            const { jobId, status, count } = r || {};
+            if (count > 0) {
+                if (jstatuscounts[jobId]) {
+                    jstatuscounts[jobId][status] = count;
+                } else {
+                    jstatuscounts[jobId] = {
+                        [status]: count
+                    }
+                }
+                if (status === 'hired' && count > 0) {
+                    hiredJobs[jobId] = true;
+                }
+
+                // const jstatusMapValue: number = hstatusMap[status];
+                // const jhstatusValue: number = hstatusMap[jhstatus[jobId]: status string];
+                if (hstatusMap[status] > hstatusMap[jhstatus[jobId]]) {
+                    jhstatus[jobId] = status;
+                }
+
+                else if (!jhstatus[jobId]) {
+                    jhstatus[jobId] = status;
+                }
+            }
+        });
+
+
+        // jhstatus = {
+        //     123: 'interview',
+        //     124: 'offer',
+        //     125: 'offer',
+        // }
+
+        const out = {
+            applied: 0,
+            shortlisted: 0,
+            interview: 0,
+            offer: 0,
+        };
+        d.forEach(r => {
+            const { jobId, status, count } = r || {};
+            if (count > 0 && !hiredJobs[jobId]) {
+                if (out[status]) {
+                    out[status] = Number(out[status]) + Number(count);
+                } else {
+                    out[status] = Number(count);
+                }
+            }
+
+        });
+
+        const jobBasedOut = {
+            applied: 0,
+            shortlisted: 0,
+            interview: 0,
+            offer: 0,
+        };
+        Object.entries(jhstatus).forEach(([key, value]) => {
+            if (jobBasedOut[value]) {
+                jobBasedOut[value]++
+            } else {
+                jobBasedOut[value] = 1;
+            }
+        });
+
+        // here out is for application pie chart data
+        // const responses = { out, jhstatus, jr, jstatuscounts };
+
+        return h.response(jobBasedOut).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+    }
+}
+
 const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -3593,6 +3851,9 @@ module.exports = {
     applyToJob,
     getAppliedJobs,
     withdrawFromAppliedJob,
+
+    getApplicationPieChart,
+    getJobApplicationPieChart,
 
     getAllEmployerApplicantsSelectiveProfile,
     getAllApplicantsSelectiveProfile,
