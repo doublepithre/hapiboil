@@ -2027,8 +2027,6 @@ const getApplicationPieChart = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { onboardingId } = request.params || {};
-
         const { Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -2038,9 +2036,9 @@ const getApplicationPieChart = async (request, h) => {
 
         const sqlStmt = `select count(status), ja.job_id, ja.status
             from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id and j.company_id=:luserCompanyId
                 inner join hris.jobhiremember jhm on jhm.job_id=ja.job_id and jhm.user_id=:userId and jhm.access_level in ('creator', 'administrator')
-            where true 
-                and ja.status not in ('withdrawn','closed')
+            where ja.status not in ('withdrawn','closed')
             group by ja.job_id, status
             order by status`;
 
@@ -2049,7 +2047,7 @@ const getApplicationPieChart = async (request, h) => {
         const onboardingTaskDetailsSQL = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: {
-                userId,
+                userId, luserCompanyId
             },
         });
         const d = camelizeKeys(onboardingTaskDetailsSQL);
@@ -2148,8 +2146,6 @@ const getJobApplicationPieChart = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { onboardingId } = request.params || {};
-
         const { Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
@@ -2159,6 +2155,7 @@ const getJobApplicationPieChart = async (request, h) => {
 
         const sqlStmt = `select count(status), ja.job_id, ja.status
             from hris.jobapplications ja
+                inner join hris.jobs j on j.job_id=ja.job_id and j.company_id=:luserCompanyId
                 inner join hris.jobhiremember jhm on jhm.job_id=ja.job_id and jhm.user_id=:userId and jhm.access_level in ('creator', 'administrator')
             where true 
                 and ja.status not in ('withdrawn','closed')
@@ -2170,7 +2167,7 @@ const getJobApplicationPieChart = async (request, h) => {
         const onboardingTaskDetailsSQL = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: {
-                userId,
+                userId, luserCompanyId
             },
         });
         const d = camelizeKeys(onboardingTaskDetailsSQL);
