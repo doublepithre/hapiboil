@@ -3388,7 +3388,7 @@ const updateOnboardingTaskStatus = async (request, h) => {
         const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
         if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
 
-        const validStatus = ['ongoing', 'complete', 'incomplete', 'not applicable'];
+        const validStatus = ['ongoing', 'complete', 'not applicable'];
         if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status' }).code(400);
 
         const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
