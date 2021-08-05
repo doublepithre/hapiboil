@@ -3144,16 +3144,28 @@ const getOnboardingTaskLists = async (request, h) => {
 
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
-
         const { onboardingId } = request.params || {};
 
-
-        const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+        const { Userinfo, Onboarding, Job } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+        const onboardingRecord = await Onboarding.findOne({
+            where: { onboardingId },
+            include: [{
+                model: Job,
+                as: 'job',
+                required: true,
+            }],
+        });
+        const onboardingData = onboardingRecord && onboardingRecord.toJSON();
+        const { onboarder, job } = onboardingData || {};
+        const { companyId: onboarderCompanyId } = job || {};
+
+        if(!(onboarder === userId && luserCompanyId === onboarderCompanyId)) return h.response({ error: true, message: 'You are not authorized!' }).code(400);
 
         const sqlStmt = `select jn.job_name, jl.job_location_name, onb.onboarder, onb.onboardee, ot.*, oft.*
         from hris.onboardingtasks ot
@@ -3326,7 +3338,8 @@ const getOnboardingDetails = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
 
-        const sqlStmt = `select jn.job_name, jl.job_location_name, ui.*, onb.* from hris.onboardings onb
+        const sqlStmt = `select jn.job_name, jl.job_location_name, ui.*, onb.*
+        from hris.onboardings onb
             inner join hris.userinfo ui on ui.user_id=onb.onboardee
             inner join hris.jobs j on onb.job_id=j.job_id
             inner join hris.jobname jn on jn.job_name_id=j.job_name_id
@@ -3341,8 +3354,10 @@ const getOnboardingDetails = async (request, h) => {
                 onboardingId, userId,
             },
         });
-        const onboardingTaskDetails = camelizeKeys(onboardingTaskDetailsSQL)[0];
-        const responses = onboardingTaskDetails;
+        const onboardingDetails = camelizeKeys(onboardingTaskDetailsSQL)[0];
+        if (!onboardingDetails) return h.response({ error: true, message: `Either You are not authorized or this onboarding doesn't exist!` }).code(400);
+        
+        const responses = onboardingDetails;
         return h.response(responses).code(200);
     }
     catch (error) {
