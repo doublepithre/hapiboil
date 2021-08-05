@@ -2124,9 +2124,14 @@ const getApplicationPieChart = async (request, h) => {
 
 
         // here out is for application pie chart data
-        // const responses = { out, jhstatus, jr, jstatuscounts };
+        let total = 0;
+        Object.entries(out).forEach(([key, value])=> total+= Number(value));
+        const responses = {
+            total,
+            status: out,
+        }
 
-        return h.response(out).code(200);
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -2260,9 +2265,14 @@ const getJobApplicationPieChart = async (request, h) => {
         });
 
         // here out is for application pie chart data
-        // const responses = { out, jhstatus, jr, jstatuscounts };
+        let total = 0;
+        Object.entries(jobBasedOut).forEach(([key, value])=> total+= Number(value));
+        const responses = {
+            total,
+            status: jobBasedOut,
+        }
 
-        return h.response(jobBasedOut).code(200);
+        return h.response(responses).code(200);
     }
     catch (error) {
         console.error(error.stack);
