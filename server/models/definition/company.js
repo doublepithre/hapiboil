@@ -92,6 +92,12 @@ module.exports = (sequelize, DataTypes) => {
         key: 'country_id'
       },
       field: 'country_id'
+    },
+    isOnboardingComplete: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_onboarding_complete'
     }
   }, {
     sequelize,

@@ -230,7 +230,8 @@ const updateCompanyProfile = async (request, h) => {
     const {
       companyName, website, description,
       companyIndustryId, noOfEmployees, foundedYear,
-      emailBg, rolesAndResponsibilities, workaccommodationIds
+      emailBg, rolesAndResponsibilities, workaccommodationIds,
+      isOnboardingComplete,
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
     const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
@@ -241,13 +242,13 @@ const updateCompanyProfile = async (request, h) => {
       'noOfEmployees', 'foundedYear',
       'logo', 'banner', 'emailBg',
       'rolesAndResponsibilities',
-      'workaccommodationIds',
+      'workaccommodationIds', 'isOnboardingComplete'
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
     const isValidWorkAccommodationIds = (isArray(workaccommodationIds) && workaccommodationIds.every(item => !isNaN(Number(item)))) ? true : false;
     if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
-    if (!isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!' }).code(400);
+    if (workaccommodationIds && !isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!' }).code(400);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -296,6 +297,7 @@ const updateCompanyProfile = async (request, h) => {
         website, description, companyIndustryId,
         noOfEmployees, foundedYear, rolesAndResponsibilities,
         workaccommodationIds,
+        isOnboardingComplete,
       }, { where: { companyId: rCompanyId } }
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
