@@ -809,7 +809,7 @@ const getRecruiterJobs = async (request, h) => {
             if (j.accessLevel === 'creator' || j.accessLevel === 'administrator') {
                 const sqlStmtForJobQuesCount = `select count(*) from hris.questionnaire q
                 inner join hris.questiontarget qt on qt.target_id=q.question_target_id
-                where qt.target_id=3`;
+                where qt.target_id=2`;
 
                 const allSQLJobQuesCount = await sequelize.query(sqlStmtForJobQuesCount, {
                     type: QueryTypes.SELECT,
@@ -830,9 +830,9 @@ const getRecruiterJobs = async (request, h) => {
                 const jobResCount = allSQLJobResCount[0].count;
 
                 if (jobQuesCount === jobResCount) {
-                    j.isComplete = true;
+                    j.isQuestionnaireComplete = true;
                 } else {
-                    j.isComplete = false;
+                    j.isQuestionnaireComplete = false;
                 }
             }
         };
