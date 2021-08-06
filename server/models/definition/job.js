@@ -188,6 +188,7 @@ const initRelations = (model) =>{
   const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
   const Jobsrecommendationlog = model.Jobsrecommendationlog;
+  const Jobvisit = model.Jobvisit;
   const Onboarding = model.Onboarding;
   const Recommendation = model.Recommendation;
   const Jobtype = model.Jobtype;
@@ -203,6 +204,7 @@ const initRelations = (model) =>{
   Job.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "affectedJobId"});
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
   Job.hasOne(Jobsrecommendationlog, { as: "jobsrecommendationlog", foreignKey: "jobId"});
+  Job.hasMany(Jobvisit, { as: "jobvisits", foreignKey: "jobId"});
   Job.hasMany(Onboarding, { as: "onboardings", foreignKey: "jobId"});
   Job.hasMany(Recommendation, { as: "recommendations", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});

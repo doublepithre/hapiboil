@@ -184,11 +184,13 @@ const initRelations = (model) =>{
   const Applicationauditlog = model.Applicationauditlog;
   const Applicationhiremember = model.Applicationhiremember;
   const Companyauditlog = model.Companyauditlog;
+  const Companyvisit = model.Companyvisit;
   const Cronofy = model.Cronofy;
   const Cronofytoken = model.Cronofytoken;
   const Jobapplication = model.Jobapplication;
   const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
+  const Jobvisit = model.Jobvisit;
   const Mentorcandidatemapping = model.Mentorcandidatemapping;
   const Mentorquesresponse = model.Mentorquesresponse;
   const Onboarding = model.Onboarding;
@@ -211,11 +213,13 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
+  Userinfo.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "visitorId"});
   Userinfo.hasOne(Cronofy, { as: "cronofy", foreignKey: "userId"});
   Userinfo.hasMany(Cronofytoken, { as: "cronofytokens", foreignKey: "userId"});
   Userinfo.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "userId"});
   Userinfo.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Userinfo.hasMany(Jobvisit, { as: "jobvisits", foreignKey: "visitorId"});
   Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorcandidatemappings", foreignKey: "candidateId"});
   Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorMentorcandidatemappings", foreignKey: "mentorId"});
   Userinfo.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "userId"});

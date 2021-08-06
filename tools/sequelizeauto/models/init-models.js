@@ -7,6 +7,7 @@ var _Company = require("./company");
 var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
+var _Companyvisit = require("./companyvisit");
 var _Country = require("./country");
 var _Cronofy = require("./cronofy");
 var _Cronofytoken = require("./cronofytoken");
@@ -24,6 +25,7 @@ var _Jobskill = require("./jobskill");
 var _Jobsquesresponse = require("./jobsquesresponse");
 var _Jobsrecommendationlog = require("./jobsrecommendationlog");
 var _Jobtype = require("./jobtype");
+var _Jobvisit = require("./jobvisit");
 var _Mentorcandidatemapping = require("./mentorcandidatemapping");
 var _Mentorquesresponse = require("./mentorquesresponse");
 var _Onboardingfixedtask = require("./onboardingfixedtask");
@@ -63,6 +65,7 @@ function initModels(sequelize) {
   var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
+  var Companyvisit = _Companyvisit(sequelize, DataTypes);
   var Country = _Country(sequelize, DataTypes);
   var Cronofy = _Cronofy(sequelize, DataTypes);
   var Cronofytoken = _Cronofytoken(sequelize, DataTypes);
@@ -80,6 +83,7 @@ function initModels(sequelize) {
   var Jobsquesresponse = _Jobsquesresponse(sequelize, DataTypes);
   var Jobsrecommendationlog = _Jobsrecommendationlog(sequelize, DataTypes);
   var Jobtype = _Jobtype(sequelize, DataTypes);
+  var Jobvisit = _Jobvisit(sequelize, DataTypes);
   var Mentorcandidatemapping = _Mentorcandidatemapping(sequelize, DataTypes);
   var Mentorquesresponse = _Mentorquesresponse(sequelize, DataTypes);
   var Onboardingfixedtask = _Onboardingfixedtask(sequelize, DataTypes);
@@ -128,6 +132,8 @@ function initModels(sequelize) {
   Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
+  Companyvisit.belongsTo(Company, { as: "company", foreignKey: "companyId"});
+  Company.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "companyId"});
   Onboarding.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasMany(Onboarding, { as: "onboardings", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
@@ -158,6 +164,8 @@ function initModels(sequelize) {
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
   Jobsrecommendationlog.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasOne(Jobsrecommendationlog, { as: "jobsrecommendationlog", foreignKey: "jobId"});
+  Jobvisit.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Job.hasMany(Jobvisit, { as: "jobvisits", foreignKey: "jobId"});
   Onboarding.belongsTo(Job, { as: "job", foreignKey: "jobId"});
   Job.hasMany(Onboarding, { as: "onboardings", foreignKey: "jobId"});
   Recommendation.belongsTo(Job, { as: "job", foreignKey: "jobId"});
@@ -206,6 +214,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Companyauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
   Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
+  Companyvisit.belongsTo(Userinfo, { as: "visitor", foreignKey: "visitorId"});
+  Userinfo.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "visitorId"});
   Cronofy.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasOne(Cronofy, { as: "cronofy", foreignKey: "userId"});
   Cronofytoken.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
@@ -216,6 +226,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "performerUserId"});
   Jobhiremember.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "userId"});
+  Jobvisit.belongsTo(Userinfo, { as: "visitor", foreignKey: "visitorId"});
+  Userinfo.hasMany(Jobvisit, { as: "jobvisits", foreignKey: "visitorId"});
   Mentorcandidatemapping.belongsTo(Userinfo, { as: "candidate", foreignKey: "candidateId"});
   Userinfo.hasMany(Mentorcandidatemapping, { as: "mentorcandidatemappings", foreignKey: "candidateId"});
   Mentorcandidatemapping.belongsTo(Userinfo, { as: "mentor", foreignKey: "mentorId"});
@@ -254,6 +266,7 @@ function initModels(sequelize) {
     Companyauditlog,
     Companyindustry,
     Companyinfo,
+    Companyvisit,
     Country,
     Cronofy,
     Cronofytoken,
@@ -271,6 +284,7 @@ function initModels(sequelize) {
     Jobsquesresponse,
     Jobsrecommendationlog,
     Jobtype,
+    Jobvisit,
     Mentorcandidatemapping,
     Mentorquesresponse,
     Onboardingfixedtask,
