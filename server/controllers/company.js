@@ -114,8 +114,10 @@ const getAnyCompanyInfo = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
     const { companyId } = request.params;
 
+    const { Companyvisit } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
 
     const sqlStmt = `select 	
@@ -134,6 +136,9 @@ const getAnyCompanyInfo = async (request, h) => {
     const companyInfo = camelizeKeys(companyInfoRAW)[0];
     const { companyId: foundCompanyId } = companyInfo || {};
     if (!foundCompanyId) return h.response({ error: true, message: 'No company found!' }).code(400);
+
+    // create company visit record
+    await Companyvisit.create({ visitorId: userId, companyId: foundCompanyId });
 
     return h.response(companyInfo).code(200);
   }
@@ -989,7 +994,7 @@ const getCompanyJobDetails = async (request, h) => {
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
 
-    const { Jobskill, Jobapplication, Userinfo } = request.getModels('xpaxr');
+    const { Jobvisit, Jobskill, Jobapplication, Userinfo } = request.getModels('xpaxr');
 
     // get the company of the luser (using it only if he is a recruiter)
     const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
@@ -1104,6 +1109,10 @@ const getCompanyJobDetails = async (request, h) => {
       if (jobskillName) jobSkills.push(jobskillName);
     }
     responseJob.jobSkills = jobSkills;
+
+    // create job visit record
+    await Jobvisit.create({ visitorId: userId, jobId: foundJobId });
+
     return h.response(responseJob).code(200);
 
   } catch (error) {
