@@ -3,6 +3,7 @@ import {
   getJobDetailsOptions,
   getAutoComplete,
 
+  getJobVisitCount,
   getSingleJob,
   getAllJobs,
   getRecruiterJobs,
@@ -81,6 +82,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getAutoComplete,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/visit-count',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobVisitCount,
         },
       });
       server.route({

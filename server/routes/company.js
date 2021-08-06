@@ -4,6 +4,7 @@ import {
 
   getOwnCompanyInfo,
   getAnyCompanyInfo,
+  getCompanyVisitCount,
 
   updateCompanyProfile,
   
@@ -63,6 +64,16 @@ const xcompany = {
             mode: 'try',
           },
           handler: getAnyCompanyInfo,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/c/visit-count',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getCompanyVisitCount,
         },
       });
       server.route({

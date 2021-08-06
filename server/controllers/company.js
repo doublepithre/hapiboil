@@ -148,6 +148,74 @@ const getAnyCompanyInfo = async (request, h) => {
   }
 }
 
+const getCompanyVisitCount = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { qStartDate, qEndDate } = request.query || {};
+
+    // ______QUERY PARAMETERS
+    // custom date search query
+    let lowerDateRange;
+    let upperDateRange;
+    let startDate = qStartDate;
+    const endDate = qEndDate;
+    if (!qStartDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
+
+    if (!qStartDate) {
+      // get latest applications within last 14 days
+      startDate = new Date();
+      startDate.setDate(startDate.getDate() - 14);
+    }
+    if (startDate) {
+      if (startDate && !endDate) {
+        lowerDateRange = new Date(startDate);
+        upperDateRange = new Date(); //Now()
+      }
+      if (startDate && endDate) {
+        lowerDateRange = new Date(startDate);
+        upperDateRange = new Date(endDate);
+      }
+
+      const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+      if (!isValidDate) return h.response({ error: true, message: 'Invalid startDate or endDate query parameter!' }).code(400);
+      const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+      if (!isValidDateRange) return h.response({ error: true, message: 'endDate must be after startDate!' }).code(400);
+    }
+
+    const { Companyvisit } = request.getModels('xpaxr');
+    const db1 = request.getDb('xpaxr');
+
+    const sqlStmt = `select *
+      from hris.companyvisit cv
+      where cv.visited_at >= :lowerDateRange and cv.visited_at <= :upperDateRange
+      order by cv.visited_at desc`;
+
+    const sequelize = db1.sequelize;
+    const companyVisitRecordsSQL = await sequelize.query(sqlStmt, {
+      type: QueryTypes.SELECT,
+      replacements: {
+        lowerDateRange, upperDateRange
+      },
+    });
+    const companyVisitRecords = camelizeKeys(companyVisitRecordsSQL);
+    const uniqueVisitorIds = [];
+    companyVisitRecords.forEach(item => uniqueVisitorIds.push(Number(item.visitorId)));
+    const uniqueVisitRecords = companyVisitRecords.filter((v,i,a)=>a.findIndex(t=>(t.visitorId === v.visitorId))===i)
+
+    const uniqueVisits = uniqueVisitRecords.length;
+
+    return h.response({ companyVisitCount: uniqueVisits}).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
 const updateCompanyProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
@@ -1129,6 +1197,7 @@ module.exports = {
 
   getOwnCompanyInfo,
   getAnyCompanyInfo,
+  getCompanyVisitCount,
 
   updateCompanyProfile,
 
