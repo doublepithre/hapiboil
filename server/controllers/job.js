@@ -205,72 +205,72 @@ const getAutoComplete = async (request, h) => {
 
 const getJobVisitCount = async (request, h) => {
     try {
-      if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Forbidden' }).code(403);
-      }
-      const { credentials } = request.auth || {};
-      const { id: userId } = credentials || {};
-      const { qStartDate, qEndDate } = request.query || {};
-  
-      // ______QUERY PARAMETERS
-      // custom date search query
-      let lowerDateRange;
-      let upperDateRange;
-      let startDate = qStartDate;
-      const endDate = qEndDate;
-      if (!qStartDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
-  
-      if (!qStartDate) {
-        // get latest applications within last 14 days
-        startDate = new Date();
-        startDate.setDate(startDate.getDate() - 14);
-      }
-      if (startDate) {
-        if (startDate && !endDate) {
-          lowerDateRange = new Date(startDate);
-          upperDateRange = new Date(); //Now()
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
         }
-        if (startDate && endDate) {
-          lowerDateRange = new Date(startDate);
-          upperDateRange = new Date(endDate);
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+        const { qStartDate, qEndDate } = request.query || {};
+
+        // ______QUERY PARAMETERS
+        // custom date search query
+        let lowerDateRange;
+        let upperDateRange;
+        let startDate = qStartDate;
+        const endDate = qEndDate;
+        if (!qStartDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
+
+        if (!qStartDate) {
+            // get latest applications within last 14 days
+            startDate = new Date();
+            startDate.setDate(startDate.getDate() - 14);
         }
-  
-        const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
-        if (!isValidDate) return h.response({ error: true, message: 'Invalid startDate or endDate query parameter!' }).code(400);
-        const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
-        if (!isValidDateRange) return h.response({ error: true, message: 'endDate must be after startDate!' }).code(400);
-      }
-  
-      const { Jobvisit } = request.getModels('xpaxr');
-      const db1 = request.getDb('xpaxr');
-  
-      const sqlStmt = `select *
+        if (startDate) {
+            if (startDate && !endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(); //Now()
+            }
+            if (startDate && endDate) {
+                lowerDateRange = new Date(startDate);
+                upperDateRange = new Date(endDate);
+            }
+
+            const isValidDate = !isNaN(Date.parse(lowerDateRange)) && !isNaN(Date.parse(upperDateRange));
+            if (!isValidDate) return h.response({ error: true, message: 'Invalid startDate or endDate query parameter!' }).code(400);
+            const isValidDateRange = lowerDateRange.getTime() < upperDateRange.getTime();
+            if (!isValidDateRange) return h.response({ error: true, message: 'endDate must be after startDate!' }).code(400);
+        }
+
+        const { Jobvisit } = request.getModels('xpaxr');
+        const db1 = request.getDb('xpaxr');
+
+        const sqlStmt = `select *
         from hris.jobvisit jv
         where jv.visited_at >= :lowerDateRange and jv.visited_at <= :upperDateRange
         order by jv.visited_at desc`;
-  
-      const sequelize = db1.sequelize;
-      const jobVisitRecordsSQL = await sequelize.query(sqlStmt, {
-        type: QueryTypes.SELECT,
-        replacements: {
-          lowerDateRange, upperDateRange
-        },
-      });
-      const jobVisitRecords= camelizeKeys(jobVisitRecordsSQL);
-      const uniqueVisitorIds = [];
-      jobVisitRecords.forEach(item => uniqueVisitorIds.push(Number(item.visitorId)));
-      const uniqueVisitRecords = jobVisitRecords.filter((v,i,a)=>a.findIndex(t=>(t.visitorId === v.visitorId))===i)
-  
-      const uniqueVisits = uniqueVisitRecords.length;
-  
-      return h.response({ jobVisitCount: uniqueVisits}).code(200);
+
+        const sequelize = db1.sequelize;
+        const jobVisitRecordsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                lowerDateRange, upperDateRange
+            },
+        });
+        const jobVisitRecords = camelizeKeys(jobVisitRecordsSQL);
+        const uniqueVisitorIds = [];
+        jobVisitRecords.forEach(item => uniqueVisitorIds.push(Number(item.visitorId)));
+        const uniqueVisitRecords = jobVisitRecords.filter((v, i, a) => a.findIndex(t => (t.visitorId === v.visitorId)) === i)
+
+        const uniqueVisits = uniqueVisitRecords.length;
+
+        return h.response({ jobVisitCount: uniqueVisits }).code(200);
     }
     catch (error) {
-      console.error(error.stack);
-      return h.response({ error: true, message: 'Bad Request!' }).code(500);
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request!' }).code(500);
     }
 }
-  
+
 const getSingleJob = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -804,6 +804,38 @@ const getRecruiterJobs = async (request, h) => {
             },
         });
         const allJobs = camelizeKeys(allSQLJobs);
+
+        for(let j of allJobs){
+            if (j.accessLevel === 'creator' || j.accessLevel === 'administrator') {
+                const sqlStmtForJobQuesCount = `select count(*) from hris.questionnaire q
+                inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+                where qt.target_id=3`;
+
+                const allSQLJobQuesCount = await sequelize.query(sqlStmtForJobQuesCount, {
+                    type: QueryTypes.SELECT,
+                    replacements: {},
+                });
+                const jobQuesCount = allSQLJobQuesCount[0].count;
+
+                const sqlStmtForJobResCount = `select count(*) 
+                from hris.jobsquesresponses jqr
+                where jqr.job_id=:jobId`;
+
+                const allSQLJobResCount = await sequelize.query(sqlStmtForJobResCount, {
+                    type: QueryTypes.SELECT,
+                    replacements: {
+                        jobId: j.jobId,
+                    },
+                });
+                const jobResCount = allSQLJobResCount[0].count;
+
+                if (jobQuesCount === jobResCount) {
+                    j.isComplete = true;
+                } else {
+                    j.isComplete = false;
+                }
+            }
+        };
 
         const responses = { count: allSQLJobsCount[0].count, jobs: allJobs };
         return h.response(responses).code(200);
@@ -3238,7 +3270,7 @@ const getOnboardingTaskLists = async (request, h) => {
         const { onboarder, job } = onboardingData || {};
         const { companyId: onboarderCompanyId } = job || {};
 
-        if(!(onboarder === userId && luserCompanyId === onboarderCompanyId)) return h.response({ error: true, message: 'You are not authorized!' }).code(400);
+        if (!(onboarder === userId && luserCompanyId === onboarderCompanyId)) return h.response({ error: true, message: 'You are not authorized!' }).code(400);
 
         const sqlStmt = `select jn.job_name, jl.job_location_name, onb.onboarder, onb.onboardee, ot.*, oft.*
         from hris.onboardingtasks ot
@@ -3264,13 +3296,13 @@ const getOnboardingTaskLists = async (request, h) => {
             const { type, subType } = item || {};
             if (type) {
                 if (subType) {
-                    if(!struc.hasOwnProperty(type)) struc[type] = {};
+                    if (!struc.hasOwnProperty(type)) struc[type] = {};
                     if (!struc[type].hasOwnProperty(subType)) struc[type][subType] = [];
-                    
+
                     struc[type][subType].push(item);
-                    
+
                 } else {
-                    if(!struc.hasOwnProperty(type)) struc[type] = {};
+                    if (!struc.hasOwnProperty(type)) struc[type] = {};
                     if (!struc[type].hasOwnProperty('general')) struc[type]['general'] = [];
                     struc[type]['general'].push(item);
                 }
@@ -3430,7 +3462,7 @@ const getOnboardingDetails = async (request, h) => {
         });
         const onboardingDetails = camelizeKeys(onboardingTaskDetailsSQL)[0];
         if (!onboardingDetails) return h.response({ error: true, message: `Either You are not authorized or this onboarding doesn't exist!` }).code(400);
-        
+
         const responses = onboardingDetails;
         return h.response(responses).code(200);
     }
