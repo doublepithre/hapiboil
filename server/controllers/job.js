@@ -805,7 +805,7 @@ const getRecruiterJobs = async (request, h) => {
         });
         const allJobs = camelizeKeys(allSQLJobs);
 
-        for(let j of allJobs){
+        for (let j of allJobs) {
             if (j.accessLevel === 'creator' || j.accessLevel === 'administrator') {
                 const sqlStmtForJobQuesCount = `select count(*) from hris.questionnaire q
                 inner join hris.questiontarget qt on qt.target_id=q.question_target_id
@@ -3256,7 +3256,7 @@ const getOnboardingTaskLists = async (request, h) => {
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+        const { companyId: luserCompanyId } = userProfileInfo || {};
 
         const onboardingRecord = await Onboarding.findOne({
             where: { onboardingId },
@@ -3330,7 +3330,7 @@ const getOnboardingLists = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+        const { Userinfo } = request.getModels('xpaxr');
         const { limit, offset, sort, search } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
@@ -3359,7 +3359,7 @@ const getOnboardingLists = async (request, h) => {
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+        const { companyId: luserCompanyId } = userProfileInfo || {};
 
         const filters = { search, sortBy, sortType }
         function getSqlStmt(queryType, obj = filters) {
@@ -3378,7 +3378,7 @@ const getOnboardingLists = async (request, h) => {
                     inner join hris.jobs j on onb.job_id=j.job_id
                     inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                     inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
-                where onb.onboarder=:userId`;
+                where onb.onboarder=:userId and onb.company_id=:luserCompanyId`;
 
             // search
             if (search) {
@@ -3404,13 +3404,13 @@ const getOnboardingLists = async (request, h) => {
         const onboardingListSQL = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: {
-                userId, limitNum, offsetNum, searchVal,
+                userId, limitNum, offsetNum, searchVal, luserCompanyId,
             },
         });
         const allSQLonboardingsCount = await sequelize.query(getSqlStmt('count'), {
             type: QueryTypes.SELECT,
             replacements: {
-                userId, limitNum, offsetNum, searchVal,
+                userId, limitNum, offsetNum, searchVal, luserCompanyId,
             },
         });
         const onboardings = camelizeKeys(onboardingListSQL);
@@ -3437,12 +3437,12 @@ const getOnboardingDetails = async (request, h) => {
 
         const { onboardingId } = request.params || {};
 
-        const { Userinfo, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+        const { Userinfo } = request.getModels('xpaxr');
 
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+        const { companyId: luserCompanyId } = userProfileInfo || {};
 
         const sqlStmt = `select jn.job_name, jl.job_location_name, ui.*, onb.*
         from hris.onboardings onb
@@ -3450,14 +3450,14 @@ const getOnboardingDetails = async (request, h) => {
             inner join hris.jobs j on onb.job_id=j.job_id
             inner join hris.jobname jn on jn.job_name_id=j.job_name_id
             inner join hris.joblocation jl on jl.job_location_id=j.job_location_id
-        where onb.onboarding_id=:onboardingId and onb.onboarder=:userId`;
+        where onb.onboarding_id=:onboardingId and onb.onboarder=:userId and onb.company_id=:luserCompanyId`;
 
         const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
         const onboardingTaskDetailsSQL = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: {
-                onboardingId, userId,
+                onboardingId, userId, luserCompanyId,
             },
         });
         const onboardingDetails = camelizeKeys(onboardingTaskDetailsSQL)[0];
@@ -3500,7 +3500,7 @@ const updateOnboardingTaskStatus = async (request, h) => {
         // get the company of the recruiter
         const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
         const userProfileInfo = userRecord && userRecord.toJSON();
-        const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+        const { companyId: luserCompanyId } = userProfileInfo || {};
 
         const sqlStmt = `select  
                 otask.*, ob.company_id, ob.onboarder
@@ -3526,7 +3526,6 @@ const updateOnboardingTaskStatus = async (request, h) => {
         // can (s)he update this application?
         if (userId !== onboarder) return h.response({ error: true, message: 'You are not authorized to update the task!' }).code(403);
 
-        // if (oldStatus === 'complete') return h.response({ error: true, message: 'Already hired. So the status can not change!' }).code(400);
         if (oldStatus === status) return h.response({ error: true, message: 'Already has this status!' }).code(400);
 
         await Onboardingtask.update({ status }, { where: { onboardingtaskId } });
