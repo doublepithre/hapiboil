@@ -8,6 +8,7 @@ var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
 var _Companyvisit = require("./companyvisit");
+var _Companyworkaccommodation = require("./companyworkaccommodation");
 var _Country = require("./country");
 var _Cronofy = require("./cronofy");
 var _Cronofytoken = require("./cronofytoken");
@@ -66,6 +67,7 @@ function initModels(sequelize) {
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
   var Companyvisit = _Companyvisit(sequelize, DataTypes);
+  var Companyworkaccommodation = _Companyworkaccommodation(sequelize, DataTypes);
   var Country = _Country(sequelize, DataTypes);
   var Cronofy = _Cronofy(sequelize, DataTypes);
   var Cronofytoken = _Cronofytoken(sequelize, DataTypes);
@@ -134,6 +136,8 @@ function initModels(sequelize) {
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
   Companyvisit.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "companyId"});
+  Companyworkaccommodation.belongsTo(Company, { as: "company", foreignKey: "companyId"});
+  Company.hasMany(Companyworkaccommodation, { as: "companyworkaccommodations", foreignKey: "companyId"});
   Onboarding.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasMany(Onboarding, { as: "onboardings", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
@@ -256,6 +260,8 @@ function initModels(sequelize) {
   Userrole.hasMany(Userinfo, { as: "userinfos", foreignKey: "roleId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
   Usertype.hasMany(Userinfo, { as: "userinfos", foreignKey: "userTypeId"});
+  Companyworkaccommodation.belongsTo(Workaccommodation, { as: "workaccommodation", foreignKey: "workaccommodationId"});
+  Workaccommodation.hasMany(Companyworkaccommodation, { as: "companyworkaccommodations", foreignKey: "workaccommodationId"});
 
   return {
     Accesstoken,
@@ -267,6 +273,7 @@ function initModels(sequelize) {
     Companyindustry,
     Companyinfo,
     Companyvisit,
+    Companyworkaccommodation,
     Country,
     Cronofy,
     Cronofytoken,

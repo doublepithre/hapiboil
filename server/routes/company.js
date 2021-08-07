@@ -6,6 +6,9 @@ import {
   getAnyCompanyInfo,
   getCompanyVisitCount,
 
+  getCompanyWorkAccommodations,
+  updateCompanyWorkaccommodationStatus,
+
   updateCompanyProfile,
   
   createCompanyStaff,
@@ -74,6 +77,26 @@ const xcompany = {
             mode: 'try',
           },
           handler: getCompanyVisitCount,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/c/work-accommodations',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler:   getCompanyWorkAccommodations,
+        },
+      });
+      server.route({
+        method: 'PATCH',
+        path: '/c/work-accommodation/{companyWorkaccommodationId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler:   updateCompanyWorkaccommodationStatus,
         },
       });
       server.route({

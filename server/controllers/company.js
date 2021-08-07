@@ -204,15 +204,107 @@ const getCompanyVisitCount = async (request, h) => {
     const companyVisitRecords = camelizeKeys(companyVisitRecordsSQL);
     const uniqueVisitorIds = [];
     companyVisitRecords.forEach(item => uniqueVisitorIds.push(Number(item.visitorId)));
-    const uniqueVisitRecords = companyVisitRecords.filter((v,i,a)=>a.findIndex(t=>(t.visitorId === v.visitorId))===i)
+    const uniqueVisitRecords = companyVisitRecords.filter((v, i, a) => a.findIndex(t => (t.visitorId === v.visitorId)) === i)
 
     const uniqueVisits = uniqueVisitRecords.length;
 
-    return h.response({ companyVisitCount: uniqueVisits}).code(200);
+    return h.response({ companyVisitCount: uniqueVisits }).code(200);
   }
   catch (error) {
     console.error(error.stack);
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
+const getCompanyWorkAccommodations = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin' && luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+    const { Userinfo } = request.getModels('xpaxr');
+    // finding the company of the luser
+    const userRecord = await Userinfo.findOne({ where: { userId } });
+    const userInfo = userRecord && userRecord.toJSON();
+    const { companyId: luserCompanyId } = userInfo || {};
+
+    const db1 = request.getDb('xpaxr');
+
+    const sqlStmt = `select
+      wa.workaccommodation_title, wa.workaccommodation_description,
+      cwa.company_workaccommodation_id, cwa.company_id, cwa.status
+    from hris.companyworkaccommodations cwa
+      inner join hris.workaccommodations wa on wa.workaccommodation_id=cwa.workaccommodation_id
+    where cwa.company_id=:luserCompanyId`;
+
+    const sequelize = db1.sequelize;
+    const cWorkAccommodationsSQL = await sequelize.query(sqlStmt, {
+      type: QueryTypes.SELECT,
+      replacements: {
+        luserCompanyId,
+      },
+    });
+    const workAccommodations = camelizeKeys(cWorkAccommodationsSQL);
+    return h.response({ workAccommodations }).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
+  }
+}
+
+const updateCompanyWorkaccommodationStatus = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(403);
+    }
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+
+    const { companyWorkaccommodationId } = request.params || {};
+    const { status } = request.payload || {};
+
+    const validUpdateRequests = ['status'];
+    const requestedUpdateOperations = Object.keys(request.payload) || [];
+    const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
+    if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
+
+    const validStatus = ['complete', 'in progress', 'not applicable'];
+    if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status' }).code(400);
+
+    const { Userinfo, Companyworkaccommodation } = request.getModels('xpaxr');
+
+    // get the company of the recruiter
+    const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+    const userProfileInfo = userRecord && userRecord.toJSON();
+    const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
+
+    const cwaRecord = await Companyworkaccommodation.findOne({ where: { companyWorkaccommodationId } });
+    const cwaData = cwaRecord && cwaRecord.toJSON();
+    const { companyWorkaccommodationId: existingCwaId, companyId: creatorCompanyId, status: oldStatus } = cwaData || {};
+
+    if (!existingCwaId) return h.response({ error: true, message: `No Work accommodation found!` }).code(400);
+    if (luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: `You are not authorized!` }).code(403);
+
+    if (oldStatus === status) return h.response({ error: true, message: 'Already has this status!' }).code(400);
+
+    await Companyworkaccommodation.update({ status }, { where: { companyWorkaccommodationId } });
+    const updatedRecord = await Companyworkaccommodation.findOne({ where: { companyWorkaccommodationId } });
+
+    return h.response(updatedRecord).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request' }).code(400);
   }
 }
 
@@ -230,7 +322,7 @@ const updateCompanyProfile = async (request, h) => {
     const {
       companyName, website, description,
       companyIndustryId, noOfEmployees, foundedYear,
-      emailBg, rolesAndResponsibilities, workaccommodationIds,
+      emailBg, rolesAndResponsibilities,
       isOnboardingComplete,
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
@@ -242,13 +334,11 @@ const updateCompanyProfile = async (request, h) => {
       'noOfEmployees', 'foundedYear',
       'logo', 'banner', 'emailBg',
       'rolesAndResponsibilities',
-      'workaccommodationIds', 'isOnboardingComplete'
+      'isOnboardingComplete'
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
-    const isValidWorkAccommodationIds = (isArray(workaccommodationIds) && workaccommodationIds.every(item => !isNaN(Number(item)))) ? true : false;
     if (!isAllReqsValid) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
-    if (workaccommodationIds && !isValidWorkAccommodationIds) return h.response({ error: true, message: 'Invalid update request(s)! The workAccommodationIds must be an array of integers!' }).code(400);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -296,7 +386,6 @@ const updateCompanyProfile = async (request, h) => {
         displayName: companyName,
         website, description, companyIndustryId,
         noOfEmployees, foundedYear, rolesAndResponsibilities,
-        workaccommodationIds,
         isOnboardingComplete,
       }, { where: { companyId: rCompanyId } }
     );
@@ -1200,6 +1289,9 @@ module.exports = {
   getOwnCompanyInfo,
   getAnyCompanyInfo,
   getCompanyVisitCount,
+
+  getCompanyWorkAccommodations,
+  updateCompanyWorkaccommodationStatus,
 
   updateCompanyProfile,
 

@@ -52,7 +52,9 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Workaccommodation = model.Workaccommodation;
+  const Companyworkaccommodation = model.Companyworkaccommodation;
 
 
+  Workaccommodation.hasMany(Companyworkaccommodation, { as: "companyworkaccommodations", foreignKey: "workaccommodationId"});
 
 }

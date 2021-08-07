@@ -144,7 +144,7 @@ const createCompanySuperAdmin = async (request, h) => {
       return h.response({ error: true, message: 'You are not authorized!' }).code(403);
     }
 
-    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Companyauditlog, Company, Companyinfo, Emailtemplate, Emaillog, Requesttoken } = request.getModels('xpaxr');
+    const { User, Userinfo, Usertype, Userrole, Profileauditlog, Companyauditlog, Company, Companyinfo, Workaccommodation, Companyworkaccommodation, Emailtemplate, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, companyName, } = request.payload || {};
     const accountType = 'companysuperadmin';
 
@@ -220,6 +220,17 @@ const createCompanySuperAdmin = async (request, h) => {
       actionType: 'CREATE',
       actionDescription: `The user of userId ${luserId} has created the user of userId ${userId}, with the accountType of ${accountType}`
     });
+
+    // creating company work accommodations (copying the fixed x0pa given work accommodations)
+    const allWorkAcoomodations = await Workaccommodation.findAll({ attributes: { exclude: ['createdAt', 'updatedAt'] } });
+    for (let record of allWorkAcoomodations) {
+      const defaultData = record.toJSON();
+      Companyworkaccommodation.create({
+        workaccommodationId: defaultData.workaccommodationId,
+        companyId,
+        status: 'not started',        
+      });
+    };
 
     // creating company custom email templates (copying the default ones)
     const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate'] } });
@@ -1162,7 +1173,7 @@ const createProfile = async (request, h) => {
     const userQuesCount = allSQLUserQuesCount[0].count;
 
     const sqlStmtForUserRes = `select count(*) 
-      from hris.${ targetTable } uqr
+      from hris.${targetTable} uqr
       where uqr.user_id=:userId`;
 
     const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
@@ -1426,7 +1437,7 @@ const getResources = async (request, h) => {
     });
     const resources = camelizeKeys(allSQLResources);
 
-    return h.response({resources}).code(200);
+    return h.response({ resources }).code(200);
   }
   catch (error) {
     console.error(error.stack);
