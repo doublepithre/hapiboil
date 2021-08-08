@@ -294,7 +294,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [candidate, employer, mentor, companysuperadmin, superadmin]        
+            enum: [candidate, employer, supervisor, workbuddy, supportstaff, leadership, companysuperadmin, superadmin]        
 
         - name: sort
           in: query          
@@ -996,7 +996,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [employer, mentor, companysuperadmin]        
+            enum: [employer, supervisor, workbuddy, supportstaff, leadership, companysuperadmin]        
 
         - name: sort
           in: query          
@@ -1048,7 +1048,7 @@ paths:
                   example: password                
                 accountType:
                   type: string
-                  enum: [employer, mentor, companysuperadmin]             
+                  enum: [employer, supervisor, workbuddy, companysuperadmin, supportstaff, leadership]             
       responses:
         '201':
           description: Recruiter/Mentor/CompanySuperadmin successfully created
@@ -1099,7 +1099,7 @@ paths:
                   type: boolean
                 userType:
                   type: string
-                  enum: [employer, mentor, companysuperadmin]             
+                  enum: [employer, supervisor, workbuddy, supportstaff, leadership, companysuperadmin]             
       responses:
         '201':
           description: Company Staff successfully updated
@@ -1134,7 +1134,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [employer, mentor]        
+            enum: [employer, supervisor, workbuddy, supportstaff, leadership,]        
 
         - name: sort
           in: query          
