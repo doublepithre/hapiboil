@@ -371,6 +371,27 @@ paths:
                 type: object
                 $ref: "#/components/schemas/User"
   
+  /account/resources:
+    get: 
+      summary: Get Resources for a user
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get user resources
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  resources:
+                    type: array
+                    items:
+                      type: object
+                      $ref: "#/components/schemas/Resource"
+  
   /account/me/meta/all?exclude={metaKey}:
     get: 
       summary: Get user's all meta data
@@ -747,6 +768,33 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
+  /account/feedback:
+    post:
+      summary: Save User feedback
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                feedback:
+                  type: string
+      responses:
+        '201':
+          description: User feedback successfully saved
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: Feedback successfully saved!
+  
   /company/c/options:
     get: 
       summary: Get company options
@@ -3568,3 +3616,27 @@ components:
         updatedAt:
           type: string               
         
+    Resource:
+      type: object
+      description: This is the Resource Record for a user.      
+      properties:
+        resourceId:
+          type: number
+        courseTitle:
+          type: string
+        topic:
+          type: string
+        mode:
+          type: string
+        countryId:
+          type: string
+        usertype:
+          type: array
+          items:
+            type: number
+        url:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string

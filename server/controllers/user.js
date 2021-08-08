@@ -1463,7 +1463,7 @@ const saveUserFeedback = async (request, h) => {
     const newFeedbackRecord = createdFeedback && createdFeedback.toJSON();
 
     const responses = newFeedbackRecord || {};
-    return h.response(responses).code(200);
+    return h.response({ message: 'Feedback successfully saved!' }).code(200);
   }
   catch (error) {
     console.error(error.stack);
