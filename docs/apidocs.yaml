@@ -812,7 +812,40 @@ paths:
             application/json: 
               schema:
                 $ref: "#/components/schemas/CompanyFullDetails"               
-        
+
+  /company/c/visit-count:    
+    get: 
+      summary: Get Company visit count
+      tags:
+        - Company
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  companyVisitCount:
+                    type: number
+         
   /company/{companyId}/: 
     get:
       summary: Get any Company info
@@ -1387,6 +1420,28 @@ paths:
         - Job
       security:
       - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path      
+          required: true
+          schema:
+            type: number
+
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
+
       responses:
         '200':
           description: OK
