@@ -210,7 +210,32 @@ const getJobVisitCount = async (request, h) => {
         }
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
+
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
         const { qStartDate, qEndDate } = request.query || {};
+        const { jobId } = request.params || {};
+
+        const { Userinfo, Job, Jobhiremember } = request.getModels('xpaxr');
+
+        // get company of luser
+        const userRecord = await Userinfo.findOne({ where: { userId } });
+        const userInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userInfo || {};
+
+        // check if (s)he has access to see it
+        const jobRecord = await Job.findOne({ where: { jobId } });
+        const jobRecordInfo = jobRecord && jobRecord.toJSON();
+        const { jobId: existingJobId, companyId: creatorCompanyId } = jobRecordInfo || {};
+        if (!existingJobId) return h.response({ error: true, message: 'No job found' }).code(400);
+        if (luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const luserAccessRecord = await Jobhiremember.findOne({ where: { jobId, userId } });
+        const luserAccessInfo = luserAccessRecord && luserAccessRecord.toJSON();
+        const { accessLevel } = luserAccessInfo || {};
+        if (accessLevel !== 'creator' && accessLevel !== 'administrator') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
         // ______QUERY PARAMETERS
         // custom date search query
@@ -241,19 +266,19 @@ const getJobVisitCount = async (request, h) => {
             if (!isValidDateRange) return h.response({ error: true, message: 'endDate must be after startDate!' }).code(400);
         }
 
-        const { Jobvisit } = request.getModels('xpaxr');
-        const db1 = request.getDb('xpaxr');
-
         const sqlStmt = `select *
         from hris.jobvisit jv
         where jv.visited_at >= :lowerDateRange and jv.visited_at <= :upperDateRange
+            and jv.job_id=:jobId
         order by jv.visited_at desc`;
 
+        const db1 = request.getDb('xpaxr');
         const sequelize = db1.sequelize;
+
         const jobVisitRecordsSQL = await sequelize.query(sqlStmt, {
             type: QueryTypes.SELECT,
             replacements: {
-                lowerDateRange, upperDateRange
+                jobId, lowerDateRange, upperDateRange
             },
         });
         const jobVisitRecords = camelizeKeys(jobVisitRecordsSQL);

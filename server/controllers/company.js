@@ -45,7 +45,7 @@ const getCompanyOptions = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { Companyindustry} = request.getModels('xpaxr');
+    const { Companyindustry } = request.getModels('xpaxr');
     const companyIndustries = await Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] });
     const responses = {
       industry: companyIndustries,
@@ -151,7 +151,19 @@ const getCompanyVisitCount = async (request, h) => {
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
+
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+    if (luserTypeName !== 'companysuperadmin' && luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
     const { qStartDate, qEndDate } = request.query || {};
+
+    const { Userinfo } = request.getModels('xpaxr');
+
+    // get company of luser
+    const userRecord = await Userinfo.findOne({ where: { userId } });
+    const userInfo = userRecord && userRecord.toJSON();
+    const { companyId: luserCompanyId } = userInfo || {};
 
     // ______QUERY PARAMETERS
     // custom date search query
@@ -182,19 +194,19 @@ const getCompanyVisitCount = async (request, h) => {
       if (!isValidDateRange) return h.response({ error: true, message: 'endDate must be after startDate!' }).code(400);
     }
 
-    const { Companyvisit } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
 
     const sqlStmt = `select *
       from hris.companyvisit cv
       where cv.visited_at >= :lowerDateRange and cv.visited_at <= :upperDateRange
+        and cv.company_id=:luserCompanyId
       order by cv.visited_at desc`;
 
     const sequelize = db1.sequelize;
     const companyVisitRecordsSQL = await sequelize.query(sqlStmt, {
       type: QueryTypes.SELECT,
       replacements: {
-        lowerDateRange, upperDateRange
+        luserCompanyId, lowerDateRange, upperDateRange
       },
     });
     const companyVisitRecords = camelizeKeys(companyVisitRecordsSQL);

@@ -86,7 +86,7 @@ const xjob = {
       });
       server.route({
         method: 'GET',
-        path: '/j/visit-count',
+        path: '/j/visit-count/{jobId}',
         options: {
           auth: {
             mode: 'try',
