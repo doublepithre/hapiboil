@@ -331,10 +331,10 @@ const updateCompanyProfile = async (request, h) => {
       companyName, website, description,
       companyIndustryId, noOfEmployees, foundedYear,
       emailBg, rolesAndResponsibilities,
-      isOnboardingComplete,
+      isOnboardingComplete, countryId,
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
-    const { Company, Companyinfo, Companyindustry, Companyauditlog, Userinfo } = request.getModels('xpaxr');
+    const { Company, Companyinfo, Country, Companyauditlog, Userinfo } = request.getModels('xpaxr');
 
     const validUpdateRequests = [
       'companyName', 'website',
@@ -342,7 +342,7 @@ const updateCompanyProfile = async (request, h) => {
       'noOfEmployees', 'foundedYear',
       'logo', 'banner', 'emailBg',
       'rolesAndResponsibilities',
-      'isOnboardingComplete'
+      'isOnboardingComplete', 'countryId'
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
@@ -361,6 +361,13 @@ const updateCompanyProfile = async (request, h) => {
     if (!rCompanyId) return h.response({ error: true, message: 'No Company found!' }).code(400);
     if (luserCompanyId !== rCompanyId) {    // when request is (not from self-company)
       return h.response({ error: true, message: 'Bad Request! You are not authorized!' }).code(403);
+    }
+
+    if (countryId) {
+      const countryRecord = await Country.findOne({ where: { countryId } });
+      const countryData = countryRecord && countryRecord.toJSON();
+      const { countryId: existingCountryId } = countryData || {};
+      if(!existingCountryId) return h.response({ error: true, message: 'No country found for this given country id!' }).code(403);
     }
 
     // upload picture to azure and use that generated link to save on db
@@ -395,6 +402,7 @@ const updateCompanyProfile = async (request, h) => {
         website, description, companyIndustryId,
         noOfEmployees, foundedYear, rolesAndResponsibilities,
         isOnboardingComplete,
+        countryId,
       }, { where: { companyId: rCompanyId } }
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
