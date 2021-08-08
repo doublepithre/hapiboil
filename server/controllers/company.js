@@ -156,7 +156,7 @@ const getCompanyVisitCount = async (request, h) => {
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'companysuperadmin' && luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
-    const { qStartDate, qEndDate } = request.query || {};
+    const { startDate: qStartDate, endDate: qEndDate } = request.query || {};
 
     const { Userinfo } = request.getModels('xpaxr');
 

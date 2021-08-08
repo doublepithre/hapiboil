@@ -215,7 +215,7 @@ const getJobVisitCount = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
-        const { qStartDate, qEndDate } = request.query || {};
+        const { startDate: qStartDate, endDate: qEndDate } = request.query || {};
         const { jobId } = request.params || {};
 
         const { Userinfo, Job, Jobhiremember } = request.getModels('xpaxr');

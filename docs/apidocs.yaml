@@ -1380,6 +1380,24 @@ paths:
                         jobTypeName:
                           type: string
 
+  /job/j/visit-count/{jobId}:    
+    get: 
+      summary: Get Job visit count
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobVisitCount:
+                    type: number
+                  
   /job/{jobUuid}:
     get: 
       summary: Get job by uuid
