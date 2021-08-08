@@ -846,6 +846,70 @@ paths:
                   companyVisitCount:
                     type: number
          
+  /company/c/work-accommodations:    
+    get: 
+      summary: Get Company work accommodations
+      tags:
+        - Company
+      security:
+      - bearerAuth: []     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workAccommodations:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          companyVisitCount:
+                            type: number
+                          workaccommodationTitle:
+                            type: string
+                          workaccommodationDescription:
+                            type: string
+                          companyWorkaccommodationId:
+                            type: number
+                          companyId:
+                            type: number
+                          status:
+                            type: string
+     
+  /company/c/work-accommodation/{companyWorkaccommodationId}: 
+    patch:
+      summary: Update Company Work accommodation status
+      parameters:
+        - name: companyWorkaccommodationId
+          in: path
+          description: ID of CompanyWorkAccommodation
+          required: true
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      tags:
+        - Company
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [complete, in progress, not applicable]
+      responses:
+        '200':
+          description: Successfully updated Company Work Accommodation status
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/CompanyWorkAccommodation"
+    
   /company/{companyId}/: 
     get:
       summary: Get any Company info
@@ -3035,7 +3099,24 @@ components:
           type: string
         companyIndustryName:
           type: string
-        
+    
+    CompanyWorkAccommodation:
+      type: object
+      description: This is CompanyWorkAccommodationRecord.
+      properties:
+        companyWorkaccommodationId:
+          type: number
+        workaccommodationId:
+          type: number
+        companyId:
+          type: number
+        status:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
     Question:
       type: object
       properties:
