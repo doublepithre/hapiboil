@@ -3272,7 +3272,7 @@ const getOnboardingTaskLists = async (request, h) => {
 
         if (!(onboarder === userId && luserCompanyId === onboarderCompanyId)) return h.response({ error: true, message: 'You are not authorized!' }).code(400);
 
-        const sqlStmt = `select jn.job_name, jl.job_location_name, onb.onboarder, onb.onboardee, ot.*, oft.*
+        const sqlStmt = `select jn.job_name, jl.job_location_name, onb.onboarder, onb.onboardee, oft.*, ot.*
         from hris.onboardingtasks ot
             inner join hris.onboardingfixedtasks oft on oft.onboardingfixedtask_id=ot.task_id
             inner join hris.onboardings onb on onb.onboarding_id=ot.onboarding_id

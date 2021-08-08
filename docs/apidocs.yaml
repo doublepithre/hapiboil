@@ -1804,6 +1804,115 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplicationDetailed"                      
       
+  /job/j/chart/application:    
+    get: 
+      summary: Get application pie chart
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                  status:
+                    type: object
+                    properties:
+                      applied:
+                        type: number
+                      shortlisted:
+                        type: number
+                      interview:
+                        type: number
+                      offer:
+                        type: number
+
+  /job/j/chart/job-application:    
+    get: 
+      summary: Get job application pie chart
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                  status:
+                    type: object
+                    properties:
+                      applied:
+                        type: number
+                      shortlisted:
+                        type: number
+                      interview:
+                        type: number
+                      offer:
+                        type: number
+
+  /job/j/all-applications?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&status={status}&startDate={lowerDate}&endDate={upperDate}:
+    get: 
+      summary: Get all Applicantions for an Employer
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: status
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applied, shortlisted, interview, closed, offer, hired]
+        
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, application_date:asc, application_date:desc, status:asc, status:desc]
+        
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+            
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  applications:
+                    type: array
+                    items:
+                    $ref: "#/components/schemas/applicationsWithApplicant"  
+   
   /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&startDate={lowerDate}&endDate={upperDate}:
     get: 
       summary: Get all Applicants
@@ -2039,6 +2148,130 @@ paths:
               schema:
                 type: object
                 $ref: "#/components/schemas/jobApplication" 
+
+  /job/onboardings?limit={limit}&offset={skip}&sort={sort}&search={searchTEXT}:    
+    get: 
+      summary: Get all onboardings
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]
+
+        - name: search
+          in: query          
+          description: It searches on first name, last name and email
+          required: false
+          schema:
+            type: string
+            
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  onboardings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/onboardingFullDetails"                      
+
+  /job/onboarding/{onboardingId}:    
+    get: 
+      summary: Get onboarding details
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: onboardingId
+          in: path 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/onboardingFullDetails"                      
+
+  /job/onboarding-tasks/{onboardingId}:    
+    get: 
+      summary: Get all onboarding tasks
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: onboardingId
+          in: path 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  "[task type]":
+                    type: object
+                    properties:
+                      "[task subType]":
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/onboardingTaskFullDetails"
+                      general:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/onboardingTaskFullDetails"
+
+  /job/onboarding-task-status/{onboardingtaskId}:    
+    patch: 
+      summary: Update the status of an onboarding task
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: onboardingtaskId
+          in: path 
+          required: false
+          schema:
+            type: string
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ongoing, complete, not applicable]
+      
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/OnboardingTask"
 
   /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&type={type}&sort={first_name:asc}:
     get: 
@@ -2464,6 +2697,86 @@ paths:
                           type: string
                           example: Mentor replacing successful!                          
   
+  /mentor/all-applications?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&status={status}&startDate={lowerDate}&endDate={upperDate}:
+    get: 
+      summary: Get all Applicantions for a Mentor
+      tags:
+        - Mentor
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: status
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applied, shortlisted, interview, closed, offer, hired]
+        
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, application_date:asc, application_date:desc, status:asc, status:desc]
+        
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+            
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  applications:
+                    type: array
+                    items:
+                    $ref: "#/components/schemas/applicationsWithApplicant"  
+  
+  /mentor/mentee/{jobId}/{userId}:
+    get: 
+      summary: Get Mentor Applicant's profile
+      tags:
+        - Mentor
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:        
+                  - $ref: "#/components/schemas/jobFullDetailed" 
+                  - $ref: "#/components/schemas/User" 
+                properties:
+                  applicationId:
+                    type: number
+                  applicationDate:
+                    type: string
+                  status:
+                    type: string
+                  mentorId:
+                    type: number
+                  companyName:
+                    type: string
+
   /nylas/n/token:
     post: 
       summary: Request for Nylas Token
@@ -2812,6 +3125,93 @@ components:
           type: string         
         creatorId:
           type: number         
+
+    Onboarding:
+      type: object
+      description: This is the details of onboarding records
+      properties:
+        onboardingId:
+          type: number         
+        onboardee:
+          type: number         
+        onboarder:
+          type: number         
+        status:
+          type: string         
+        companyId:
+          type: number         
+        jobId:
+          type: number         
+        createdAt:
+          type: string         
+        updatedAt:
+          type: string         
+      
+    OnboardingFixedTask:
+      type: object
+      description: This is the details of x0pa given default and fixed onboarding tasks
+      properties:
+        onboardingfixedtaskId:
+          type: number         
+        taskName:
+          type: string         
+        taskDescription:
+          type: string        
+        type:
+          type: string         
+        subType:
+          type: string         
+        createdAt:
+          type: string         
+        updatedAt:
+          type: string         
+      
+    OnboardingTask:
+      type: object
+      description: This is the records of onboarding tasks with statuses (based on each onboarding of a company)
+      properties:
+        onboardingtaskId:
+          type: number         
+        onboardingId:
+          type: number         
+        taskId:
+          type: number        
+        asignee:
+          type: number         
+        status:
+          type: string         
+        createdAt:
+          type: string         
+        updatedAt:
+          type: string         
+      
+    onboardingTaskFullDetails:
+      type: object
+      description: This extends the details of onboarding records
+      allOf:        
+        - $ref: "#/components/schemas/OnboardingFixedTask"
+        - $ref: "#/components/schemas/OnboardingTask"
+      properties:
+        jobName:
+          type: string         
+        jobLocationName:
+          type: string         
+        onboarder:
+          type: number         
+        onboardee:
+          type: number         
+      
+    onboardingFullDetails:
+      type: object
+      description: This extends the details of onboarding records
+      allOf:        
+        - $ref: "#/components/schemas/Onboarding"
+        - $ref: "#/components/schemas/User"
+      properties:
+        jobName:
+          type: string         
+        jobLocationName:
+          type: string         
       
     jobFullDetailsWithQuesRes:
       type: object
