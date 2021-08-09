@@ -3228,6 +3228,10 @@ components:
           type: number
         jobLocationId:
           type: number
+        jobskillIds:
+          type: array
+          items:
+            type: number
         minExp:
           type: number
         duration:
@@ -3299,6 +3303,10 @@ components:
       properties:        
         isApplied:
           type: boolean
+        jobSkills:
+          type: array
+          items:
+            type: string
       
     jobApplication:
       type: object
@@ -3423,6 +3431,10 @@ components:
       properties:
         isApplied:
           type: boolean
+        jobSkills:
+          type: array
+          items:
+            type: string
         jobQuestionResponses:
           type: array
           items:
@@ -3459,7 +3471,12 @@ components:
         jobs:
           type: array
           items:
-            $ref: "#/components/schemas/recruiterJobDetails" 
+            type: object
+            allOf:
+              - $ref: "#/components/schemas/recruiterJobDetails" 
+            properties:
+              isQuestionnaireComplete:
+                type: boolean
     
     jobShared:
       type: object
