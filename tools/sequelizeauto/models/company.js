@@ -88,11 +88,11 @@ module.exports = function(sequelize, DataTypes) {
       },
       field: 'country_id'
     },
-    isOnboardingComplete: {
+    isCompanyOnboardingComplete: {
       type: DataTypes.BOOLEAN,
       allowNull: true,
       defaultValue: false,
-      field: 'is_onboarding_complete'
+      field: 'is_company_onboarding_complete'
     }
   }, {
     sequelize,

@@ -703,7 +703,7 @@ const getUser = async (request, h) => {
     // get user record info
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select 
-      c.is_onboarding_complete as is_company_onboarding_complete,
+      c.is_company_onboarding_complete,
       ur.role_name, ut.user_type_name, ui.*
     from hris.userinfo ui
       inner join hris.userrole ur on ur.role_id=ui.role_id

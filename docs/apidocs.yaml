@@ -1014,6 +1014,8 @@ paths:
                   type: stirng
                 active:
                   type: boolean
+                isCompanyOnboardingComplete:
+                  type: boolean
                 noOfEmployees:
                   type: number          
                 foundedYear:
@@ -3126,7 +3128,7 @@ components:
           type: stirng
         active:
           type: boolean
-        isOnboardingComplete:
+        isCompanyOnboardingComplete:
           type: boolean
         noOfEmployees:
           type: number          
