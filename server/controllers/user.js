@@ -228,7 +228,7 @@ const createCompanySuperAdmin = async (request, h) => {
       Companyworkaccommodation.create({
         workaccommodationId: defaultData.workaccommodationId,
         companyId,
-        status: 'not started',        
+        status: 'not started',
       });
     };
 
@@ -697,37 +697,28 @@ const getUser = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { Userinfo, Usertype, Userrole } = request.getModels('xpaxr');
-
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
-    const userRecord = await Userinfo.findOne({
-      where: { userId },
-      include: [
-        {
-          model: Usertype,
-          as: "userType",
-          required: true,
-        },
-        {
-          model: Userrole,
-          as: "role",
-          required: true,
-        },
-      ],
-      attributes: { exclude: ['createdAt', 'updatedAt'] },
+    // get user record info
+    const db1 = request.getDb('xpaxr');
+    const sqlStmt = `select 
+      c.is_onboarding_complete as is_company_onboarding_complete,
+      ur.role_name, ut.user_type_name, ui.*
+    from hris.userinfo ui
+      inner join hris.userrole ur on ur.role_id=ui.role_id
+      inner join hris.usertype ut on ut.user_type_id=ui.user_type_id
+      left join hris.company c on c.company_id=ui.company_id
+    where ui.user_id=:userId`;
+
+    const sequelize = db1.sequelize;
+    const userRecordSQL = await sequelize.query(sqlStmt, {
+      type: QueryTypes.SELECT,
+      replacements: { userId }
     });
-    const luser = userRecord && userRecord.toJSON();
-    const { userTypeName } = luser.userType;
-    const { roleName } = luser.role;
-    luser.userTypeName = userTypeName;
-    luser.roleName = roleName;
+    const userRecord = camelizeKeys(userRecordSQL);
 
-    delete luser.userType;
-    delete luser.role;
-
-    return h.response(luser).code(200);
+    return h.response(userRecord).code(200);
   }
   catch (error) {
     console.error(error.stack);

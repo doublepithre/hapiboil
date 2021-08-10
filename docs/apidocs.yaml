@@ -369,7 +369,11 @@ paths:
             application/json: 
               schema:
                 type: object
-                $ref: "#/components/schemas/User"
+                allOf:
+                  - $ref: "#/components/schemas/User"
+                properties:
+                  isCompanyOnboardingComplete:
+                    type: boolean
   
   /account/resources:
     get: 
@@ -3121,6 +3125,8 @@ components:
         description:
           type: stirng
         active:
+          type: boolean
+        isOnboardingComplete:
           type: boolean
         noOfEmployees:
           type: number          
