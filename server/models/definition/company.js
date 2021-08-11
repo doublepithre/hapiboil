@@ -92,12 +92,12 @@ module.exports = (sequelize, DataTypes) => {
     supervisorRandR: {
       type: DataTypes.STRING,
       allowNull: true,
-      field: 'supervisor_RandR'
+      field: 'supervisor_rand_r'
     },
     workbuddyRandR: {
       type: DataTypes.STRING,
       allowNull: true,
-      field: 'workbuddy_RandR'
+      field: 'workbuddy_rand_r'
     }
   }, {
     sequelize,
