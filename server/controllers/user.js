@@ -167,7 +167,7 @@ const createCompanySuperAdmin = async (request, h) => {
     if (record) { return h.response({ error: true, message: 'Account with this email already exists!' }).code(400); }
 
     // creating company
-    const supervisorRandR = `Role of Supervisor: 
+    const supervisorRandR = `<p>Role of Supervisor:</p> 
     <ul>
       <li>Understand and align with senior leadership on D&I goals. </li>
       <li>Complete training on D&I and neurodiversity.</li>
@@ -176,7 +176,7 @@ const createCompanySuperAdmin = async (request, h) => {
       <li>Familiarise with support network for neurodiverse talent.</li>
     </ul>`;
 
-    const workbuddyRandR = `Role of Work Buddy:
+    const workbuddyRandR = `<p>Role of Work Buddy:</p>
     <ul>
       <li>Understand and align with senior leadership on D&I goals. </li>
       <li>Complete training on D&I and neurodiversity.</li>
