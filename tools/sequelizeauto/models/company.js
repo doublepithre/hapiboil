@@ -71,11 +71,6 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       field: 'founded_year'
     },
-    rolesAndResponsibilities: {
-      type: DataTypes.STRING,
-      allowNull: true,
-      field: 'roles_and_responsibilities'
-    },
     countryId: {
       type: DataTypes.BIGINT,
       allowNull: true,
@@ -93,6 +88,16 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: false,
       field: 'is_company_onboarding_complete'
+    },
+    supervisorRandR: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'supervisor_RandR'
+    },
+    workbuddyRandR: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'workbuddy_RandR'
     }
   }, {
     sequelize,

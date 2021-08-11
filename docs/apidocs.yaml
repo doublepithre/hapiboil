@@ -1011,7 +1011,11 @@ paths:
                 website:
                   type: string
                 description:
-                  type: stirng
+                  type: string
+                supervisorRandR:
+                  type: string
+                workbuddyRandR:
+                  type: string
                 active:
                   type: boolean
                 isCompanyOnboardingComplete:
@@ -3125,7 +3129,11 @@ components:
         website:
           type: string
         description:
-          type: stirng
+          type: string
+        supervisorRandR:
+          type: string
+        workbuddyRandR:
+          type: string
         active:
           type: boolean
         isCompanyOnboardingComplete:

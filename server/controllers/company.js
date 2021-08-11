@@ -330,18 +330,18 @@ const updateCompanyProfile = async (request, h) => {
     const {
       companyName, website, description,
       companyIndustryId, noOfEmployees, foundedYear,
-      emailBg, rolesAndResponsibilities,
+      emailBg, supervisorRandR, workbuddyRandR,
       isCompanyOnboardingComplete, countryId,
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
     const { Company, Companyinfo, Country, Companyauditlog, Userinfo } = request.getModels('xpaxr');
 
     const validUpdateRequests = [
-      'companyName', 'website',
-      'description', 'companyIndustryId',
-      'noOfEmployees', 'foundedYear',
-      'logo', 'banner', 'emailBg',
-      'rolesAndResponsibilities',
+      'companyName',     'website',
+      'description',     'companyIndustryId',
+      'noOfEmployees',   'foundedYear',
+      'logo', 'banner',  'emailBg',
+      'supervisorRandR', 'workbuddyRandR',
       'isCompanyOnboardingComplete', 'countryId'
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
@@ -400,7 +400,7 @@ const updateCompanyProfile = async (request, h) => {
         companyName: companyName?.toLowerCase().trim(),
         displayName: companyName,
         website, description, companyIndustryId,
-        noOfEmployees, foundedYear, rolesAndResponsibilities,
+        noOfEmployees, foundedYear, supervisorRandR, workbuddyRandR,
         isCompanyOnboardingComplete,
         countryId,
       }, { where: { companyId: rCompanyId } }
