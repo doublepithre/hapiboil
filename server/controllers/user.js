@@ -716,7 +716,7 @@ const getUser = async (request, h) => {
       type: QueryTypes.SELECT,
       replacements: { userId }
     });
-    const userRecord = camelizeKeys(userRecordSQL);
+    const userRecord = camelizeKeys(userRecordSQL)[0];
 
     return h.response(userRecord).code(200);
   }
