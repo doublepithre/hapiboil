@@ -167,8 +167,26 @@ const createCompanySuperAdmin = async (request, h) => {
     if (record) { return h.response({ error: true, message: 'Account with this email already exists!' }).code(400); }
 
     // creating company
-    const rolesAndResponsibilities = `Every company has some roles and responsibilities!`;
-    const cdata = await Company.create({ companyName: companyName.toLowerCase().trim(), displayName: companyName, active: true, rolesAndResponsibilities });
+    const supervisorRandR = `Role of Supervisor: 
+    <ul>
+      <li>Understand and align with senior leadership on D&I goals. </li>
+      <li>Complete training on D&I and neurodiversity.</li>
+      <li>Ensure work buddy completes relevant training.</li>
+      <li>Review work processes and familiarise with work accommodation request process.</li>
+      <li>Familiarise with support network for neurodiverse talent.</li>
+    </ul>`;
+
+    const workbuddyRandR = `Role of Work Buddy:
+    <ul>
+      <li>Understand and align with senior leadership on D&I goals. </li>
+      <li>Complete training on D&I and neurodiversity.</li>
+      <li>Familiarise with work accommodation request process.</li>
+      <li>Increase role clarity</li>
+      <li>Be a clear point of contact</li>
+      <li>Include the new hire in company activities</li>
+      <li>Help with the new hire’s induction into the company</li>
+    </ul>`;
+    const cdata = await Company.create({ companyName: companyName.toLowerCase().trim(), displayName: companyName, active: true, supervisorRandR, workbuddyRandR });
     const companyRes = cdata && cdata.toJSON();
     const { companyId, companyUuid } = companyRes || {};
 
