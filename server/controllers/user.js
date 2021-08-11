@@ -1462,13 +1462,14 @@ const saveUserFeedback = async (request, h) => {
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
-    const { feedback } = request.payload || {};
-    if (!feedback) {
-      return h.response({ error: true, message: 'Please provide a feedback!' }).code(400);
-    }
+    const { positiveFeedback, negativeFeedback } = request.payload || {};
 
-    const { Userfeedback } = request.getModels('xpaxr');
-    const createdFeedback = await Userfeedback.create({ userId, feedback });
+    const { Userinfo, Userfeedback } = request.getModels('xpaxr');
+    const userRecord = await Userinfo.findOne({ where: { userId } });
+    const userInfo = await userRecord && userRecord.toJSON();
+    const { companyId } = userInfo || {};
+
+    const createdFeedback = await Userfeedback.create({ userId, positiveFeedback, negativeFeedback, companyId });
     const newFeedbackRecord = createdFeedback && createdFeedback.toJSON();
 
     const responses = newFeedbackRecord || {};

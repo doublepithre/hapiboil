@@ -20,9 +20,10 @@ module.exports = function(sequelize, DataTypes) {
       },
       field: 'user_id'
     },
-    feedback: {
+    positiveFeedback: {
       type: DataTypes.STRING,
-      allowNull: false
+      allowNull: true,
+      field: 'positive_feedback'
     },
     createdAt: {
       type: DataTypes.DATE,
@@ -35,6 +36,23 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: Sequelize.fn('now'),
       field: 'updated_at'
+    },
+    negativeFeedback: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'negative_feedback'
+    },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'company',
+          schema: 'hris'
+        },
+        key: 'company_id'
+      },
+      field: 'company_id'
     }
   }, {
     sequelize,

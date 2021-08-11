@@ -785,7 +785,9 @@ paths:
             schema:
               type: object
               properties:
-                feedback:
+                positiveFeedback:
+                  type: string
+                negativeFeedback:
                   type: string
       responses:
         '201':

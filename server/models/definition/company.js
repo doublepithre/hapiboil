@@ -134,6 +134,7 @@ const initRelations = (model) =>{
   const Companyvisit = model.Companyvisit;
   const Companyworkaccommodation = model.Companyworkaccommodation;
   const Onboarding = model.Onboarding;
+  const Userfeedback = model.Userfeedback;
   const Userinfo = model.Userinfo;
   const Companyindustry = model.Companyindustry;
   const Country = model.Country;
@@ -144,6 +145,7 @@ const initRelations = (model) =>{
   Company.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "companyId"});
   Company.hasMany(Companyworkaccommodation, { as: "companyworkaccommodations", foreignKey: "companyId"});
   Company.hasMany(Onboarding, { as: "onboardings", foreignKey: "companyId"});
+  Company.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
   Company.belongsTo(Companyindustry, { as: "companyIndustry", foreignKey: "companyIndustryId"});
