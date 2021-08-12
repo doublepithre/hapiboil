@@ -93,7 +93,12 @@ paths:
                 type: object
                 properties: 
                     User: 
-                      $ref: "#/components/schemas/User"
+                      type: object
+                      allOf:
+                        - $ref: "#/components/schemas/User"
+                      properties:
+                        isCompanyOnboardingComplete:
+                          type: boolean
                     token:
                       type: string
                       description: JWT to be used for authorization 
