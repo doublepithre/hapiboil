@@ -337,10 +337,10 @@ const updateCompanyProfile = async (request, h) => {
     const { Company, Companyinfo, Country, Companyauditlog, Userinfo } = request.getModels('xpaxr');
 
     const validUpdateRequests = [
-      'companyName',     'website',
-      'description',     'companyIndustryId',
-      'noOfEmployees',   'foundedYear',
-      'logo', 'banner',  'emailBg',
+      'companyName', 'website',
+      'description', 'companyIndustryId',
+      'noOfEmployees', 'foundedYear',
+      'logo', 'banner', 'emailBg',
       'supervisorRandR', 'workbuddyRandR',
       'isCompanyOnboardingComplete', 'countryId'
     ];
@@ -367,7 +367,7 @@ const updateCompanyProfile = async (request, h) => {
       const countryRecord = await Country.findOne({ where: { countryId } });
       const countryData = countryRecord && countryRecord.toJSON();
       const { countryId: existingCountryId } = countryData || {};
-      if(!existingCountryId) return h.response({ error: true, message: 'No country found for this given country id!' }).code(403);
+      if (!existingCountryId) return h.response({ error: true, message: 'No country found for this given country id!' }).code(403);
     }
 
     // upload picture to azure and use that generated link to save on db
@@ -594,8 +594,10 @@ const updateCompanyStaff = async (request, h) => {
     const updateDetails = request.payload;
     const { userType } = updateDetails || {};
     const validUpdateRequests = [
-      'active', 'userType',
+      'active', 'userType', 'email', 'password', 'firstName', 'lastName',
     ];
+    if(!updateDetails.email || !updateDetails.password) return h.response({ error: true, message: 'Please provide both email and password!' }).code(400);
+
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
     if (!isAllReqsValid || (updateDetails.active && typeof updateDetails.active !== 'boolean')) return h.response({ error: true, message: 'Invalid update request(s)' }).code(400);
@@ -604,7 +606,7 @@ const updateCompanyStaff = async (request, h) => {
     const validAccountTypes = ['employer', 'supervisor', 'workbuddy', 'companysuperadmin'];
     if (userType && !validAccountTypes.includes(userType)) return h.response({ error: true, message: 'Invalid account type' }).code(400);
 
-    const { Userinfo, Usertype, Profileauditlog, Userrole } = request.getModels('xpaxr');
+    const { User, Userinfo, Usertype, Profileauditlog, Userrole, Requesttoken, Emailtemplate, Companyinfo, Emaillog } = request.getModels('xpaxr');
 
     if (userType) {
       const userTypeRecord = await Usertype.findOne({ where: { userTypeName: userType } });
@@ -650,6 +652,49 @@ const updateCompanyStaff = async (request, h) => {
     }
 
     await Userinfo.update(updateDetails, { where: { userUuid: userUuid } });
+    if (updateDetails.email) {
+      const hashedPassword = bcrypt.hashSync(updateDetails.password, 12);   // Hash the password
+      const emailLower = updateDetails.email.toLowerCase().trim();
+      await User.update({ email: emailLower, password: hashedPassword }, { where: { userUuid } });
+
+      // SENDING THE VERIFICATION EMAIL (confirmation email)
+      const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
+      const expiresInHrs = 1;                             // Specifying expiry time in hrs
+      let expiresAt = new Date();
+      expiresAt.setHours(expiresAt.getHours() + expiresInHrs);
+
+      const reqTokenRecord = await Requesttoken.create({
+        requestKey: token,
+        userId,
+        expiresAt,
+        resourceType: 'user',
+        actionType: 'account-creation-reset-password'
+      });
+      const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
+
+      let resetLink = getDomainURL();
+      resetLink += `/reset-password?token=${token}`;
+
+      const emailData = {
+        emails: [emailLower],
+        email: emailLower,
+        password: updateDetails.password,
+        ccEmails: [],
+        templateName: 'company-account-creation',
+        resetLink,
+        isX0PATemplate: true,
+      };
+
+      const additionalEData = {
+        userId,
+        Emailtemplate,
+        Userinfo,
+        Companyinfo,
+        Emaillog,
+      };
+      sendEmailAsync(emailData, additionalEData);
+      // ----------------end of verification email sending
+    }
     const updatedUinfo = await Userinfo.findOne({
       where: { userUuid: userUuid },
       attributes: {

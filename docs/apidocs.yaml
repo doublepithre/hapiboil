@@ -1142,7 +1142,7 @@ paths:
                     type: string
    
     patch:
-      summary: Update Roles or Deactivate Company Staff
+      summary: Update Company Staff
       tags:
         - Company
       parameters:
@@ -1160,6 +1160,14 @@ paths:
             schema:
               type: object
               properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
                 active:
                   type: boolean
                 userType:
