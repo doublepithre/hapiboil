@@ -747,6 +747,9 @@ const getUser = async (request, h) => {
 
       userRecord.isOnboardingComplete = umetaId ? metaValue : "no";
     }
+    if (luserTypeName !== 'companysuperadmin') {
+      delete userRecord.isCompanyOnboardingComplete;
+    }
 
     return h.response(userRecord).code(200);
   }
