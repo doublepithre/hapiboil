@@ -379,6 +379,8 @@ paths:
                 properties:
                   isCompanyOnboardingComplete:
                     type: boolean
+                  isOnboardingComplete:
+                    type: boolean
   
   /account/resources:
     get: 

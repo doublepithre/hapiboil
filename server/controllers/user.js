@@ -717,6 +717,10 @@ const getUser = async (request, h) => {
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
+    // Checking user type from jwt
+    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+
+    const { Usermeta } = request.getModels('xpaxr');
 
     // get user record info
     const db1 = request.getDb('xpaxr');
@@ -735,6 +739,14 @@ const getUser = async (request, h) => {
       replacements: { userId }
     });
     const userRecord = camelizeKeys(userRecordSQL)[0];
+
+    if (luserTypeName === 'supervisor' || luserTypeName === 'workbuddy') {
+      const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey: 'is_onboarding_complete' }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+      const userMetaData = userMetaRecord && userMetaRecord.toJSON();
+      const { umetaId, metaValue } = userMetaData || {};
+
+      userRecord.isOnboardingComplete = umetaId ? metaValue : "no";
+    }
 
     return h.response(userRecord).code(200);
   }
