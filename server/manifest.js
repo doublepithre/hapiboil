@@ -96,6 +96,12 @@ const manifest = {
           prefix: `${apiRootPrefix}/nlp`,
         },
       },
+      {
+        plugin: require('./routes/trainingcourse'),
+        routes: {
+          prefix: `${apiRootPrefix}/trainingcourse`,
+        },
+      },
     ],
     options: {},
   },
