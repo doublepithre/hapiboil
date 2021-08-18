@@ -43,10 +43,10 @@ const getMentorRandR = async (request, h) => {
                 luserCompanyId
             },
         });
-        const rolesAndResponsibilities = camelizeKeys(rAndrSQL)[0];
+        const rAndR = camelizeKeys(rAndrSQL)[0];
         
-     
-        return h.response(rolesAndResponsibilities).code(200);
+        
+        return h.response({rolesAndResponsibilities: rAndR.supervisorRandR || rAndR.workbuddyRandR }).code(200);
     }
     catch (error) {
         console.error(error.stack);
