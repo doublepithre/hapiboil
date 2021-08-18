@@ -7,6 +7,53 @@ import { isArray } from 'lodash';
 const axios = require('axios')
 const config = require('config');
 
+const getMentorRandR = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        const { Userinfo } = request.getModels('xpaxr');
+
+        // get the company of the recruiter
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};
+
+        let columnName;
+        if (luserTypeName === 'supervisor') columnName = 'supervisor_rand_r'
+        else if (luserTypeName === 'workbuddy') columnName = 'workbudy_rand_r'
+            
+            
+        const sqlStmt = `select c.${columnName }
+            from hris.company c
+            where c.company_id=:luserCompanyId`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+        const rAndrSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                luserCompanyId
+            },
+        });
+        const rolesAndResponsibilities = camelizeKeys(rAndrSQL)[0];
+        
+     
+        return h.response(rolesAndResponsibilities).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+    }
+}
+
 const mentorCandidateLinking = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -672,6 +719,8 @@ const getAllMentorApplicantsSelectiveProfile = async (request, h) => {
 }
 
 module.exports = {
+    getMentorRandR,
+
     mentorCandidateLinking,
     getMentorCandidates,
     getAllMentorCandidates,
