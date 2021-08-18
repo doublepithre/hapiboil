@@ -97,6 +97,8 @@ paths:
                       allOf:
                         - $ref: "#/components/schemas/User"
                       properties:
+                        isOnboardingComplete:
+                          type: boolean
                         isCompanyOnboardingComplete:
                           type: boolean
                     token:
@@ -437,7 +439,7 @@ paths:
  
   /account/me/meta:
     patch:
-      summary: Update user's meta data info
+      summary: Update or Create user's meta data info
       parameters:
         - name: userUuid
           in: path
