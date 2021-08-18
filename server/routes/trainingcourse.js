@@ -1,5 +1,6 @@
 import { 
-    getRecommendation
+    getRecommendation,
+    getAll
 } from "../controllers/trainingcourse";
 
 const trainingcourse = {
@@ -18,6 +19,16 @@ const trainingcourse = {
           handler: getRecommendation
         },
       });   
+      server.route({
+        method: 'GET',
+        path: '/all',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAll
+        },
+      });  
     } 
     catch(err) {
       console.log(err);

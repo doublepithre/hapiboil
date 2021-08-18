@@ -64,8 +64,7 @@ const getMentorStats = async (request, h) => {
         let userTypeName = request.auth.artifacts.decoded.userTypeName;   
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
-        console.log(userTypeName);
-        if (userTypeName === "mentor"){
+        if ((userTypeName === "supervisor") || (userTypeName === "workbuddy")){
             let {limit} = request.query;
             let talentProfile = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/report/mentor/stats`,{ params: { mentor_id: userId,limit } });
             return h.response(camelizeKeys(talentProfile.data)).code(200);
@@ -145,7 +144,7 @@ const checkReportAccess = async(sequelize,userId,talentId,userTypeName) =>{
             },
         });
         return result.length > 0;
-    }else if (userTypeName === "mentor"){
+    }else if ((userTypeName === "supervisor") || (userTypeName === "workbuddy")){
         let sqlStmt = "select * from hris.mentorcandidatemapping where mentor_id = :userId and candidate_id = :talentId limit 1;"
         let result = await sequelize.query(sqlStmt,{
             type: QueryTypes.SELECT,
