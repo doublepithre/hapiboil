@@ -10,7 +10,7 @@ const loginUser = async (request, h) => {
     if (request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden' }).code(403);
     }
-    const { User, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
+    const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
     const { email: rEmail, password } = request.payload || {};
     const email = rEmail?.toLowerCase();
 
@@ -60,6 +60,7 @@ const loginUser = async (request, h) => {
     const userInfoRes = camelizeKeys(userRecordSQL)[0];
 
     const {
+      userId,
       userUuid,
       userTypeId,
       email: userEmail,
@@ -82,6 +83,17 @@ const loginUser = async (request, h) => {
       userId: user_id,
       isValid: true
     });
+
+    if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
+      const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey: 'is_onboarding_complete' }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+      const userMetaData = userMetaRecord && userMetaRecord.toJSON();
+      const { umetaId, metaValue } = userMetaData || {};
+
+      userInfoRes.isOnboardingComplete = umetaId ? metaValue : "no";
+    }
+    if (userTypeName !== 'companysuperadmin') {
+      delete userInfoRes.isCompanyOnboardingComplete;
+    }
     return h.response({ user: userInfoRes, token }).code(200);
   }
   catch (error) {
