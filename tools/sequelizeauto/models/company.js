@@ -70,6 +70,34 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'founded_year'
+    },
+    countryId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'country',
+          schema: 'hris'
+        },
+        key: 'country_id'
+      },
+      field: 'country_id'
+    },
+    isCompanyOnboardingComplete: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_company_onboarding_complete'
+    },
+    supervisorRandR: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'supervisor_rand_r'
+    },
+    workbuddyRandR: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'workbuddy_rand_r'
     }
   }, {
     sequelize,

@@ -61,7 +61,11 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Country = model.Country;
+  const Company = model.Company;
+  const Resource = model.Resource;
 
 
+  Country.hasMany(Company, { as: "companies", foreignKey: "countryId"});
+  Country.hasMany(Resource, { as: "resources", foreignKey: "countryId"});
 
 }

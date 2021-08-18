@@ -1,16 +1,16 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
   return sequelize.define('Report', {
-    displayName: {
-      type: DataTypes.STRING,
-      allowNull: false,
-      field: 'display_name'
-    },
     questionKey: {
       type: DataTypes.STRING,
       allowNull: false,
       primaryKey: true,
       field: 'question_key'
+    },
+    displayName: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'display_name'
     },
     questionId: {
       type: DataTypes.BIGINT,

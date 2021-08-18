@@ -3,6 +3,7 @@ import {
   getJobDetailsOptions,
   getAutoComplete,
 
+  getJobVisitCount,
   getSingleJob,
   getAllJobs,
   getRecruiterJobs,
@@ -24,6 +25,10 @@ import {
   getAppliedJobs,
   withdrawFromAppliedJob,
 
+  getApplicationPieChart,
+  getJobApplicationPieChart,
+
+  getAllEmployerApplicantsSelectiveProfile,
   getAllApplicantsSelectiveProfile,
   getApplicantProfile,
   
@@ -32,6 +37,11 @@ import {
   updateSharedApplication,
   deleteApplicationAccessRecord,
   updateApplicationStatus,
+
+  updateOnboardingTaskStatus,
+  getOnboardingTaskLists,
+  getOnboardingLists,
+  getOnboardingDetails,
 
   getRecommendedTalents,
   getTalentsAndApplicants,
@@ -72,6 +82,16 @@ const xjob = {
             mode: 'try',
           },
           handler: getAutoComplete,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/visit-count/{jobId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobVisitCount,
         },
       });
       server.route({
@@ -237,6 +257,36 @@ const xjob = {
       });
       server.route({
         method: 'GET',
+        path: '/j/chart/application',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getApplicationPieChart,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/chart/job-application',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getJobApplicationPieChart,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/j/all-applications',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllEmployerApplicantsSelectiveProfile,
+        },
+      });
+      server.route({
+        method: 'GET',
         path: '/j/applications/{jobId}',
         options: {
           auth: {
@@ -305,6 +355,46 @@ const xjob = {
           handler: updateApplicationStatus,
         },
       });    
+      server.route({
+        method: 'PATCH',
+        path: '/onboarding-task-status/{onboardingtaskId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateOnboardingTaskStatus,
+        },
+      });    
+      server.route({
+        method: 'GET',
+        path: '/onboarding-tasks/{onboardingId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getOnboardingTaskLists,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/onboardings',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getOnboardingLists,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/onboarding/{onboardingId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getOnboardingDetails,
+        },
+      });
       server.route({
         method: 'GET',
         path: '/j/talents/{jobId}',

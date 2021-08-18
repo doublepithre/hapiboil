@@ -19,7 +19,10 @@ import {
   getProfile, 
   getUserMetaData,
   updateMetaData,
+  getAllUserMetaData,
+  getResources,
 
+  saveUserFeedback,
   getQuestionnaire,
   getWebchatToken
 } from "../controllers/user";
@@ -189,6 +192,16 @@ const xuser = {
         },
       });
       server.route({
+        method: 'GET',
+        path: '/me/meta/all',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getAllUserMetaData,
+        },
+      });
+      server.route({
         method: 'PATCH',
         path: '/me/meta',
         options: {
@@ -196,6 +209,26 @@ const xuser = {
             mode: 'try',
           },
           handler: updateMetaData,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/resources',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getResources,
+        },
+      });
+      server.route({
+        method: 'POST',
+        path: '/feedback',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: saveUserFeedback,
         },
       });
       server.route({
