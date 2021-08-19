@@ -1863,7 +1863,7 @@ const getAppliedJobs = async (request, h) => {
         if (!sortType && sortBy !== 'created_at') sortType = 'asc';
         if (!sortType && sortBy === 'created_at') sortType = 'desc';
 
-        const validSorts = ['status', 'created_at', 'job_name', 'last_updated'];
+        const validSorts = ['status', 'created_at', 'job_name', 'last_status_updated'];
         const isSortReqValid = validSorts.includes(sortBy);
 
         const validSortTypes = ['asc', 'desc'];
