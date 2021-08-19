@@ -1950,7 +1950,7 @@ const getAppliedJobs = async (request, h) => {
                 // sorts
                 if (sortBy === 'job_name') {
                     sqlStmt += ` order by jn.${sortBy} ${sortType}`;
-                } else if (sortBy === 'last_updated') {
+                } else if (sortBy === 'last_status_updated') {
                     sqlStmt += ` order by ja.updated_at ${sortType}`;
                 } else {
                     sqlStmt += ` order by ja.${sortBy} ${sortType}`;
