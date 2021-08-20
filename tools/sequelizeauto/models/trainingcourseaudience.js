@@ -1,54 +1,43 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Recommendation', {
-    userId: {
+  return sequelize.define('Trainingcourseaudience', {
+    audience: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
       references: {
         model: {
-          tableName: 'userinfo',
+          tableName: 'usertype',
           schema: 'hris'
         },
-        key: 'user_id'
-      },
-      field: 'user_id'
+        key: 'user_type_id'
+      }
     },
-    jobId: {
+    courseId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
       references: {
         model: {
-          tableName: 'jobs',
+          tableName: 'trainingcourse',
           schema: 'hris'
         },
-        key: 'job_id'
+        key: 'course_id'
       },
-      field: 'job_id'
-    },
-    score: {
-      type: DataTypes.REAL,
-      allowNull: true
+      field: 'course_id'
     }
   }, {
     sequelize,
-    tableName: 'recommendation',
+    tableName: 'trainingcourseaudience',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "idx_score",
-        fields: [
-          { name: "score" },
-        ]
-      },
-      {
-        name: "recommendation_pkey",
+        name: "trainingcourseaudience_pkey",
         unique: true,
         fields: [
-          { name: "user_id" },
-          { name: "job_id" },
+          { name: "audience" },
+          { name: "course_id" },
         ]
       },
     ]

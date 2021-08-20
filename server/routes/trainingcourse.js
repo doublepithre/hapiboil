@@ -1,6 +1,7 @@
 import { 
     getRecommendation,
-    getAll
+    getAll,
+    updateStatus
 } from "../controllers/trainingcourse";
 
 const trainingcourse = {
@@ -29,6 +30,16 @@ const trainingcourse = {
           handler: getAll
         },
       });  
+      server.route({
+        method: 'PATCH',
+        path: '/status/{courseId}',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: updateStatus,
+        },
+      });
     } 
     catch(err) {
       console.log(err);

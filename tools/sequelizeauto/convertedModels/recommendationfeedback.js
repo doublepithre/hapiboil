@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  const Recommendation = sequelize.define('Recommendation', {
+  const Recommendationfeedback = sequelize.define('Recommendationfeedback', {
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -27,24 +27,26 @@ module.exports = (sequelize, DataTypes) => {
       },
       field: 'job_id'
     },
-    score: {
-      type: DataTypes.REAL,
-      allowNull: true
+    userFeedback: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      field: 'user_feedback'
+    },
+    jobFeedback: {
+      type: DataTypes.INTEGER,
+      allowNull: true,
+      defaultValue: 0,
+      field: 'job_feedback'
     }
   }, {
     sequelize,
-    tableName: 'recommendation',
+    tableName: 'recommendationfeedback',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "idx_score",
-        fields: [
-          { name: "score" },
-        ]
-      },
-      {
-        name: "recommendation_pkey",
+        name: "recommendationfeedback_pkey",
         unique: true,
         fields: [
           { name: "user_id" },
@@ -53,18 +55,18 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Recommendation.associate = function(model) {
+  Recommendationfeedback.associate = function(model) {
     initRelations(model);
   }
-  return Recommendation;
+  return Recommendationfeedback;
 }
 const initRelations = (model) =>{
-  const Recommendation = model.Recommendation;
+  const Recommendationfeedback = model.Recommendationfeedback;
   const Job = model.Job;
   const Userinfo = model.Userinfo;
 
 
-  Recommendation.belongsTo(Job, { as: "job", foreignKey: "jobId"});
-  Recommendation.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Recommendationfeedback.belongsTo(Job, { as: "job", foreignKey: "jobId"});
+  Recommendationfeedback.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }
