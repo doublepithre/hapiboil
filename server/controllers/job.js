@@ -2500,11 +2500,11 @@ const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
         let startDate = qStartDate;
         if (!qStartDate && endDate) return h.response({ error: true, message: `You can't send endDate without startDate!` }).code(400);
 
-        if (!qStartDate) {
-            // get latest applications within last 14 days
-            startDate = new Date();
-            startDate.setDate(startDate.getDate() - 14);
-        }
+        // if (!qStartDate) {
+        //     // get latest applications within last 14 days
+        //     startDate = new Date();
+        //     startDate.setDate(startDate.getDate() - 14);
+        // }
         if (startDate) {
             if (startDate && !endDate) {
                 lowerDateRange = new Date(startDate);
