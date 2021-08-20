@@ -1731,7 +1731,7 @@ const applyToJob = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "applied" }
+        const record = { jobId, userId, isApplied: true, isWithdrawn: false, status: "applied", updatedAt: new Date() }
         const { Companyinfo, Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog, Emailtemplate, Emaillog } = request.getModels('xpaxr');
 
         // candidate details
@@ -1878,7 +1878,7 @@ const getAppliedJobs = async (request, h) => {
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
 
-        const { limit, offset, sort, search, status, startDate, endDate } = request.query;
+        const { limit, offset, sort, search, status, startDate, endDate, exclude } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
         // Checking if application status is valid
@@ -1887,6 +1887,11 @@ const getAppliedJobs = async (request, h) => {
             status.every(req => validStatus.includes(req))
         ) : validStatus.includes(status);
         if (status && !isStatusReqValid) return h.response({ error: true, message: 'Invalid status query parameter!' }).code(400);
+
+        const isExcludeReqValid = (exclude && isArray(exclude)) ? (
+            exclude.every(req => validStatus.includes(req))
+        ) : validStatus.includes(exclude);
+        if (exclude && !isExcludeReqValid) return h.response({ error: true, message: 'Invalid exclude query parameter!' }).code(400);
 
         // sort query
         let [sortBy, sortType] = sort ? sort.split(':') : ['created_at', 'desc'];
@@ -1937,9 +1942,9 @@ const getAppliedJobs = async (request, h) => {
         const db1 = request.getDb('xpaxr');
 
         // get sql statement for getting jobs or jobs count
-        const filters = { startDate, search, sortBy, sortType, status };
+        const filters = { startDate, search, sortBy, sortType, status, exclude };
         function getSqlStmt(queryType, obj = filters) {
-            const { startDate, search, sortBy, sortType, status } = obj;
+            const { startDate, search, sortBy, sortType, status, exclude } = obj;
             let sqlStmt;
             const type = queryType && queryType.toLowerCase();
             if (type === 'count') {
@@ -1965,6 +1970,9 @@ const getAppliedJobs = async (request, h) => {
 
             if (startDate) sqlStmt += ` and ja.created_at >= :lowerDateRange and ja.created_at <= :upperDateRange`;
             // filters
+            if (exclude) {
+                sqlStmt += isArray(exclude) ? ` and not ja.status in (:exclude)` : ` and not ja.status=:exclude`;
+            }
             if (status) {
                 sqlStmt += isArray(status) ? ` and ja.status in (:status)` : ` and ja.status=:status`;
             }
@@ -1999,7 +2007,7 @@ const getAppliedJobs = async (request, h) => {
                 userId,
                 sortBy, sortType, limitNum, offsetNum,
                 searchVal,
-                status,
+                status, exclude,
                 lowerDateRange, upperDateRange,
             },
         });
@@ -2009,7 +2017,7 @@ const getAppliedJobs = async (request, h) => {
                 userId,
                 sortBy, sortType, limitNum, offsetNum,
                 searchVal,
-                status,
+                status, exclude,
                 lowerDateRange, upperDateRange,
             },
         });
@@ -2062,7 +2070,7 @@ const withdrawFromAppliedJob = async (request, h) => {
         const { firstName: luserFirstName, email: luserEmail } = luserInfo || {};
 
 
-        await Jobapplication.update({ isWithdrawn: true, status: 'withdrawn' }, { where: { applicationId: applicationId } });
+        await Jobapplication.update({ isWithdrawn: true, status: 'withdrawn', updatedAt: new Date() }, { where: { applicationId: applicationId } });
         await Applicationauditlog.create({
             affectedApplicationId: applicationId,
             performerUserId: luserId,
