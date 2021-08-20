@@ -3808,6 +3808,7 @@ const getTalentsAndApplicants = async (request, h) => {
 
         const applicantIds = [];
         const talentUserIds = [];
+        let recommendations;
         for (let i = 0; i < allOwnJobIdsSQL.length; i++) {
             const ownJob = allOwnJobIdsSQL[i];
             if (typeReq === 'applicant') {
@@ -3817,7 +3818,7 @@ const getTalentsAndApplicants = async (request, h) => {
             } else if (typeReq === 'talent') {
                 try {
                     const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`, { params: { job_id: ownJob.job_id } })
-                    const recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+                    recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
 
                     // storing all the talentUserIds in the given order   
                     recommendations.forEach(item => {
@@ -3827,24 +3828,25 @@ const getTalentsAndApplicants = async (request, h) => {
                     recommendations[0] && recommendations.forEach((item) => addIdsIfNotExist(item.user_id, talentUserIds));
 
                 } catch (error) {
-                    console.log(error.stack);
-                    return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
+                    // console.log(error.stack);
+                    // return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
+                    recommendations = [
+                        { user_id: '167', user_score: '1.0' },
+                        { user_id: '169', user_score: '0.9' },
+                        { user_id: '161', user_score: '0.8' },
+                        { user_id: '164', user_score: '0.7' },
+                        { user_id: '160', user_score: '0.6' },
+                        { user_id: '165', user_score: '0.5' },
+                        { user_id: '162', user_score: '0.4' },
+                        { user_id: '168', user_score: '0.3' },
+                        { user_id: '166', user_score: '0.2' },
+                        { user_id: '163', user_score: '0.1' },
+                    ]
+                    recommendations.forEach(item => {
+                        talentUserIds.push(item.user_id);
+                    });
                 }
             }
-
-            // FAKE RECOMMENDED DATA (delete it when going for staging)
-            // const recommendation =  [
-            //         { user_id: '167', score: '10' },
-            //         { user_id: '169', score: '9' },
-            //         { user_id: '161', score: '8' },
-            //         { user_id: '164', score: '7' },
-            //         { user_id: '160', score: '6' },
-            //         { user_id: '165', score: '5' },
-            //         { user_id: '162', score: '4' },
-            //         { user_id: '168', score: '3' },
-            //         { user_id: '166', score: '2' },
-            //         { user_id: '163', score: '1' },
-            // ]
         };
 
         console.log(applicantIds, talentUserIds);
@@ -3915,6 +3917,19 @@ const getTalentsAndApplicants = async (request, h) => {
             },
         });
         const allTalents = camelizeKeys(allSQLTalents);
+
+        if (typeReq === 'talent' && recommendations) {
+            // recommendations
+            // [{user_id: 7, score: 0.9 }]
+            const rtMap = new Map();
+
+            for (let rtItem of recommendations) {
+                rtMap.set(rtItem.user_id, rtItem.user_score);
+            }
+            for (let talent of allTalents) {
+                talent.score = rtMap.get(talent.userId);
+            }
+        }
 
         const paginatedResponse = { count: allSQLTalentsCount[0].count, type: typeReq, users: allTalents }
         return h.response(paginatedResponse).code(200);
