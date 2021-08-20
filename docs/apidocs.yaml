@@ -1916,7 +1916,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&startDate={lowerDate}&endDate={upperDate}:
+  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&exclude={excludeStatus}&startDate={lowerDate}&endDate={upperDate}:
     get: 
         summary: Get applied jobs
         tags:
@@ -1931,12 +1931,19 @@ paths:
             type: string
             enum: [applied, withdrawn, shortlisted, interview, closed, offer, hired]
 
+        - name: exclude
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applied, withdrawn, shortlisted, interview, closed, offer, hired]
+
         - name: sort
           in: query          
           required: false
           schema:
             type: string
-            enum: [created_at:asc, created_at:desc, status:asc, status:desc, job_name:asc, job_name:desc]        
+            enum: [created_at:asc, created_at:desc, status:asc, status:desc, job_name:asc, job_name:desc, last_status_updated:asc, last_status_updated:desc]        
          
         - name: startDate
           in: query          
@@ -3336,6 +3343,9 @@ components:
       allOf:        
         - $ref: "#/components/schemas/jobFullDetailed"
       properties:        
+        score:
+          type: number
+          example: 0.9
         isApplied:
           type: boolean
         jobSkills:
@@ -3484,7 +3494,13 @@ components:
         users:
           type: array
           items:
-            $ref: "#/components/schemas/User" 
+            type: object
+            allOf:
+              - $ref: "#/components/schemas/User" 
+            properties:
+              score:
+                type: number
+                example: 0.9
     
     paginatedAllJobs:
       type: object
