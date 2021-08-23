@@ -33,8 +33,14 @@
     "port":8000
   },
   "webchat":{
-    "endpoint":"https://directline.botframework.com/v3/directline/tokens/generate",
-    "secret":"0bIf-YGwIC4.rtnoLBozL1QhcCBEdJCA6FfEjowHZaa7qqG0FaiMvTU"
+    "empauwerMe":{
+      "endpoint":"https://directline.botframework.com/v3/directline/tokens/generate",
+      "secret":"0bIf-YGwIC4.rtnoLBozL1QhcCBEdJCA6FfEjowHZaa7qqG0FaiMvTU"
+    },
+    "empauwerUs":{
+      "endpoint":"https://directline.botframework.com/v3/directline/tokens/generate",
+      "secret":"H-Q0M9mjHac.aD3SbvvqO5j3wQOETmfCqFlBoWqvuLc_xW_9oJAxoqA"
+    }
   },
   "azure": {
     "docStorageAccountName": "empdevstrg",

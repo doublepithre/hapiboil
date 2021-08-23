@@ -1,29 +1,18 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Jobsquesresponse', {
-    responseId: {
-      autoIncrement: true,
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      field: 'response_id'
-    },
-    questionId: {
+  return sequelize.define('Recommendationfeedback', {
+    userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
       references: {
         model: {
-          tableName: 'questionnaire',
+          tableName: 'userinfo',
           schema: 'hris'
         },
-        key: 'question_id'
+        key: 'user_id'
       },
-      field: 'question_id'
-    },
-    responseVal: {
-      type: DataTypes.JSONB,
-      allowNull: false,
-      field: 'response_val'
+      field: 'user_id'
     },
     jobId: {
       type: DataTypes.BIGINT,
@@ -38,27 +27,29 @@ module.exports = function(sequelize, DataTypes) {
       },
       field: 'job_id'
     },
-    createdAt: {
-      type: DataTypes.DATE,
+    userFeedback: {
+      type: DataTypes.INTEGER,
       allowNull: true,
-      field: 'created_at'
+      defaultValue: 0,
+      field: 'user_feedback'
     },
-    updatedAt: {
-      type: DataTypes.DATE,
+    jobFeedback: {
+      type: DataTypes.INTEGER,
       allowNull: true,
-      field: 'updated_at'
+      defaultValue: 0,
+      field: 'job_feedback'
     }
   }, {
     sequelize,
-    tableName: 'jobsquesresponses',
+    tableName: 'recommendationfeedback',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "jobsquesresponses_pkey",
+        name: "recommendationfeedback_pkey",
         unique: true,
         fields: [
-          { name: "question_id" },
+          { name: "user_id" },
           { name: "job_id" },
         ]
       },
