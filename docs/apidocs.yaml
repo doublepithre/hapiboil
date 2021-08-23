@@ -1554,6 +1554,34 @@ paths:
                         jobTypeName:
                           type: string
 
+  /job/j/top-visited:    
+    get: 
+      summary: Get top 5 visited jobs
+      tags:
+        - Job
+      security:
+      - bearerAuth: []     
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobId:
+                          type: number
+                        jobName:
+                          type: string
+                        visitCount:
+                          type: number
+                  
   /job/j/visit-count/{jobId}:    
     get: 
       summary: Get Job visit count
