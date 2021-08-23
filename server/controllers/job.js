@@ -315,16 +315,6 @@ const getTop5EJobWithVisitCount = async (request, h) => {
         const userInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userInfo || {};
 
-        // const sqlStmt = `select
-        //     count(*), jv.job_id
-        // from hris.jobvisit jv
-        //     inner join hris.jobs j on j.job_id=jv.job_id
-        //     inner join hris.userinfo ui on ui.user_id=j.user_id and j.company_id=ui.company_id
-        //     inner join hris.jobhiremember jhm on jhm.user_id=j.user_id and jhm.access_level in('creator','administrator')
-        // where j.user_id=:userId
-        //     and j.company_id=:luserCompanyId
-        // group by jv.job_id`;
-
         const sqlStmt = `select distinct
             jv.job_id, jv.visitor_id
         from hris.jobvisit jv
@@ -349,24 +339,23 @@ const getTop5EJobWithVisitCount = async (request, h) => {
         if(!jobVisitRecords[0]) return h.response({ jobs: [] }).code(200);
 
         const myMap = new Map();
-
         for (let item of jobVisitRecords) {
             if (myMap.get(item.jobId) === undefined) {
-                myMap.set(item.jobId, []);
+                myMap.set(item.jobId, [item.visitorId]);
             } else {
                 const mapVal = myMap.get(item.jobId);
                 mapVal.push(item.visitorId)
                 myMap.set(item.jobId, mapVal);
             }
         };
-        // console.log({ myMap, len: myMap.get('50')?.length });
-
-
+        const refinedMap = new Map([...myMap].sort((item1, item2) => {            
+            return item2[1].length - item1[1].length;
+        }));
+        const jobIdArray = [...refinedMap.keys()];
 
         function getSqlStmt() {
             let sqlStmt = `select
                 j.job_id, jn.job_name`;
-
 
             sqlStmt += `                    
                 from hris.jobs j
@@ -381,49 +370,28 @@ const getTop5EJobWithVisitCount = async (request, h) => {
 
             sqlStmt += ` order by case`
 
-            myMap.forEach((value, key) => {
-                let i = 0;
-                sqlStmt += ` WHEN j.job_id=${key} THEN ${i}`;
-                i++
-            })
-            // for (let i = 0; i < jobIdArray.length; i++) {
-            //     sqlStmt += ` WHEN j.job_id=${jobIdArray[i]} THEN ${i}`;
-            // }
-            sqlStmt += ` end`;
+            jobIdArray.forEach((jobId, index) => {
+                sqlStmt += ` WHEN j.job_id=${jobId} THEN ${index}`;
+            });
+            
+            sqlStmt += ` end asc`;
+            sqlStmt += ` limit 5`;
             return sqlStmt;
         };
-
-
-
-
-
 
         const allSQLJobs = await sequelize.query(getSqlStmt(), {
             type: QueryTypes.SELECT,
             replacements: {
-                userId, luserCompanyId, jobIdArray: [...myMap.keys()]
+                userId, luserCompanyId, jobIdArray,
             },
         });
-
         const allJobs = camelizeKeys(allSQLJobs);
 
-
-
-
-
-
-        // [11,2,22,1].sort((a, b) => a - b)
-        const refinedAllJobs = allJobs.sort((item1, item2) => {
-            return myMap.get(item2.jobId).length - myMap.get(item1.jobId).length;
-        });
-
-        for (let job of refinedAllJobs) {
-            job.visitCount = myMap.get(job.jobId).length;
+        for (let job of allJobs) {
+            job.visitCount = refinedMap.get(job.jobId).length;
         };
 
-
-        const responses = { jobs: refinedAllJobs }; // uniqueVisitRecords.length;
-
+        const responses = { jobs: allJobs };
         return h.response(responses).code(200);
     }
     catch (error) {
