@@ -635,24 +635,26 @@ const getAllJobs = async (request, h) => {
                     jobIdArray.push(item.job_id);
                 });
             } catch (error) {
-                recommendations = [
-                    { job_id: '1', score: '1.0' },
-                    { job_id: '2', score: '0.9' },
-                    { job_id: '3', score: '0.8' },
-                    { job_id: '4', score: '0.7' },
-                    { job_id: '5', score: '0.6' },
-                    { job_id: '6', score: '0.5' },
-                    { job_id: '7', score: '0.4' },
-                    { job_id: '8', score: '0.3' },
-                    { job_id: '9', score: '0.2' },
-                    { job_id: '10', score: '0.1' },
-                ]
-                // storing all the jobIds in the given order            
-                recommendations.forEach(item => {
-                    jobIdArray.push(item.job_id);
-                });
+                console.log(error.stack);
+                return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
+                
+                // recommendations = [
+                //     { job_id: '1', score: '1.0' },
+                //     { job_id: '2', score: '0.9' },
+                //     { job_id: '3', score: '0.8' },
+                //     { job_id: '4', score: '0.7' },
+                //     { job_id: '5', score: '0.6' },
+                //     { job_id: '6', score: '0.5' },
+                //     { job_id: '7', score: '0.4' },
+                //     { job_id: '8', score: '0.3' },
+                //     { job_id: '9', score: '0.2' },
+                //     { job_id: '10', score: '0.1' },
+                // ]
+                // // storing all the jobIds in the given order            
+                // recommendations.forEach(item => {
+                //     jobIdArray.push(item.job_id);
+                // });
 
-                // return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
             }
         }
 
@@ -3940,23 +3942,24 @@ const getTalentsAndApplicants = async (request, h) => {
                     recommendations[0] && recommendations.forEach((item) => addIdsIfNotExist(item.user_id, talentUserIds));
 
                 } catch (error) {
-                    // console.log(error.stack);
-                    // return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
-                    recommendations = [
-                        { user_id: '167', user_score: '1.0' },
-                        { user_id: '169', user_score: '0.9' },
-                        { user_id: '161', user_score: '0.8' },
-                        { user_id: '164', user_score: '0.7' },
-                        { user_id: '160', user_score: '0.6' },
-                        { user_id: '165', user_score: '0.5' },
-                        { user_id: '162', user_score: '0.4' },
-                        { user_id: '168', user_score: '0.3' },
-                        { user_id: '166', user_score: '0.2' },
-                        { user_id: '163', user_score: '0.1' },
-                    ]
-                    recommendations.forEach(item => {
-                        talentUserIds.push(item.user_id);
-                    });
+                    console.log(error.stack);
+                    return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
+                    
+                    // recommendations = [
+                    //     { user_id: '167', user_score: '1.0' },
+                    //     { user_id: '169', user_score: '0.9' },
+                    //     { user_id: '161', user_score: '0.8' },
+                    //     { user_id: '164', user_score: '0.7' },
+                    //     { user_id: '160', user_score: '0.6' },
+                    //     { user_id: '165', user_score: '0.5' },
+                    //     { user_id: '162', user_score: '0.4' },
+                    //     { user_id: '168', user_score: '0.3' },
+                    //     { user_id: '166', user_score: '0.2' },
+                    //     { user_id: '163', user_score: '0.1' },
+                    // ]
+                    // recommendations.forEach(item => {
+                    //     talentUserIds.push(item.user_id);
+                    // });
                 }
             }
         };
