@@ -345,6 +345,8 @@ const getTop5EJobWithVisitCount = async (request, h) => {
         });
 
         const jobVisitRecords = camelizeKeys(jobVisitRecordsSQL);
+        console.log(jobVisitRecords);
+        if(!jobVisitRecords[0]) return h.response({ jobs: [] }).code(200);
 
         const myMap = new Map();
 
