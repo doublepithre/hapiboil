@@ -296,6 +296,140 @@ const getJobVisitCount = async (request, h) => {
     }
 }
 
+const getTop5EJobWithVisitCount = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden' }).code(403);
+        }
+        const { credentials } = request.auth || {};
+        const { id: userId } = credentials || {};
+
+        // Checking user type from jwt
+        let luserTypeName = request.auth.artifacts.decoded.userTypeName;
+        if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+
+        const { Userinfo } = request.getModels('xpaxr');
+
+        // get company of luser
+        const userRecord = await Userinfo.findOne({ where: { userId } });
+        const userInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userInfo || {};
+
+        // const sqlStmt = `select
+        //     count(*), jv.job_id
+        // from hris.jobvisit jv
+        //     inner join hris.jobs j on j.job_id=jv.job_id
+        //     inner join hris.userinfo ui on ui.user_id=j.user_id and j.company_id=ui.company_id
+        //     inner join hris.jobhiremember jhm on jhm.user_id=j.user_id and jhm.access_level in('creator','administrator')
+        // where j.user_id=:userId
+        //     and j.company_id=:luserCompanyId
+        // group by jv.job_id`;
+
+        const sqlStmt = `select distinct
+            jv.job_id, jv.visitor_id
+        from hris.jobvisit jv
+            inner join hris.jobs j on j.job_id=jv.job_id
+            inner join hris.jobhiremember jhm on jhm.user_id=j.user_id and jhm.access_level in('creator','administrator')
+        where j.user_id=:userId and j.company_id=:luserCompanyId
+
+        group by jv.job_id, jv.visitor_id`;
+
+        const db1 = request.getDb('xpaxr');
+        const sequelize = db1.sequelize;
+
+        const jobVisitRecordsSQL = await sequelize.query(sqlStmt, {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId, luserCompanyId
+            },
+        });
+
+        const jobVisitRecords = camelizeKeys(jobVisitRecordsSQL);
+
+        const myMap = new Map();
+
+        for (let item of jobVisitRecords) {
+            if (myMap.get(item.jobId) === undefined) {
+                myMap.set(item.jobId, []);
+            } else {
+                const mapVal = myMap.get(item.jobId);
+                mapVal.push(item.visitorId)
+                myMap.set(item.jobId, mapVal);
+            }
+        };
+        // console.log({ myMap, len: myMap.get('50')?.length });
+
+
+
+        function getSqlStmt() {
+            let sqlStmt = `select
+                j.job_id, jn.job_name`;
+
+
+            sqlStmt += `                    
+                from hris.jobs j
+                    inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+                    inner join hris.jobhiremember jhm on jhm.job_id=j.job_id 
+                where j.active=true and j.is_deleted=false 
+                    and j.company_id=:luserCompanyId 
+                    and jhm.access_level in ('creator', 'administrator', 'viewer') 
+                    and jhm.user_id=:userId
+                    
+                    and j.job_id in (:jobIdArray)`;
+
+            sqlStmt += ` order by case`
+
+            myMap.forEach((value, key) => {
+                let i = 0;
+                sqlStmt += ` WHEN j.job_id=${key} THEN ${i}`;
+                i++
+            })
+            // for (let i = 0; i < jobIdArray.length; i++) {
+            //     sqlStmt += ` WHEN j.job_id=${jobIdArray[i]} THEN ${i}`;
+            // }
+            sqlStmt += ` end`;
+            return sqlStmt;
+        };
+
+
+
+
+
+
+        const allSQLJobs = await sequelize.query(getSqlStmt(), {
+            type: QueryTypes.SELECT,
+            replacements: {
+                userId, luserCompanyId, jobIdArray: [...myMap.keys()]
+            },
+        });
+
+        const allJobs = camelizeKeys(allSQLJobs);
+
+
+
+
+
+
+        // [11,2,22,1].sort((a, b) => a - b)
+        const refinedAllJobs = allJobs.sort((item1, item2) => {
+            return myMap.get(item2.jobId).length - myMap.get(item1.jobId).length;
+        });
+
+        for (let job of refinedAllJobs) {
+            job.visitCount = myMap.get(job.jobId).length;
+        };
+
+
+        const responses = { jobs: refinedAllJobs }; // uniqueVisitRecords.length;
+
+        return h.response(responses).code(200);
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({ error: true, message: 'Bad Request!' }).code(500);
+    }
+}
+
 const getSingleJob = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
@@ -4064,6 +4198,7 @@ module.exports = {
     getJobDetailsOptions,
     getAutoComplete,
 
+    getTop5EJobWithVisitCount,
     getJobVisitCount,
     getSingleJob,
     getAllJobs,

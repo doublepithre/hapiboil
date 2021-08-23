@@ -1,8 +1,9 @@
-import { 
-  createJob,    
+import {
+  createJob,
   getJobDetailsOptions,
   getAutoComplete,
 
+  getTop5EJobWithVisitCount,
   getJobVisitCount,
   getSingleJob,
   getAllJobs,
@@ -12,7 +13,7 @@ import {
   deleteJob,
   getAllDeletedJobs,
   restoreDeletedJob,
-  
+
   getJobAccessRecords,
   shareJob,
   updateSharedJob,
@@ -31,9 +32,9 @@ import {
   getAllEmployerApplicantsSelectiveProfile,
   getAllApplicantsSelectiveProfile,
   getApplicantProfile,
-  
+
   getApplicationAccessRecords,
-  shareApplication, 
+  shareApplication,
   updateSharedApplication,
   deleteApplicationAccessRecord,
   updateApplicationStatus,
@@ -51,7 +52,7 @@ import {
 const xjob = {
   name: 'xjob',
   version: '0.1.0',
-  
+
   register: async (server, options) => {
     try {
       server.route({
@@ -86,6 +87,16 @@ const xjob = {
       });
       server.route({
         method: 'GET',
+        path: '/j/top-visited',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: getTop5EJobWithVisitCount,
+        },
+      });
+      server.route({
+        method: 'GET',
         path: '/j/visit-count/{jobId}',
         options: {
           auth: {
@@ -113,7 +124,7 @@ const xjob = {
           },
           handler: getAllJobs,
         },
-      });      
+      });
       server.route({
         method: 'GET',
         path: '/j/recruiter',
@@ -204,7 +215,7 @@ const xjob = {
           handler: deleteJobAccessRecord,
         },
       });
-      
+
       server.route({
         method: 'POST',
         path: '/profile/{jobId}',
@@ -354,7 +365,7 @@ const xjob = {
           },
           handler: updateApplicationStatus,
         },
-      });    
+      });
       server.route({
         method: 'PATCH',
         path: '/onboarding-task-status/{onboardingtaskId}',
@@ -364,7 +375,7 @@ const xjob = {
           },
           handler: updateOnboardingTaskStatus,
         },
-      });    
+      });
       server.route({
         method: 'GET',
         path: '/onboarding-tasks/{onboardingId}',
@@ -414,7 +425,7 @@ const xjob = {
           },
           handler: getTalentsAndApplicants,
         },
-      });    
+      });
       server.route({
         method: 'GET',
         path: '/j/talent/{userId}',
@@ -425,8 +436,8 @@ const xjob = {
           handler: getTalentProfile,
         },
       });
-    } 
-    catch(err) {
+    }
+    catch (err) {
       console.log(err);
     }
   }
