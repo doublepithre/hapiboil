@@ -77,7 +77,7 @@ const createJob = async (request, h) => {
     const jobskillIds = [];
     if (jobSkills && isArray(jobSkills)) {
       for (let i = 0; i < jobSkills.length; i++) {
-        const item = jobSkills[i].toLowercase().trim();
+        const item = jobSkills[i].toLowerCase().trim();
 
         // check if job skill name already exists
         const jobskillRecord = await Jobskill.findOne({ where: { jobskillNameLower: item } });
