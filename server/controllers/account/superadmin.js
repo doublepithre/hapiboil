@@ -663,14 +663,14 @@ const resendVerificationEmailBySuperadmin = async (request, h) => {
 }
 
 module.exports = {
-  // superadmin (Empauwer)
   createCompanySuperAdmin,
+
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
+  
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
   
-  // others
   resendVerificationEmailBySuperadmin
 };
 

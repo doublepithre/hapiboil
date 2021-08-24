@@ -37,7 +37,7 @@ const manifest = {
         },
       },
       {
-        plugin: require('./routes/user'),
+        plugin: require('./routes/account/user'),
         routes: {
           prefix: `${apiRootPrefix}/account`,
         },
