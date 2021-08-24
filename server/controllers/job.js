@@ -5,6 +5,7 @@ import { sendEmailAsync } from '../utils/email'
 import formatQueryRes from '../utils/index'
 import { isArray } from 'lodash';
 const axios = require('axios')
+const moment = require('moment');
 const config = require('config');
 
 const createJob = async (request, h) => {
@@ -59,7 +60,7 @@ const createJob = async (request, h) => {
         let jobNameIdToSave;
         if (!oldJobNameId) {
             const newJobNameRecord = await Jobname.create({
-                jobName,
+                jobName: jobName.trim(),
                 jobNameLower: jobName.toLowerCase().trim(),
             });
             const newJobNameInfo = newJobNameRecord && newJobNameRecord.toJSON();
@@ -76,17 +77,17 @@ const createJob = async (request, h) => {
         const jobskillIds = [];
         if (jobSkills && isArray(jobSkills)) {
             for (let i = 0; i < jobSkills.length; i++) {
-                const item = jobSkills[i];
+                const item = jobSkills[i].toLowercase().trim();
 
                 // check if job skill name already exists
-                const jobskillRecord = await Jobskill.findOne({ where: { jobskillNameLower: item.toLowerCase() } });
+                const jobskillRecord = await Jobskill.findOne({ where: { jobskillNameLower: item } });
                 const jobskillInfo = jobskillRecord && jobskillRecord.toJSON();
                 const { jobskillId: oldJobskillId } = jobskillInfo || {};
 
                 if (!oldJobskillId) {
                     const newJobskillRecord = await Jobskill.create({
                         jobskillName: item,
-                        jobskillNameLower: item.toLowerCase().trim(),
+                        jobskillNameLower: item,
                     });
                     const newJobskillInfo = newJobskillRecord && newJobskillRecord.toJSON();
                     const { jobskillId: newJobskillId } = newJobskillInfo || {};
@@ -247,8 +248,7 @@ const getJobVisitCount = async (request, h) => {
 
         if (!qStartDate) {
             // get latest applications within last 14 days
-            startDate = new Date();
-            startDate.setDate(startDate.getDate() - 14);
+            startDate = moment().subtract(14, 'd').format();
         }
         if (startDate) {
             if (startDate && !endDate) {
