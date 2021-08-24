@@ -22,6 +22,15 @@ tags:
   - name: Job
     description: Information about Job(s)
 
+  - name: Application
+    description: Information about Job and Application Access(es)
+
+  - name: Access
+    description: Information about Job and Application Access(es)
+
+  - name: Onboarding
+    description: Information about Job and Application Access(es)
+
   - name: Mentor  
     description: Information about Mentor API(s)
   
@@ -1726,7 +1735,7 @@ paths:
     get: 
       summary: Get Job Access Records
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1759,7 +1768,7 @@ paths:
     post: 
       summary: Share Job
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       requestBody:
@@ -1787,7 +1796,7 @@ paths:
     patch: 
       summary: Update Shared Job
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1822,7 +1831,7 @@ paths:
     delete: 
       summary: Delete Job Access Record
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1949,7 +1958,7 @@ paths:
     get: 
         summary: Get applied jobs
         tags:
-          - Job
+          - Application
         security:
         - bearerAuth: []
         parameters:
@@ -2008,7 +2017,7 @@ paths:
       summary: Apply to jobs
       description: This is an upsert command hence it will update/insert jobs.
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       requestBody:
@@ -2032,7 +2041,7 @@ paths:
     patch: 
       summary: Withdraw from an Applied Job
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       requestBody:
@@ -2116,7 +2125,7 @@ paths:
     get: 
       summary: Get all Applicantions for an Employer
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       parameters:
@@ -2167,7 +2176,7 @@ paths:
     get: 
       summary: Get all Applicants
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       parameters:
@@ -2218,7 +2227,7 @@ paths:
     get: 
       summary: Get Applicant's profile
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       responses:
@@ -2247,7 +2256,7 @@ paths:
     get: 
       summary: Get Application Access Records
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -2273,7 +2282,7 @@ paths:
     post: 
       summary: Share Application
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       requestBody:
@@ -2301,7 +2310,7 @@ paths:
     patch: 
       summary: Update Shared Application
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -2336,7 +2345,7 @@ paths:
     delete: 
       summary: Delete Application Access Records
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -2372,7 +2381,7 @@ paths:
     patch: 
       summary: Update application status
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       parameters:
@@ -2404,7 +2413,7 @@ paths:
     get: 
       summary: Get all onboardings
       tags:
-        - Job
+        - Onboarding
       security:
       - bearerAuth: []
       parameters:
@@ -2441,7 +2450,7 @@ paths:
     get: 
       summary: Get onboarding details
       tags:
-        - Job
+        - Onboarding
       security:
       - bearerAuth: []
       parameters:
@@ -2463,7 +2472,7 @@ paths:
     get: 
       summary: Get all onboarding tasks
       tags:
-        - Job
+        - Onboarding
       security:
       - bearerAuth: []
       parameters:
@@ -2496,7 +2505,7 @@ paths:
     patch: 
       summary: Update the status of an onboarding task
       tags:
-        - Job
+        - Onboarding
       security:
       - bearerAuth: []
       parameters:
