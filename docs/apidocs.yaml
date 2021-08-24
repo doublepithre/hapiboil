@@ -174,7 +174,7 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/company-superadmin:
+  /account/superadmin/company-superadmin:
     post:
       summary: Create Company Superadmin
       tags:
@@ -222,7 +222,7 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/companies?limit={limit}&offset={skip}&search={searchTEXT}&industryId={industryId}&sort={sort}:
+  /account/superadmin/companies?limit={limit}&offset={skip}&search={searchTEXT}&industryId={industryId}&sort={sort}:
     get: 
         summary: Get all companies by Superadmin
         tags:
@@ -252,7 +252,7 @@ paths:
                       items:
                         $ref: "#/components/schemas/CompanyFullDetails"                      
 
-  /account/companies/{companyUuid}:
+  /account/superadmin/company/{companyUuid}:
     patch:
       summary: Update/(Re/De)-activate any Company
       tags:
@@ -288,7 +288,7 @@ paths:
                     description: Describes reason for failure
                     type: string
 
-  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyId={companyId}&sort={sort}:
+  /account/superadmin/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyId={companyId}&sort={sort}:
     get: 
         summary: Get all users
         tags:
@@ -325,7 +325,7 @@ paths:
                       items:
                         $ref: "#/components/schemas/companyUser"                      
 
-  /account/users/{userUuid}:
+  /account/superadmin/user/{userUuid}:
     patch:
       summary: Update/(Re/De)-activate any User
       tags:
@@ -554,7 +554,7 @@ paths:
                     type: string
                     example: Password updation successful
   
-  /account/resend-verify: 
+  /account/superadmin/resend-verify: 
     post: 
       summary: Resend Verification Email to a User by Superadmin
       security:
@@ -1499,7 +1499,7 @@ paths:
                         countryFull/job?????Name:
                           type: string
 
-  /job/j/job-details-options:
+  /job/j/options:
     get: 
       summary: Get job details options
       tags:
@@ -1722,7 +1722,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed"
                   
-  /job/j/share-job/{jobId}:
+  /job/access/share-job/{jobId}:
     get: 
       summary: Get Job Access Records
       tags:
@@ -1755,6 +1755,7 @@ paths:
                           type: string
                         email:
                           type: string
+    
     post: 
       summary: Share Job
       tags:
@@ -1944,7 +1945,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&exclude={excludeStatus}&startDate={lowerDate}&endDate={upperDate}:
+  /job/application/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&exclude={excludeStatus}&startDate={lowerDate}&endDate={upperDate}:
     get: 
         summary: Get applied jobs
         tags:
@@ -2002,7 +2003,7 @@ paths:
                       items:
                         $ref: "#/components/schemas/jobApplicationDetailed"                      
 
-  /job/j/apply:
+  /job/application/apply:
     post: 
       summary: Apply to jobs
       description: This is an upsert command hence it will update/insert jobs.
@@ -2027,7 +2028,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication"
 
-  /job/j/withdraw:
+  /job/application/withdraw:
     patch: 
       summary: Withdraw from an Applied Job
       tags:
@@ -2111,7 +2112,7 @@ paths:
                       offer:
                         type: number
 
-  /job/j/all-applications?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&status={status}&startDate={lowerDate}&endDate={upperDate}:
+  /job/application/all-jobs?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&status={status}&startDate={lowerDate}&endDate={upperDate}:
     get: 
       summary: Get all Applicantions for an Employer
       tags:
@@ -2162,7 +2163,7 @@ paths:
                     items:
                     $ref: "#/components/schemas/applicationsWithApplicant"  
    
-  /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&startDate={lowerDate}&endDate={upperDate}:
+  /job/application/all/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&startDate={lowerDate}&endDate={upperDate}:
     get: 
       summary: Get all Applicants
       tags:
@@ -2213,7 +2214,7 @@ paths:
                     items:
                     $ref: "#/components/schemas/applicationsWithApplicant"  
    
-  /job/j/application/{jobId}/{userId}:
+  /job/application/applicant/{jobId}/{userId}:
     get: 
       summary: Get Applicant's profile
       tags:
@@ -2242,7 +2243,7 @@ paths:
                   companyName:
                     type: string
 
-  /job/j/share-application/{applicationId}:
+  /job/access/share-application/{applicationId}:
     get: 
       summary: Get Application Access Records
       tags:
@@ -2268,6 +2269,7 @@ paths:
                     type: array  
                     items:
                       $ref: "#/components/schemas/applicationShared"
+    
     post: 
       summary: Share Application
       tags:
@@ -2366,7 +2368,7 @@ paths:
                     type: string
                     example: Access record deleted
 
-  /job/application-status/{applicationId}:    
+  /job/application/status/{applicationId}:    
     patch: 
       summary: Update application status
       tags:
@@ -2398,7 +2400,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication" 
 
-  /job/onboardings?limit={limit}&offset={skip}&sort={sort}&search={searchTEXT}:    
+  /job/onboarding/all?limit={limit}&offset={skip}&sort={sort}&search={searchTEXT}:    
     get: 
       summary: Get all onboardings
       tags:
@@ -2435,7 +2437,7 @@ paths:
                     items:
                       $ref: "#/components/schemas/onboardingFullDetails"                      
 
-  /job/onboarding/{onboardingId}:    
+  /job/onboarding/details/{onboardingId}:    
     get: 
       summary: Get onboarding details
       tags:
@@ -2457,7 +2459,7 @@ paths:
                 type: object
                 $ref: "#/components/schemas/onboardingFullDetails"                      
 
-  /job/onboarding-tasks/{onboardingId}:    
+  /job/onboarding/tasks/{onboardingId}:    
     get: 
       summary: Get all onboarding tasks
       tags:
@@ -2490,7 +2492,7 @@ paths:
                         items:
                           $ref: "#/components/schemas/onboardingTaskFullDetails"
 
-  /job/onboarding-task-status/{onboardingtaskId}:    
+  /job/onboarding/task-status/{onboardingtaskId}:    
     patch: 
       summary: Update the status of an onboarding task
       tags:
@@ -2557,7 +2559,7 @@ paths:
                   type:
                     type: string
   
-  /job/j/talents?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
+  /job/j/talents/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents
       tags:
