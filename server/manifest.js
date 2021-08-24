@@ -43,6 +43,12 @@ const manifest = {
         },
       },
       {
+        plugin: require('./routes/account/superadmin'),
+        routes: {
+          prefix: `${apiRootPrefix}/account/superadmin`,
+        },
+      },
+      {
         plugin: require('./routes/company'),
         routes: {
           prefix: `${apiRootPrefix}/company`,
