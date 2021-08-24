@@ -29,8 +29,9 @@
     }
   },
   "dsServer":{
-    "host":"118.200.108.134",
-    "port":8000
+    "host":"localhost",
+    "remoteHost":"118.200.108.134",
+    "port": 8000
   },
   "webchat":{
     "empauwerMe":{
