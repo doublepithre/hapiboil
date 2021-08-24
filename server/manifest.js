@@ -61,6 +61,12 @@ const manifest = {
         },
       },
       {
+        plugin: require('./routes/job/jobmeta'),
+        routes: {
+          prefix: `${apiRootPrefix}/job/jm`,
+        },
+      },
+      {
         plugin: require('./routes/job/application'),
         routes: {
           prefix: `${apiRootPrefix}/job/application`,
