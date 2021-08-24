@@ -40,7 +40,7 @@
     "database": "canopus"
   },
   "dsServer":{
-    "host":"localhost",
+    "host":"118.200.108.134",
     "port":8000
   },
   "nylas": {

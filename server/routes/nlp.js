@@ -1,5 +1,6 @@
 import { 
-    extractSkills
+  extractSkills,
+  recommendSkills,
 } from "../controllers/nlp";
 
 const nlp = {
@@ -16,6 +17,16 @@ const nlp = {
             mode: 'try',
           },
           handler: extractSkills
+        },
+      });   
+      server.route({
+        method: 'POST',
+        path: '/job_title_skills',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: recommendSkills,
         },
       });   
     } 

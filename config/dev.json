@@ -11,8 +11,8 @@
     "database": "canopus"
   },
   "dsServer":{
-    "host":"localhost",
-    "port":8000
+    "host":"118.200.108.134",
+    "port": 8000
   },
   "nylas": {
     "NY_API_URL": "https://api.cronofy.com",
