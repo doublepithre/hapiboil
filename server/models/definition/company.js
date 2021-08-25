@@ -70,6 +70,34 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.INTEGER,
       allowNull: true,
       field: 'founded_year'
+    },
+    countryId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'country',
+          schema: 'hris'
+        },
+        key: 'country_id'
+      },
+      field: 'country_id'
+    },
+    isCompanyOnboardingComplete: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      defaultValue: false,
+      field: 'is_company_onboarding_complete'
+    },
+    supervisorRandR: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'supervisor_rand_r'
+    },
+    workbuddyRandR: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'workbuddy_rand_r'
     }
   }, {
     sequelize,
@@ -103,14 +131,24 @@ const initRelations = (model) =>{
   const Company = model.Company;
   const Companyauditlog = model.Companyauditlog;
   const Companyinfo = model.Companyinfo;
+  const Companyvisit = model.Companyvisit;
+  const Companyworkaccommodation = model.Companyworkaccommodation;
+  const Onboarding = model.Onboarding;
+  const Userfeedback = model.Userfeedback;
   const Userinfo = model.Userinfo;
   const Companyindustry = model.Companyindustry;
+  const Country = model.Country;
 
 
   Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
+  Company.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "companyId"});
+  Company.hasMany(Companyworkaccommodation, { as: "companyworkaccommodations", foreignKey: "companyId"});
+  Company.hasMany(Onboarding, { as: "onboardings", foreignKey: "companyId"});
+  Company.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "userinfos", foreignKey: "companyId"});
   Company.hasMany(Userinfo, { as: "companyUuUserinfos", foreignKey: "companyUuid"});
   Company.belongsTo(Companyindustry, { as: "companyIndustry", foreignKey: "companyIndustryId"});
+  Company.belongsTo(Country, { as: "country", foreignKey: "countryId"});
 
 }

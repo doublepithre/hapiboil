@@ -22,6 +22,15 @@ tags:
   - name: Job
     description: Information about Job(s)
 
+  - name: Application
+    description: Information about Job and Application Access(es)
+
+  - name: Access
+    description: Information about Job and Application Access(es)
+
+  - name: Onboarding
+    description: Information about Job and Application Access(es)
+
   - name: Mentor  
     description: Information about Mentor API(s)
   
@@ -93,7 +102,14 @@ paths:
                 type: object
                 properties: 
                     User: 
-                      $ref: "#/components/schemas/User"
+                      type: object
+                      allOf:
+                        - $ref: "#/components/schemas/User"
+                      properties:
+                        isOnboardingComplete:
+                          type: boolean
+                        isCompanyOnboardingComplete:
+                          type: boolean
                     token:
                       type: string
                       description: JWT to be used for authorization 
@@ -167,7 +183,7 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/company-superadmin:
+  /account/superadmin/company-superadmin:
     post:
       summary: Create Company Superadmin
       tags:
@@ -215,7 +231,7 @@ paths:
                     description: Describes reason for failure
                     type: string
                 
-  /account/companies?limit={limit}&offset={skip}&search={searchTEXT}&industryId={industryId}&sort={sort}:
+  /account/superadmin/companies?limit={limit}&offset={skip}&search={searchTEXT}&industryId={industryId}&sort={sort}:
     get: 
         summary: Get all companies by Superadmin
         tags:
@@ -245,7 +261,7 @@ paths:
                       items:
                         $ref: "#/components/schemas/CompanyFullDetails"                      
 
-  /account/companies/{companyUuid}:
+  /account/superadmin/company/{companyUuid}:
     patch:
       summary: Update/(Re/De)-activate any Company
       tags:
@@ -281,7 +297,7 @@ paths:
                     description: Describes reason for failure
                     type: string
 
-  /account/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyId={companyId}&sort={sort}:
+  /account/superadmin/users?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&companyId={companyId}&sort={sort}:
     get: 
         summary: Get all users
         tags:
@@ -294,7 +310,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [candidate, employer, mentor, companysuperadmin, superadmin]        
+            enum: [candidate, employer, supervisor, workbuddy, supportstaff, leadership, companysuperadmin, superadmin]        
 
         - name: sort
           in: query          
@@ -318,7 +334,7 @@ paths:
                       items:
                         $ref: "#/components/schemas/companyUser"                      
 
-  /account/users/{userUuid}:
+  /account/superadmin/user/{userUuid}:
     patch:
       summary: Update/(Re/De)-activate any User
       tags:
@@ -369,8 +385,51 @@ paths:
             application/json: 
               schema:
                 type: object
-                $ref: "#/components/schemas/User"
+                allOf:
+                  - $ref: "#/components/schemas/User"
+                properties:
+                  isCompanyOnboardingComplete:
+                    type: boolean
+                  isOnboardingComplete:
+                    type: boolean
   
+  /account/resources:
+    get: 
+      summary: Get Resources for a user
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get user resources
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  resources:
+                    type: array
+                    items:
+                      type: object
+                      $ref: "#/components/schemas/Resource"
+  
+  /account/me/meta/all?exclude={metaKey}:
+    get: 
+      summary: Get user's all meta data
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get user's all meta data information
+          content:
+            application/json: 
+              schema:
+                type: object
+                $ref: "#/components/schemas/allMeta"
+ 
   /account/me/meta?metaKey={metaKey}:
     get: 
       summary: Get user's meta data
@@ -389,7 +448,7 @@ paths:
  
   /account/me/meta:
     patch:
-      summary: Update user's meta data info
+      summary: Update or Create user's meta data info
       parameters:
         - name: userUuid
           in: path
@@ -504,7 +563,7 @@ paths:
                     type: string
                     example: Password updation successful
   
-  /account/resend-verify: 
+  /account/superadmin/resend-verify: 
     post: 
       summary: Resend Verification Email to a User by Superadmin
       security:
@@ -527,22 +586,9 @@ paths:
             application/json:                 
               schema: 
                 properties:
-                  requestId:
-                    type: number
-                  requestKey:
+                  message:
                     type: string
-                  userId:
-                    type: number 
-                  expiresAt:
-                    type: string
-                  resourceType:
-                    type: string
-                  actionType:
-                    type: string
-                  createdAt:
-                    type: string
-                  updatedAt:
-                    type: string   
+                    example: We've emailed him/her instructions for verifying his/her account. He/She should receive them shortly. If he/she doesn't receive an email, please make sure he/she checked his/her spam folder.
     
   /account/verify/{emailVerificationToken}:     
     patch: 
@@ -597,22 +643,9 @@ paths:
             application/json: 
              schema: 
               properties:
-                requestId:
-                  type: number
-                requestKey:
+                message:
                   type: string
-                userId:
-                  type: number 
-                expiresAt:
-                  type: string
-                resourceType:
-                  type: string
-                actionType:
-                  type: string
-                createdAt:
-                  type: string
-                updatedAt:
-                  type: string
+                  example: We've emailed you instructions for resetting your password, if an account exists with the email you entered. You should receive them shortly. If you don't receive an email, please make sure you've entered the address you registered with, and check your spam folder.
   
   /account/reset-password/{passwordResetToken}:
     patch: 
@@ -757,6 +790,35 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
+  /account/feedback:
+    post:
+      summary: Save User feedback
+      tags:
+        - User
+      security:
+        - bearerAuth: []
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                positiveFeedback:
+                  type: string
+                negativeFeedback:
+                  type: string
+      responses:
+        '201':
+          description: User feedback successfully saved
+          content:
+            application/json:
+              schema: 
+                type: object
+                properties:
+                  message: 
+                    type: string
+                    example: Feedback successfully saved!
+  
   /company/c/options:
     get: 
       summary: Get company options
@@ -822,7 +884,104 @@ paths:
             application/json: 
               schema:
                 $ref: "#/components/schemas/CompanyFullDetails"               
-        
+
+  /company/c/visit-count:    
+    get: 
+      summary: Get Company visit count
+      tags:
+        - Company
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  companyVisitCount:
+                    type: number
+         
+  /company/c/work-accommodations:    
+    get: 
+      summary: Get Company work accommodations
+      tags:
+        - Company
+      security:
+      - bearerAuth: []     
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  workAccommodations:
+                      type: array
+                      items:
+                        type: object
+                        properties:
+                          companyVisitCount:
+                            type: number
+                          workaccommodationTitle:
+                            type: string
+                          workaccommodationDescription:
+                            type: string
+                          companyWorkaccommodationId:
+                            type: number
+                          companyId:
+                            type: number
+                          status:
+                            type: string
+     
+  /company/c/work-accommodation/{companyWorkaccommodationId}: 
+    patch:
+      summary: Update Company Work accommodation status
+      parameters:
+        - name: companyWorkaccommodationId
+          in: path
+          description: ID of CompanyWorkAccommodation
+          required: true
+          schema:
+            type: string
+      security:
+      - bearerAuth: []
+      tags:
+        - Company
+      requestBody: 
+        content:
+          application/json: 
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [complete, in progress, not applicable]
+      responses:
+        '200':
+          description: Successfully updated Company Work Accommodation status
+          content:
+            application/json: 
+              schema:
+                $ref: "#/components/schemas/CompanyWorkAccommodation"
+    
   /company/{companyId}/: 
     get:
       summary: Get any Company info
@@ -872,8 +1031,14 @@ paths:
                 website:
                   type: string
                 description:
-                  type: stirng
+                  type: string
+                supervisorRandR:
+                  type: string
+                workbuddyRandR:
+                  type: string
                 active:
+                  type: boolean
+                isCompanyOnboardingComplete:
                   type: boolean
                 noOfEmployees:
                   type: number          
@@ -909,7 +1074,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [employer, mentor, companysuperadmin]        
+            enum: [employer, supervisor, workbuddy, supportstaff, leadership, companysuperadmin]        
 
         - name: sort
           in: query          
@@ -961,7 +1126,7 @@ paths:
                   example: password                
                 accountType:
                   type: string
-                  enum: [employer, mentor, companysuperadmin]             
+                  enum: [employer, supervisor, workbuddy, companysuperadmin, supportstaff, leadership]             
       responses:
         '201':
           description: Recruiter/Mentor/CompanySuperadmin successfully created
@@ -990,7 +1155,7 @@ paths:
                     type: string
    
     patch:
-      summary: Update Roles or Deactivate Company Staff
+      summary: Update Company Staff
       tags:
         - Company
       parameters:
@@ -1008,11 +1173,19 @@ paths:
             schema:
               type: object
               properties:
+                email:
+                  type: string
+                password:
+                  type: string
+                firstName:
+                  type: string
+                lastName:
+                  type: string
                 active:
                   type: boolean
                 userType:
                   type: string
-                  enum: [employer, mentor, companysuperadmin]             
+                  enum: [employer, supervisor, workbuddy, supportstaff, leadership, companysuperadmin]             
       responses:
         '201':
           description: Company Staff successfully updated
@@ -1047,7 +1220,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [employer, mentor]        
+            enum: [employer, supervisor, workbuddy, supportstaff, leadership,]        
 
         - name: sort
           in: query          
@@ -1113,22 +1286,9 @@ paths:
             application/json:                 
               schema: 
                 properties:
-                  requestId:
-                    type: number
-                  requestKey:
+                  message:
                     type: string
-                  userId:
-                    type: number 
-                  expiresAt:
-                    type: string
-                  resourceType:
-                    type: string
-                  actionType:
-                    type: string
-                  createdAt:
-                    type: string
-                  updatedAt:
-                    type: string   
+                    example: We've emailed him/her instructions for verifying his/her account. He/She should receive them shortly. If he/she doesn't receive an email, please make sure he/she checked his/her spam folder.
  
   /company/jobs/{companyId}?limit={limit}&offset={skip}&search={searchString}&sort=created_at:desc&jobTypeId=1&jobFunctionId=1&jobIndustryId=1&jobLocationId=1&minExp=1&startDate={lowerDate}&endDate={upperDate}:
     get: 
@@ -1348,7 +1508,7 @@ paths:
                         countryFull/job?????Name:
                           type: string
 
-  /job/j/job-details-options:
+  /job/j/options:
     get: 
       summary: Get job details options
       tags:
@@ -1403,6 +1563,74 @@ paths:
                         jobTypeName:
                           type: string
 
+  /job/j/top-visited:    
+    get: 
+      summary: Get top 5 visited jobs
+      tags:
+        - Job
+      security:
+      - bearerAuth: []     
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobs:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        jobId:
+                          type: number
+                        jobName:
+                          type: string
+                        visitCount:
+                          type: number
+                  
+  /job/j/visit-count/{jobId}:    
+    get: 
+      summary: Get Job visit count
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: jobId
+          in: path      
+          required: true
+          schema:
+            type: number
+
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+
+
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  jobVisitCount:
+                    type: number
+                  
   /job/{jobUuid}:
     get: 
       summary: Get job by uuid
@@ -1503,11 +1731,11 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobDetailed"
                   
-  /job/j/share-job/{jobId}:
+  /job/access/share-job/{jobId}:
     get: 
       summary: Get Job Access Records
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1536,10 +1764,11 @@ paths:
                           type: string
                         email:
                           type: string
+    
     post: 
       summary: Share Job
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       requestBody:
@@ -1567,7 +1796,7 @@ paths:
     patch: 
       summary: Update Shared Job
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1602,7 +1831,7 @@ paths:
     delete: 
       summary: Delete Job Access Record
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1725,15 +1954,22 @@ paths:
                     items:
                       $ref: "#/components/schemas/answers" 
 
-  /job/j/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&startDate={lowerDate}&endDate={upperDate}:
+  /job/application/applied?limit={limit}&offset={skip}&search={searchTEXT}&sort=created_at:desc&status={status}&exclude={excludeStatus}&startDate={lowerDate}&endDate={upperDate}:
     get: 
         summary: Get applied jobs
         tags:
-          - Job
+          - Application
         security:
         - bearerAuth: []
         parameters:
         - name: status
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applied, withdrawn, shortlisted, interview, closed, offer, hired]
+
+        - name: exclude
           in: query          
           required: false
           schema:
@@ -1745,7 +1981,7 @@ paths:
           required: false
           schema:
             type: string
-            enum: [created_at:asc, created_at:desc, status:asc, status:desc, job_name:asc, job_name:desc]        
+            enum: [created_at:asc, created_at:desc, status:asc, status:desc, job_name:asc, job_name:desc, last_status_updated:asc, last_status_updated:desc]        
          
         - name: startDate
           in: query          
@@ -1776,12 +2012,12 @@ paths:
                       items:
                         $ref: "#/components/schemas/jobApplicationDetailed"                      
 
-  /job/j/apply:
+  /job/application/apply:
     post: 
       summary: Apply to jobs
       description: This is an upsert command hence it will update/insert jobs.
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       requestBody:
@@ -1801,11 +2037,11 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication"
 
-  /job/j/withdraw:
+  /job/application/withdraw:
     patch: 
       summary: Withdraw from an Applied Job
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       requestBody:
@@ -1827,11 +2063,69 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplicationDetailed"                      
       
-  /job/j/applications/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&startDate={lowerDate}&endDate={upperDate}:
+  /job/j/chart/application:    
     get: 
-      summary: Get all Applicants
+      summary: Get application pie chart
       tags:
         - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                  status:
+                    type: object
+                    properties:
+                      applied:
+                        type: number
+                      shortlisted:
+                        type: number
+                      interview:
+                        type: number
+                      offer:
+                        type: number
+
+  /job/j/chart/job-application:    
+    get: 
+      summary: Get job application pie chart
+      tags:
+        - Job
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  total:
+                    type: number
+                  status:
+                    type: object
+                    properties:
+                      applied:
+                        type: number
+                      shortlisted:
+                        type: number
+                      interview:
+                        type: number
+                      offer:
+                        type: number
+
+  /job/application/all-jobs?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&status={status}&startDate={lowerDate}&endDate={upperDate}:
+    get: 
+      summary: Get all Applicantions for an Employer
+      tags:
+        - Application
       security:
       - bearerAuth: []
       parameters:
@@ -1878,11 +2172,62 @@ paths:
                     items:
                     $ref: "#/components/schemas/applicationsWithApplicant"  
    
-  /job/j/application/{jobId}/{userId}:
+  /job/application/all/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&startDate={lowerDate}&endDate={upperDate}:
+    get: 
+      summary: Get all Applicants
+      tags:
+        - Application
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: status
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applied, shortlisted, interview, closed, offer, hired]
+        
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, application_date:asc, application_date:desc, status:asc, status:desc]
+        
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+            
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  applications:
+                    type: array
+                    items:
+                    $ref: "#/components/schemas/applicationsWithApplicant"  
+   
+  /job/application/applicant/{jobId}/{userId}:
     get: 
       summary: Get Applicant's profile
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       responses:
@@ -1904,12 +2249,14 @@ paths:
                     type: string
                   mentorId:
                     type: number
+                  companyName:
+                    type: string
 
-  /job/j/share-application/{applicationId}:
+  /job/access/share-application/{applicationId}:
     get: 
       summary: Get Application Access Records
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1931,10 +2278,11 @@ paths:
                     type: array  
                     items:
                       $ref: "#/components/schemas/applicationShared"
+    
     post: 
       summary: Share Application
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       requestBody:
@@ -1962,7 +2310,7 @@ paths:
     patch: 
       summary: Update Shared Application
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -1997,7 +2345,7 @@ paths:
     delete: 
       summary: Delete Application Access Records
       tags:
-        - Job
+        - Access
       security:
       - bearerAuth: []
       parameters:
@@ -2029,11 +2377,11 @@ paths:
                     type: string
                     example: Access record deleted
 
-  /job/application-status/{applicationId}:    
+  /job/application/status/{applicationId}:    
     patch: 
       summary: Update application status
       tags:
-        - Job
+        - Application
       security:
       - bearerAuth: []
       parameters:
@@ -2061,7 +2409,131 @@ paths:
                 type: object
                 $ref: "#/components/schemas/jobApplication" 
 
-  /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
+  /job/onboarding/all?limit={limit}&offset={skip}&sort={sort}&search={searchTEXT}:    
+    get: 
+      summary: Get all onboardings
+      tags:
+        - Onboarding
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc]
+
+        - name: search
+          in: query          
+          description: It searches on first name, last name and email
+          required: false
+          schema:
+            type: string
+            
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  onboardings:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/onboardingFullDetails"                      
+
+  /job/onboarding/details/{onboardingId}:    
+    get: 
+      summary: Get onboarding details
+      tags:
+        - Onboarding
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: onboardingId
+          in: path 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/onboardingFullDetails"                      
+
+  /job/onboarding/tasks/{onboardingId}:    
+    get: 
+      summary: Get all onboarding tasks
+      tags:
+        - Onboarding
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: onboardingId
+          in: path 
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  "[task type]":
+                    type: object
+                    properties:
+                      "[task subType]":
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/onboardingTaskFullDetails"
+                      general:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/onboardingTaskFullDetails"
+
+  /job/onboarding/task-status/{onboardingtaskId}:    
+    patch: 
+      summary: Update the status of an onboarding task
+      tags:
+        - Onboarding
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: onboardingtaskId
+          in: path 
+          required: false
+          schema:
+            type: string
+      requestBody: 
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                status:
+                  type: string
+                  enum: [ongoing, complete, not applicable]
+      
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                $ref: "#/components/schemas/OnboardingTask"
+
+  /job/j/talents-and-applicants?limit={limit}&&offset={skip}&search={searchString}&type={type}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents and applicants
       tags:
@@ -2069,6 +2541,13 @@ paths:
       security:
       - bearerAuth: []
       parameters:
+        - name: type
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applicant, talent]
+        
         - name: sort
           in: query          
           required: false
@@ -2083,9 +2562,13 @@ paths:
             application/json:
               schema:
                 type: object                
-                $ref: "#/components/schemas/paginatedUsers" 
+                allOf:
+                  - $ref: "#/components/schemas/paginatedUsers"
+                properties:
+                  type:
+                    type: string
   
-  /job/j/talents?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
+  /job/j/talents/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
       summary: Get all recommended talents
       tags:
@@ -2474,6 +2957,86 @@ paths:
                           type: string
                           example: Mentor replacing successful!                          
   
+  /mentor/all-applications?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}&status={status}&startDate={lowerDate}&endDate={upperDate}:
+    get: 
+      summary: Get all Applicantions for a Mentor
+      tags:
+        - Mentor
+      security:
+      - bearerAuth: []
+      parameters:
+        - name: status
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [applied, shortlisted, interview, closed, offer, hired]
+        
+        - name: sort
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [first_name:asc, first_name:desc, last_name:asc, last_name:desc, application_date:asc, application_date:desc, status:asc, status:desc]
+        
+        - name: startDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2020-02-25'
+
+        - name: endDate
+          in: query          
+          required: false
+          schema:
+            type: string
+            example: '2021-02-25'
+            
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  count:
+                    type: number
+                  applications:
+                    type: array
+                    items:
+                    $ref: "#/components/schemas/applicationsWithApplicant"  
+  
+  /mentor/mentee/{jobId}/{userId}:
+    get: 
+      summary: Get Mentor Applicant's profile
+      tags:
+        - Mentor
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                allOf:        
+                  - $ref: "#/components/schemas/jobFullDetailed" 
+                  - $ref: "#/components/schemas/User" 
+                properties:
+                  applicationId:
+                    type: number
+                  applicationDate:
+                    type: string
+                  status:
+                    type: string
+                  mentorId:
+                    type: number
+                  companyName:
+                    type: string
+
   /nylas/n/token:
     post: 
       summary: Request for Nylas Token
@@ -2631,8 +3194,14 @@ components:
         website:
           type: string
         description:
-          type: stirng
+          type: string
+        supervisorRandR:
+          type: string
+        workbuddyRandR:
+          type: string
         active:
+          type: boolean
+        isCompanyOnboardingComplete:
           type: boolean
         noOfEmployees:
           type: number          
@@ -2659,7 +3228,24 @@ components:
           type: string
         companyIndustryName:
           type: string
-        
+    
+    CompanyWorkAccommodation:
+      type: object
+      description: This is CompanyWorkAccommodationRecord.
+      properties:
+        companyWorkaccommodationId:
+          type: number
+        workaccommodationId:
+          type: number
+        companyId:
+          type: number
+        status:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
     Question:
       type: object
       properties:
@@ -2723,6 +3309,10 @@ components:
           type: number
         jobLocationId:
           type: number
+        jobskillIds:
+          type: array
+          items:
+            type: number
         minExp:
           type: number
         duration:
@@ -2792,8 +3382,15 @@ components:
       allOf:        
         - $ref: "#/components/schemas/jobFullDetailed"
       properties:        
+        score:
+          type: number
+          example: 0.9
         isApplied:
           type: boolean
+        jobSkills:
+          type: array
+          items:
+            type: string
       
     jobApplication:
       type: object
@@ -2822,6 +3419,93 @@ components:
           type: string         
         creatorId:
           type: number         
+
+    Onboarding:
+      type: object
+      description: This is the details of onboarding records
+      properties:
+        onboardingId:
+          type: number         
+        onboardee:
+          type: number         
+        onboarder:
+          type: number         
+        status:
+          type: string         
+        companyId:
+          type: number         
+        jobId:
+          type: number         
+        createdAt:
+          type: string         
+        updatedAt:
+          type: string         
+      
+    OnboardingFixedTask:
+      type: object
+      description: This is the details of x0pa given default and fixed onboarding tasks
+      properties:
+        onboardingfixedtaskId:
+          type: number         
+        taskName:
+          type: string         
+        taskDescription:
+          type: string        
+        type:
+          type: string         
+        subType:
+          type: string         
+        createdAt:
+          type: string         
+        updatedAt:
+          type: string         
+      
+    OnboardingTask:
+      type: object
+      description: This is the records of onboarding tasks with statuses (based on each onboarding of a company)
+      properties:
+        onboardingtaskId:
+          type: number         
+        onboardingId:
+          type: number         
+        taskId:
+          type: number        
+        asignee:
+          type: number         
+        status:
+          type: string         
+        createdAt:
+          type: string         
+        updatedAt:
+          type: string         
+      
+    onboardingTaskFullDetails:
+      type: object
+      description: This extends the details of onboarding records
+      allOf:        
+        - $ref: "#/components/schemas/OnboardingFixedTask"
+        - $ref: "#/components/schemas/OnboardingTask"
+      properties:
+        jobName:
+          type: string         
+        jobLocationName:
+          type: string         
+        onboarder:
+          type: number         
+        onboardee:
+          type: number         
+      
+    onboardingFullDetails:
+      type: object
+      description: This extends the details of onboarding records
+      allOf:        
+        - $ref: "#/components/schemas/Onboarding"
+        - $ref: "#/components/schemas/User"
+      properties:
+        jobName:
+          type: string         
+        jobLocationName:
+          type: string         
       
     jobFullDetailsWithQuesRes:
       type: object
@@ -2829,8 +3513,14 @@ components:
       allOf:
         - $ref: "#/components/schemas/jobFullDetailed"
       properties:
+        isQuestionnaireComplete:
+          type: boolean
         isApplied:
           type: boolean
+        jobSkills:
+          type: array
+          items:
+            type: string
         jobQuestionResponses:
           type: array
           items:
@@ -2845,7 +3535,13 @@ components:
         users:
           type: array
           items:
-            $ref: "#/components/schemas/User" 
+            type: object
+            allOf:
+              - $ref: "#/components/schemas/User" 
+            properties:
+              score:
+                type: number
+                example: 0.9
     
     paginatedAllJobs:
       type: object
@@ -2867,7 +3563,12 @@ components:
         jobs:
           type: array
           items:
-            $ref: "#/components/schemas/recruiterJobDetails" 
+            type: object
+            allOf:
+              - $ref: "#/components/schemas/recruiterJobDetails" 
+            properties:
+              isQuestionnaireComplete:
+                type: boolean
     
     jobShared:
       type: object
@@ -2929,6 +3630,20 @@ components:
           type: string
         metaValue:
           type: string
+    
+    allMeta:
+      type: object
+      description: This is the schema for user's all meta data.      
+      properties:
+        metaKey:
+          type: string
+          example: 'metaValue'
+        metaKey1:
+          type: string
+          example: 'metaValue1'
+        metaKey2:
+          type: string
+          example: 'metaValue2'
         
     mentorCandidateMapping:
       type: object
@@ -3010,3 +3725,27 @@ components:
         updatedAt:
           type: string               
         
+    Resource:
+      type: object
+      description: This is the Resource Record for a user.      
+      properties:
+        resourceId:
+          type: number
+        courseTitle:
+          type: string
+        topic:
+          type: string
+        mode:
+          type: string
+        countryId:
+          type: string
+        usertype:
+          type: array
+          items:
+            type: number
+        url:
+          type: string
+        createdAt:
+          type: string
+        updatedAt:
+          type: string

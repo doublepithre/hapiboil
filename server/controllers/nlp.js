@@ -18,6 +18,25 @@ const extractSkills = async (request, h) => {
     }
 }
 
+const recommendSkills = async (request, h) => {
+    try {
+        if (!request.auth.isAuthenticated) {
+            return h.response({ message: 'Forbidden'}).code(403);
+        }
+        const { limit } = request.query || {};
+        const { jobTitle } = request.payload || {};
+        console.log(jobTitle);
+
+        let skills = await axios.post(`http://${config.dsServer.host}:${config.dsServer.port}/nlp/job_title_skills`,{job_title:jobTitle},{ params: { limit } }); 
+        return h.response(camelizeKeys(skills.data)).code(200);  
+    }
+    catch (error) {
+        console.error(error.stack);
+        return h.response({error: true, message: 'Bad Request'}).code(400);
+    }
+}
+
 module.exports = {
-    extractSkills
+    extractSkills,
+    recommendSkills,
 }

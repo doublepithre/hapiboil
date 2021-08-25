@@ -143,6 +143,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATE,
       allowNull: true,
       field: 'deleted_at'
+    },
+    jobskillIds: {
+      type: DataTypes.ARRAY(DataTypes.BIGINT),
+      allowNull: true,
+      field: 'jobskill_ids'
     }
   }, {
     sequelize,
@@ -173,7 +178,7 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Job = model.Job;
-  const User = model.User;
+  const Questionnaire = model.Questionnaire;
   const Userinfo = model.Userinfo;
   const Jobfunction = model.Jobfunction;
   const Jobindustry = model.Jobindustry;
@@ -182,13 +187,20 @@ const initRelations = (model) =>{
   const Jobapplication = model.Jobapplication;
   const Jobauditlog = model.Jobauditlog;
   const Jobhiremember = model.Jobhiremember;
+  const Jobsquesresponse = model.Jobsquesresponse;
   const Jobsrecommendationlog = model.Jobsrecommendationlog;
+  const Jobvisit = model.Jobvisit;
+  const Onboarding = model.Onboarding;
   const Recommendation = model.Recommendation;
+  const Recommendationfeedback = model.Recommendationfeedback;
   const Jobtype = model.Jobtype;
+  const User = model.User;
 
 
-  Job.belongsToMany(User, { through: Recommendation, foreignKey: "jobId", otherKey: "userId" });
+  Job.belongsToMany(Questionnaire, { through: Jobsquesresponse, foreignKey: "jobId", otherKey: "questionId" });
   Job.belongsToMany(Userinfo, { through: Jobhiremember, foreignKey: "jobId", otherKey: "userId" });
+  Job.belongsToMany(Userinfo, { through: Recommendation, foreignKey: "jobId", otherKey: "userId" });
+  Job.belongsToMany(Userinfo, { through: Recommendationfeedback, foreignKey: "jobId", otherKey: "userId" });
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
   Job.belongsTo(Jobindustry, { as: "jobIndustry", foreignKey: "jobIndustryId"});
   Job.belongsTo(Joblocation, { as: "jobLocation", foreignKey: "jobLocationId"});
@@ -196,8 +208,12 @@ const initRelations = (model) =>{
   Job.hasMany(Jobapplication, { as: "jobapplications", foreignKey: "jobId"});
   Job.hasMany(Jobauditlog, { as: "jobauditlogs", foreignKey: "affectedJobId"});
   Job.hasMany(Jobhiremember, { as: "jobhiremembers", foreignKey: "jobId"});
+  Job.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "jobId"});
   Job.hasOne(Jobsrecommendationlog, { as: "jobsrecommendationlog", foreignKey: "jobId"});
+  Job.hasMany(Jobvisit, { as: "jobvisits", foreignKey: "jobId"});
+  Job.hasMany(Onboarding, { as: "onboardings", foreignKey: "jobId"});
   Job.hasMany(Recommendation, { as: "recommendations", foreignKey: "jobId"});
+  Job.hasMany(Recommendationfeedback, { as: "recommendationfeedbacks", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
   Job.belongsTo(User, { as: "user", foreignKey: "userId"});
 

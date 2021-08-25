@@ -31,9 +31,21 @@ const manifest = {
         plugin: require('./routes/xjwt')
       },
       {
-        plugin: require('./routes/user'),
+        plugin: require('./routes/fix'),
+        routes: {
+          prefix: `${apiRootPrefix}/fix`,
+        },
+      },
+      {
+        plugin: require('./routes/account/user'),
         routes: {
           prefix: `${apiRootPrefix}/account`,
+        },
+      },
+      {
+        plugin: require('./routes/account/superadmin'),
+        routes: {
+          prefix: `${apiRootPrefix}/account/superadmin`,
         },
       },
       {
@@ -43,9 +55,33 @@ const manifest = {
         },
       },
       {
-        plugin: require('./routes/job'),
+        plugin: require('./routes/job/job'),
         routes: {
           prefix: `${apiRootPrefix}/job`,
+        },
+      },
+      {
+        plugin: require('./routes/job/jobmeta'),
+        routes: {
+          prefix: `${apiRootPrefix}/job/j`,
+        },
+      },
+      {
+        plugin: require('./routes/job/application'),
+        routes: {
+          prefix: `${apiRootPrefix}/job/application`,
+        },
+      },
+      {
+        plugin: require('./routes/job/access'),
+        routes: {
+          prefix: `${apiRootPrefix}/job/access`,
+        },
+      },
+      {
+        plugin: require('./routes/job/onboarding'),
+        routes: {
+          prefix: `${apiRootPrefix}/job/onboarding`,
         },
       },
       {
@@ -94,6 +130,12 @@ const manifest = {
         plugin: require('./routes/nlp'),
         routes: {
           prefix: `${apiRootPrefix}/nlp`,
+        },
+      },
+      {
+        plugin: require('./routes/trainingcourse'),
+        routes: {
+          prefix: `${apiRootPrefix}/trainingcourse`,
         },
       },
     ],
