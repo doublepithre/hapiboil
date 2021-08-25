@@ -3513,6 +3513,8 @@ components:
       allOf:
         - $ref: "#/components/schemas/jobFullDetailed"
       properties:
+        isQuestionnaireComplete:
+          type: boolean
         isApplied:
           type: boolean
         jobSkills:
