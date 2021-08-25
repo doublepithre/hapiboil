@@ -255,6 +255,37 @@ const getSingleJob = async (request, h) => {
     // create job visit record
     await Jobvisit.create({ visitorId: userId, jobId: foundJobId });
 
+    // attaching isQuestionnaireComplete
+    if (responseJob.accessLevel === 'creator' || responseJob.accessLevel === 'administrator') {
+      const sqlStmtForJobQuesCount = `select count(*) from hris.questionnaire q
+              inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+              where qt.target_id=2`;
+
+      const allSQLJobQuesCount = await sequelize.query(sqlStmtForJobQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const jobQuesCount = allSQLJobQuesCount[0].count;
+
+      const sqlStmtForJobResCount = `select count(*) 
+              from hris.jobsquesresponses jqr
+              where jqr.job_id=:jobId`;
+
+      const allSQLJobResCount = await sequelize.query(sqlStmtForJobResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          jobId: responseJob.jobId,
+        },
+      });
+      const jobResCount = allSQLJobResCount[0].count;
+
+      if (jobQuesCount === jobResCount) {
+        responseJob.isQuestionnaireComplete = true;
+      } else {
+        responseJob.isQuestionnaireComplete = false;
+      }
+    }
+
     return h.response(responseJob).code(200);
 
   } catch (error) {
