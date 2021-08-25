@@ -36,7 +36,7 @@
   "webchat":{
     "empauwerMe":{
       "endpoint":"https://directline.botframework.com/v3/directline/tokens/generate",
-      "secret":"0bIf-YGwIC4.rtnoLBozL1QhcCBEdJCA6FfEjowHZaa7qqG0FaiMvTU"
+      "secret":"g0eA7hVR3lo.uK9YhvjiQ3HgYenHkfyB2At6EOGehC9plFKqb4zKuFA"
     },
     "empauwerUs":{
       "endpoint":"https://directline.botframework.com/v3/directline/tokens/generate",
