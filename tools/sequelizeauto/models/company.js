@@ -98,6 +98,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.STRING,
       allowNull: true,
       field: 'workbuddy_rand_r'
+    },
+    leadershipMessage: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'leadership_message'
     }
   }, {
     sequelize,

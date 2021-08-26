@@ -1061,7 +1061,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/CompanyFullDetails"
         
-  /company/c/staff?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&sort={sort}:
+  /company/c/staff?limit={limit}&offset={skip}&search={searchTEXT}&userType={userType}&excludeUserType={excludeUserType}&sort={sort}:
     get: 
         summary: Get all company staff
         tags:
@@ -1070,6 +1070,13 @@ paths:
         - bearerAuth: []
         parameters:
         - name: userType
+          in: query          
+          required: false
+          schema:
+            type: string
+            enum: [employer, supervisor, workbuddy, supportstaff, leadership, companysuperadmin]        
+        
+        - name: excludeUserType
           in: query          
           required: false
           schema:
@@ -3198,6 +3205,8 @@ components:
         supervisorRandR:
           type: string
         workbuddyRandR:
+          type: string
+        leadershipMessage:
           type: string
         active:
           type: boolean

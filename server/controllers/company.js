@@ -332,6 +332,7 @@ const updateCompanyProfile = async (request, h) => {
       companyIndustryId, noOfEmployees, foundedYear,
       emailBg, supervisorRandR, workbuddyRandR,
       isCompanyOnboardingComplete, countryId,
+      leadershipMessage,
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
     const { Company, Companyinfo, Country, Companyauditlog, Userinfo } = request.getModels('xpaxr');
@@ -342,7 +343,8 @@ const updateCompanyProfile = async (request, h) => {
       'noOfEmployees', 'foundedYear',
       'logo', 'banner', 'emailBg',
       'supervisorRandR', 'workbuddyRandR',
-      'isCompanyOnboardingComplete', 'countryId'
+      'isCompanyOnboardingComplete', 'countryId',
+      'leadershipMessage',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
     const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
@@ -402,7 +404,7 @@ const updateCompanyProfile = async (request, h) => {
         website, description, companyIndustryId,
         noOfEmployees, foundedYear, supervisorRandR, workbuddyRandR,
         isCompanyOnboardingComplete,
-        countryId,
+        countryId, leadershipMessage
       }, { where: { companyId: rCompanyId } }
     );
     const companyInfoUpdateDetails = { logo: updateDetails.logo, banner: updateDetails.banner, emailBg };
@@ -740,7 +742,7 @@ const getCompanyStaff = async (request, h) => {
     const userProfileInfo = userRecord && userRecord.toJSON();
     const { companyId } = userProfileInfo || {};
 
-    const { limit, offset, sort, search, userType } = request.query;
+    const { limit, offset, sort, search, userType, excludeUserType } = request.query;
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
     // Checking user type
@@ -750,6 +752,11 @@ const getCompanyStaff = async (request, h) => {
     ) : validAccountTypes.includes(userType);
     if (userType && !isUserTypeQueryValid) return h.response({ error: true, message: 'Invalid userType query parameter!' }).code(400);
 
+    const isExcludeQueryValid = (excludeUserType && isArray(excludeUserType)) ? (
+      excludeUserType.every(req => validAccountTypes.includes(req))
+    ) : validAccountTypes.includes(excludeUserType);
+
+    if (excludeUserType && !isExcludeQueryValid) return h.response({ error: true, message: 'Invalid exclude query parameter!' }).code(400);
 
     // sort query
     let [sortBy, sortType] = sort ? sort.split(':') : ['first_name', 'asc'];
@@ -776,9 +783,9 @@ const getCompanyStaff = async (request, h) => {
     const db1 = request.getDb('xpaxr');
 
     // get sql statement for getting all company staff or its count        
-    const filters = { search, sortBy, sortType, userType }
+    const filters = { search, sortBy, sortType, userType, excludeUserType }
     function getSqlStmt(queryType, obj = filters) {
-      const { search, sortBy, sortType, userType } = obj;
+      const { search, sortBy, sortType, userType, excludeUserType } = obj;
       let sqlStmt;
       const type = queryType && queryType.toLowerCase();
       if (type === 'count') {
@@ -796,6 +803,9 @@ const getCompanyStaff = async (request, h) => {
               where ui.company_id=:companyId`;
 
       // filters
+      if (excludeUserType) {
+        sqlStmt += isArray(excludeUserType) ? ` and not ut.user_type_name in (:excludeUserType)` : ` and not ut.user_type_name=:excludeUserType`;
+      }
       if (userType) {
         sqlStmt += isArray(userType) ? ` and ut.user_type_name in (:userType)` : ` and ut.user_type_name=:userType`;
       }
@@ -823,7 +833,7 @@ const getCompanyStaff = async (request, h) => {
       type: QueryTypes.SELECT,
       replacements: {
         companyId,
-        userType,
+        userType, excludeUserType,
         limitNum, offsetNum,
         searchVal,
       },
@@ -832,7 +842,7 @@ const getCompanyStaff = async (request, h) => {
       type: QueryTypes.SELECT,
       replacements: {
         companyId,
-        userType,
+        userType, excludeUserType,
         limitNum, offsetNum,
         searchVal,
       },

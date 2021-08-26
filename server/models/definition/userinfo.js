@@ -179,7 +179,6 @@ const initRelations = (model) =>{
   const Userinfo = model.Userinfo;
   const Job = model.Job;
   const Questionnaire = model.Questionnaire;
-  const Trainingcourse = model.Trainingcourse;
   const Company = model.Company;
   const User = model.User;
   const Applicationauditlog = model.Applicationauditlog;
@@ -197,24 +196,16 @@ const initRelations = (model) =>{
   const Onboarding = model.Onboarding;
   const Onboardingtask = model.Onboardingtask;
   const Profileauditlog = model.Profileauditlog;
-  const Recommendation = model.Recommendation;
-  const Recommendationfeedback = model.Recommendationfeedback;
-  const Usercompatibilitydatum = model.Usercompatibilitydatum;
   const Userfeedback = model.Userfeedback;
   const Usermeta = model.Usermeta;
   const Userquesresponse = model.Userquesresponse;
-  const Userrecommendationlog = model.Userrecommendationlog;
-  const Usertrainingcourse = model.Usertrainingcourse;
   const Userrole = model.Userrole;
   const Usertype = model.Usertype;
 
 
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
-  Userinfo.belongsToMany(Job, { through: Recommendation, foreignKey: "userId", otherKey: "jobId" });
-  Userinfo.belongsToMany(Job, { through: Recommendationfeedback, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsToMany(Questionnaire, { through: Mentorquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
-  Userinfo.belongsToMany(Trainingcourse, { through: Usertrainingcourse, foreignKey: "userId", otherKey: "courseId" });
   Userinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Userinfo.belongsTo(Company, { as: "companyUu", foreignKey: "companyUuid"});
   Userinfo.belongsTo(User, { as: "user", foreignKey: "userId"});
@@ -238,14 +229,9 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Profileauditlog, { as: "profileauditlogs", foreignKey: "affectedUserId"});
   Userinfo.hasMany(Profileauditlog, { as: "performerUserProfileauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "createdBy"});
-  Userinfo.hasMany(Recommendation, { as: "recommendations", foreignKey: "userId"});
-  Userinfo.hasMany(Recommendationfeedback, { as: "recommendationfeedbacks", foreignKey: "userId"});
-  Userinfo.hasOne(Usercompatibilitydatum, { as: "usercompatibilitydatum", foreignKey: "userId"});
   Userinfo.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "userId"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
   Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});
-  Userinfo.hasOne(Userrecommendationlog, { as: "userrecommendationlog", foreignKey: "userId"});
-  Userinfo.hasMany(Usertrainingcourse, { as: "usertrainingcourses", foreignKey: "userId"});
   Userinfo.belongsTo(Userrole, { as: "role", foreignKey: "roleId"});
   Userinfo.belongsTo(Usertype, { as: "userType", foreignKey: "userTypeId"});
 

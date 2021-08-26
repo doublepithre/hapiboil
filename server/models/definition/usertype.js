@@ -34,13 +34,9 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Usertype = model.Usertype;
-  const Trainingcourse = model.Trainingcourse;
-  const Trainingcourseaudience = model.Trainingcourseaudience;
   const Userinfo = model.Userinfo;
 
 
-  Usertype.belongsToMany(Trainingcourse, { through: Trainingcourseaudience, foreignKey: "audience", otherKey: "courseId" });
-  Usertype.hasMany(Trainingcourseaudience, { as: "trainingcourseaudiences", foreignKey: "audience"});
   Usertype.hasMany(Userinfo, { as: "userinfos", foreignKey: "userTypeId"});
 
 }
