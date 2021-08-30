@@ -640,7 +640,7 @@ const updateCompanyStaff = async (request, h) => {
     if (luserCompanyId !== ruserCompanyId) {
       return h.response({ error: true, message: 'Bad Request! You are not authorized.' }).code(403);
     }
-    if (updateDetails.active && updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
+    // if (updateDetails.active && updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
     if (updateDetails.userTypeId === oldUserTypeId) return h.response({ error: true, message: `The user already has this userType!` }).code(400);
 
     if (updateDetails.active === false) {

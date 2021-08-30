@@ -186,7 +186,8 @@ const updateUser = async (request, h) => {
     }
     const updateDetails = request.payload;
     const validUpdateRequests = [
-      'active', 'firstName',
+      // 'active',
+      'firstName',
       'lastName', 'isAdmin',
       'tzid', 'primaryMobile',
       'roleId', 'privacyClause',

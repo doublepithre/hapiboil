@@ -552,7 +552,7 @@ const updateUserBySuperadmin = async (request, h) => {
     const { userId: ruserId, active: oldActive } = ruserInfo || {};
 
     if (!ruserId) return h.response({ error: true, message: 'No user found!' }).code(400);
-    if (updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
+    // if (updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
 
     if (updateDetails.active === false) {
       const db1 = request.getDb('xpaxr');
