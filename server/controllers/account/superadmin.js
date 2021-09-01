@@ -549,10 +549,9 @@ const updateUserBySuperadmin = async (request, h) => {
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid } });
     const ruserInfo = requestedForUser && requestedForUser.toJSON();
-    const { userId: ruserId, active: oldActive } = ruserInfo || {};
+    const { userId: ruserId } = ruserInfo || {};
 
     if (!ruserId) return h.response({ error: true, message: 'No user found!' }).code(400);
-    // if (updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
 
     if (updateDetails.active === false) {
       const db1 = request.getDb('xpaxr');

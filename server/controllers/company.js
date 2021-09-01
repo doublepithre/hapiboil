@@ -633,16 +633,14 @@ const updateCompanyStaff = async (request, h) => {
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid } });;
     const requestedForUserInfo = requestedForUser && requestedForUser.toJSON();
-    const { userId: staffUserId, companyId: ruserCompanyId, active: oldActive, userTypeId: oldUserTypeId } = requestedForUserInfo || {};
+    const { userId: staffUserId, companyId: ruserCompanyId } = requestedForUserInfo || {};
 
 
     if (!staffUserId) return h.response({ error: true, message: `No user found!` }).code(400);
     if (luserCompanyId !== ruserCompanyId) {
       return h.response({ error: true, message: 'Bad Request! You are not authorized.' }).code(403);
     }
-    // if (updateDetails.active && updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
-    if (updateDetails.userTypeId === oldUserTypeId) return h.response({ error: true, message: `The user already has this userType!` }).code(400);
-
+    
     if (updateDetails.active === false) {
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `DELETE
