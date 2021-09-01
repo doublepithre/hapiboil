@@ -602,6 +602,12 @@ const updateCompanyStaff = async (request, h) => {
       (updateDetails.email && !updateDetails.password) ||
       (!updateDetails.email && updateDetails.password)
     ) return h.response({ error: true, message: 'Please provide both email and password!' }).code(400);
+    
+    if (
+      (updateDetails.email && updateDetails.password) && !updateDetails.active
+    ) {
+      updateDetails.active = false;
+    }
 
     const requestedUpdateOperations = Object.keys(request.payload) || [];
     const isAllReqsValid = requestedUpdateOperations.every(req => validUpdateRequests.includes(req));
