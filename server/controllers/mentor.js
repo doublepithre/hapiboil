@@ -28,7 +28,7 @@ const getMentorRandR = async (request, h) => {
 
         let columnName;
         if (luserTypeName === 'supervisor') columnName = 'supervisor_rand_r'
-        else if (luserTypeName === 'workbuddy') columnName = 'workbudy_rand_r'
+        else if (luserTypeName === 'workbuddy') columnName = 'workbuddy_rand_r'
             
             
         const sqlStmt = `select c.${columnName }
