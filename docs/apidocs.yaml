@@ -110,6 +110,8 @@ paths:
                           type: boolean
                         isCompanyOnboardingComplete:
                           type: boolean
+                        leadershipMessage:
+                          type: string
                     token:
                       type: string
                       description: JWT to be used for authorization 
