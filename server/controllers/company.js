@@ -674,7 +674,7 @@ const updateCompanyStaff = async (request, h) => {
 
       const reqTokenRecord = await Requesttoken.create({
         requestKey: token,
-        userId,
+        userId: staffUserId,
         expiresAt,
         resourceType: 'user',
         actionType: 'account-creation-reset-password'
