@@ -9,7 +9,7 @@ import { saveAccessToken, getAccessToken } from '../utils/nylasHelpers'
 const requestNyToken = async (request, h) => { //tokenRecord, userId
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }   
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -72,7 +72,7 @@ const requestNyToken = async (request, h) => { //tokenRecord, userId
 const revokeNyAccount = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }   
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -114,7 +114,7 @@ const revokeNyAccount = async (request, h) => {
 const userCalendars = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }   
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -151,7 +151,7 @@ const userCalendars = async (request, h) => {
 const refreshUserCalendars = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }   
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};

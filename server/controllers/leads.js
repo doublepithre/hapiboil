@@ -32,7 +32,7 @@ const leadStatuses = [
 const listLeads = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { Leads, Company, Userinfo, Industry, Jobfunction } = request.getModels('xpaxr');
     const { credentials, artifacts } = request.auth || {};
@@ -130,7 +130,7 @@ const listLeads = async (request, h) => {
 const getLead = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -184,7 +184,7 @@ const getLead = async (request, h) => {
 const getFilters = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -266,7 +266,7 @@ const getFilters = async (request, h) => {
 const createLead = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -318,7 +318,7 @@ const createLead = async (request, h) => {
 const patchLead = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -424,7 +424,7 @@ const patchLead = async (request, h) => {
 const getLeadAuditLogs = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
 
     const { artifacts } = request.auth || {};
@@ -473,7 +473,7 @@ const getLeadAuditLogs = async (request, h) => {
 const sendMaps = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
 
     const { artifacts } = request.auth || {};
@@ -539,7 +539,7 @@ const sendMaps = async (request, h) => {
 const bulkImportLeads = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     console.log(request.payload);
 
@@ -705,7 +705,7 @@ const bulkImportLeads = async (request, h) => {
 const leadsExport = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
 
     const { artifacts } = request.auth || {};
@@ -816,7 +816,7 @@ const exportLeadsToFile = async (request, queryHash) => {
 const downloadLeads = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
 
     const { artifacts } = request.auth || {};

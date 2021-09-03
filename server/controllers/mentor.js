@@ -10,7 +10,7 @@ const config = require('config');
 const getMentorRandR = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -29,9 +29,9 @@ const getMentorRandR = async (request, h) => {
         let columnName;
         if (luserTypeName === 'supervisor') columnName = 'supervisor_rand_r'
         else if (luserTypeName === 'workbuddy') columnName = 'workbuddy_rand_r'
-            
-            
-        const sqlStmt = `select c.${columnName }
+
+
+        const sqlStmt = `select c.${columnName}
             from hris.company c
             where c.company_id=:luserCompanyId`;
 
@@ -44,9 +44,9 @@ const getMentorRandR = async (request, h) => {
             },
         });
         const rAndR = camelizeKeys(rAndrSQL)[0];
-        
-        
-        return h.response({rolesAndResponsibilities: rAndR.supervisorRandR || rAndR.workbuddyRandR }).code(200);
+
+
+        return h.response({ rolesAndResponsibilities: rAndR.supervisorRandR || rAndR.workbuddyRandR }).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -57,7 +57,7 @@ const getMentorRandR = async (request, h) => {
 const mentorCandidateLinking = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -160,7 +160,7 @@ const mentorCandidateLinking = async (request, h) => {
 const getMentorCandidates = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
@@ -242,7 +242,7 @@ const getMentorCandidates = async (request, h) => {
 const getAllMentorCandidates = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
@@ -304,7 +304,7 @@ const getAllMentorCandidates = async (request, h) => {
 const replaceMentorForOne = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -375,7 +375,7 @@ const replaceMentorForOne = async (request, h) => {
 const replaceMentorForAll = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -451,7 +451,7 @@ const replaceMentorForAll = async (request, h) => {
 const deleteMentorCandidateMappingRecord = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -497,7 +497,7 @@ const deleteMentorCandidateMappingRecord = async (request, h) => {
 const getMentorApplicantProfile = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -569,7 +569,7 @@ const getMentorApplicantProfile = async (request, h) => {
 const getAllMentorApplicantsSelectiveProfile = async (request, h) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
@@ -581,7 +581,7 @@ const getAllMentorApplicantsSelectiveProfile = async (request, h) => {
 
         const { Job } = request.getModels('xpaxr');
 
-        
+
         const { limit, offset, sort, startDate, endDate, search, status } = request.query;
         const searchVal = `%${search ? search.toLowerCase() : ''}%`;
 
@@ -724,7 +724,7 @@ module.exports = {
     mentorCandidateLinking,
     getMentorCandidates,
     getAllMentorCandidates,
-    
+
     replaceMentorForOne,
     replaceMentorForAll,
     deleteMentorCandidateMappingRecord,

@@ -6,14 +6,15 @@ import { camelizeKeys } from '../utils/camelizeKeys';
 const getQuestions = async (request, h, targetName) => {
     try {
         if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden' }).code(403);
+            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
             return h.response({ message: 'Not authorized' }).code(403);
         }
-        const { Questionnaire, Questiontarget, Questiontype,Questioncategory } = request.getModels('xpaxr');
+        const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = request.getModels('xpaxr');
         let questions = await Questionnaire.findAll({
             raw: true,
             include: [{
@@ -28,13 +29,13 @@ const getQuestions = async (request, h, targetName) => {
                 attributes: []
             },
             {
-                model:Questioncategory,
-                as:'questionCategory',
-                required:true
+                model: Questioncategory,
+                as: 'questionCategory',
+                required: true
             }
             ],
             order: [["isActive", "DESC"]],
-            attributes: ["questionId", "questionUuid", "questionName", "questionConfig","questionCategory.question_category_name","questionType.question_type_name", "isActive"],
+            attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "questionCategory.question_category_name", "questionType.question_type_name", "isActive"],
         })
         return h.response(camelizeKeys(questions)).code(200);
     }
@@ -47,7 +48,7 @@ const getQuestions = async (request, h, targetName) => {
 
 const createQuestions = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -60,8 +61,8 @@ const createQuestions = async (request, h) => {
         let questions = request.payload;
         try {
             let [questionCategories, questionTypes, questionTargets] = await Promise.all([Questioncategory.findAll({ attributes: ['questionCategoryId', 'questionCategoryName'] }),
-                Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
-                Questiontarget.findAll({ attributes: ["targetId", "targetName"] })]);
+            Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
+            Questiontarget.findAll({ attributes: ["targetId", "targetName"] })]);
             //since there are only a few categories/types its okay to find all here
 
             let questionCategoryMap = questionCategories.reduce((map, obj) => (map[obj.questionCategoryName] = obj.questionCategoryId, map), {});
@@ -79,12 +80,12 @@ const createQuestions = async (request, h) => {
                         let questionTargetId = questionTargetMap[ques.target];
                         let isActive = ques.isActive !== undefined ? ques.isActive : true; //default active is true
                         let questionConfig = ques.questionConfig || {};
-                        let weight = ques.weight || 1.0;                        
+                        let weight = ques.weight || 1.0;
 
                         if (questionTypeId == null) {
                             throw new incorrectQuestionFormatException(`Question type ${ques.questionTypeName} is not in database please add question type first`);
                         }
-                        else if(questionCategoryId==null){
+                        else if (questionCategoryId == null) {
                             throw new incorrectQuestionFormatException(`Question category ${ques.questionCategory} is not in database please add question category first`);
                         }
                         if (ques.questionTypeName == 'scale5') {
@@ -146,14 +147,14 @@ const createQuestions = async (request, h) => {
 
 const getQuestionById = async (request, h, questionId) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
     if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
-        const { Questionnaire, Questiontype, Questiontarget, Questioncategory,Questionnaireanswer, Qaattribute, Attributeset } = request.getModels('xpaxr');
+        const { Questionnaire, Questiontype, Questiontarget, Questioncategory, Questionnaireanswer, Qaattribute, Attributeset } = request.getModels('xpaxr');
         try {
             let res = await Questionnaire.findOne({
                 include: [{
@@ -163,16 +164,16 @@ const getQuestionById = async (request, h, questionId) => {
                     required: true
                 },
                 {
-                    model:Questiontarget,
-                    as:"questionTarget",
-                    attributes:["targetName"],
-                    required:true
+                    model: Questiontarget,
+                    as: "questionTarget",
+                    attributes: ["targetName"],
+                    required: true
                 },
                 {
-                    model:Questioncategory,
-                    as:"questionCategory",
-                    attributes:["questionCategoryName"],
-                    required:true
+                    model: Questioncategory,
+                    as: "questionCategory",
+                    attributes: ["questionCategoryName"],
+                    required: true
                 },
                 {
                     model: Questionnaireanswer,
@@ -199,7 +200,7 @@ const getQuestionById = async (request, h, questionId) => {
                 where: {
                     questionId
                 },
-                attributes: ["questionId", "questionConfig", "questionName","weight"]
+                attributes: ["questionId", "questionConfig", "questionName", "weight"]
             });
             return h.response(res).code(200);
         } catch (err) {
@@ -212,7 +213,7 @@ const getQuestionById = async (request, h, questionId) => {
 
 const editQuestion = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -220,7 +221,7 @@ const editQuestion = async (request, h) => {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
         try {
-            const { Questionnaire,Questioncategory,Questiontype,Questiontarget } = request.getModels('xpaxr');
+            const { Questionnaire, Questioncategory, Questiontype, Questiontarget } = request.getModels('xpaxr');
 
             let [questionCategories, questionTypes, questionTargets] = await Promise.all([Questioncategory.findAll({ attributes: ['questionCategoryId', 'questionCategoryName'] }),
             Questiontype.findAll({ attributes: ["questionTypeId", "questionTypeName"] }),
@@ -233,18 +234,18 @@ const editQuestion = async (request, h) => {
             console.log(questionTypeMap);
             console.log(questionTargetMap);
             console.log(request.payload);
-            
+
             let questionPayload = request.payload;
 
             let res = await Questionnaire.update({
-                questionName:questionPayload.questionName,
-                questionConfig:questionPayload.questionConfig,
-                questionTypeId:questionTypeMap[questionPayload.questionTypeName],
-                questionCategoryId:questionCategoryMap[questionPayload.category],
-                questionTargetMap:questionTargetMap[questionPayload.target]
-            },{
-                where:{
-                    questionId:questionPayload.questionId
+                questionName: questionPayload.questionName,
+                questionConfig: questionPayload.questionConfig,
+                questionTypeId: questionTypeMap[questionPayload.questionTypeName],
+                questionCategoryId: questionCategoryMap[questionPayload.category],
+                questionTargetMap: questionTargetMap[questionPayload.target]
+            }, {
+                where: {
+                    questionId: questionPayload.questionId
                 }
             });
 
@@ -259,7 +260,7 @@ const editQuestion = async (request, h) => {
 
 const updateIsActive = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -278,7 +279,7 @@ const updateIsActive = async (request, h) => {
 
 const deleteQuestions = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -299,7 +300,7 @@ const deleteQuestions = async (request, h) => {
 
 const getQuestionCategories = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -314,7 +315,7 @@ const getQuestionCategories = async (request, h) => {
 
 const getQuestionTypes = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -329,7 +330,7 @@ const getQuestionTypes = async (request, h) => {
 
 const getAttributes = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -338,7 +339,7 @@ const getAttributes = async (request, h) => {
     } else {
         let { Attributeset } = request.getModels('xpaxr');
         let attributes = await Attributeset.findAll({
-            order:[["attributeId","ASC"]]
+            order: [["attributeId", "ASC"]]
         });
         return h.response(attributes).code(200);
     }
@@ -346,7 +347,7 @@ const getAttributes = async (request, h) => {
 
 const createAttribute = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -361,7 +362,7 @@ const createAttribute = async (request, h) => {
 
 const deleteAttribute = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -380,7 +381,7 @@ const deleteAttribute = async (request, h) => {
 
 const editAttribute = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -401,24 +402,25 @@ const editAttribute = async (request, h) => {
 
 const createQuestionAttributes = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
     if (userTypeName !== 'superadmin') {
         return h.response({ message: 'Not authorized' }).code(403);
     } else {
-        let { Qaattribute,Questionnaireanswer } = request.getModels('xpaxr');
+        let { Qaattribute, Questionnaireanswer } = request.getModels('xpaxr');
         const sequelize = request.getDb('xpaxr').sequelize;
         let transaction = await sequelize.transaction();
         try {
             let rows = await Questionnaireanswer.findAll({
-                attributes:["answerId"],
-                where:{
-                    questionId:request.payload.questionId
-            }})
+                attributes: ["answerId"],
+                where: {
+                    questionId: request.payload.questionId
+                }
+            })
             let answerIdArr = [];
-            for (let ans of rows){
+            for (let ans of rows) {
                 answerIdArr.push(ans.answerId);
             }
             await Qaattribute.destroy({
@@ -427,10 +429,10 @@ const createQuestionAttributes = async (request, h) => {
                 }
             })
             let res;
-            if (request.payload.questionAnswerAttributes.length>0){
+            if (request.payload.questionAnswerAttributes.length > 0) {
                 res = await Qaattribute.bulkCreate(request.payload.questionAnswerAttributes);
-            }else{
-                res = {message:"Successfuly deleted all question attributes"};
+            } else {
+                res = { message: "Successfuly deleted all question attributes" };
             }
             await transaction.commit();
             return h.response(res).code(200);
@@ -445,7 +447,7 @@ const createQuestionAttributes = async (request, h) => {
 
 const addQuestionMapping = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -465,7 +467,7 @@ const addQuestionMapping = async (request, h) => {
 
 const getQuestionMapping = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -481,40 +483,40 @@ const getQuestionMapping = async (request, h) => {
                         as: "empauwerAllQ",
                         include: [
                             {
-                                model:Questiontype,
-                                as:"questionType",
-                                attributes:["questionTypeName"],
+                                model: Questiontype,
+                                as: "questionType",
+                                attributes: ["questionTypeName"],
                             },
                             {
-                                model:Questiontarget,
-                                as:"questionTarget",
-                                attributes:["targetName"]
+                                model: Questiontarget,
+                                as: "questionTarget",
+                                attributes: ["targetName"]
                             }
                         ],
-                        attributes: ["questionId", "questionUuid", "questionName", "questionConfig","isActive"]
+                        attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "isActive"]
                     },
                     {
                         model: Questionnaire,
                         as: "empauwerMeQ",
                         include: [
                             {
-                                model:Questiontype,
-                                as:"questionType",
-                                attributes:["questionTypeName"],
+                                model: Questiontype,
+                                as: "questionType",
+                                attributes: ["questionTypeName"],
                             },
                             {
-                                model:Questiontarget,
-                                as:"questionTarget",
-                                attributes:["targetName"]
+                                model: Questiontarget,
+                                as: "questionTarget",
+                                attributes: ["targetName"]
                             }
                         ],
-                        attributes: ["questionId", "questionUuid", "questionName", "questionConfig","isActive"]
+                        attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "isActive"]
                     },
                 ],
                 attributes: { exclude: ["createdAt", "updatedAt"] }
             });
             res = JSON.parse(JSON.stringify(res)); // need to do this to unnest attributes
-            for (let row of res){
+            for (let row of res) {
                 row.empauwerMeQ["questionTypeName"] = row.empauwerMeQ.questionType.questionTypeName;
                 row.empauwerAllQ["questionTypeName"] = row.empauwerAllQ.questionType.questionTypeName;
             }
@@ -526,9 +528,9 @@ const getQuestionMapping = async (request, h) => {
     }
 }
 
-const deleteQuestionMapping = async (request,h)=>{
+const deleteQuestionMapping = async (request, h) => {
     if (!request.auth.isAuthenticated) {
-        return h.response({ message: 'Not authenticated' }).code(401);
+        return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     let userId = request.auth.credentials.id;
@@ -538,9 +540,9 @@ const deleteQuestionMapping = async (request,h)=>{
         let { Questionmapping } = request.getModels('xpaxr');
         try {
             let res = await Questionmapping.destroy({
-                where:{
-                    empauwerAllQid:request.payload.empauwerAllQid,
-                    empauwerMeQid:request.payload.empauwerMeQid,
+                where: {
+                    empauwerAllQid: request.payload.empauwerAllQid,
+                    empauwerMeQid: request.payload.empauwerMeQid,
                 }
             });
             return h.response(res).code(200);

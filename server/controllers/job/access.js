@@ -12,7 +12,7 @@ const config = require('config');
 const getJobAccessRecords = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -68,7 +68,7 @@ const getJobAccessRecords = async (request, h) => {
 const shareJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -155,7 +155,7 @@ const shareJob = async (request, h) => {
 const updateSharedJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -239,7 +239,7 @@ const updateSharedJob = async (request, h) => {
 const deleteJobAccessRecord = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -304,7 +304,7 @@ const deleteJobAccessRecord = async (request, h) => {
 const getApplicationAccessRecords = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -365,7 +365,7 @@ const getApplicationAccessRecords = async (request, h) => {
 const shareApplication = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -457,7 +457,7 @@ const shareApplication = async (request, h) => {
 const updateSharedApplication = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -553,7 +553,7 @@ const updateSharedApplication = async (request, h) => {
 const deleteApplicationAccessRecord = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};

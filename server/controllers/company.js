@@ -15,7 +15,7 @@ const uploadFile = require('../utils/uploadFile');
 const getAllCompanyNames = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const db1 = request.getDb('xpaxr');
 
@@ -43,7 +43,7 @@ const getAllCompanyNames = async (request, h) => {
 const getCompanyOptions = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { Companyindustry } = request.getModels('xpaxr');
     const companyIndustries = await Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] });
@@ -61,7 +61,7 @@ const getCompanyOptions = async (request, h) => {
 const getOwnCompanyInfo = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -107,7 +107,7 @@ const getOwnCompanyInfo = async (request, h) => {
 const getAnyCompanyInfo = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -147,7 +147,7 @@ const getAnyCompanyInfo = async (request, h) => {
 const getCompanyVisitCount = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -227,7 +227,7 @@ const getCompanyVisitCount = async (request, h) => {
 const getCompanyWorkAccommodations = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -269,7 +269,7 @@ const getCompanyWorkAccommodations = async (request, h) => {
 const updateCompanyWorkaccommodationStatus = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -319,7 +319,7 @@ const updateCompanyWorkaccommodationStatus = async (request, h) => {
 const updateCompanyProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
 
     // Checking user type from jwt
@@ -447,7 +447,7 @@ const updateCompanyProfile = async (request, h) => {
 const createCompanyStaff = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
 
     // Checking user type from jwt
@@ -584,7 +584,7 @@ const createCompanyStaff = async (request, h) => {
 const updateCompanyStaff = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -602,7 +602,7 @@ const updateCompanyStaff = async (request, h) => {
       (updateDetails.email && !updateDetails.password) ||
       (!updateDetails.email && updateDetails.password)
     ) return h.response({ error: true, message: 'Please provide both email and password!' }).code(400);
-    
+
     if (
       (updateDetails.email && updateDetails.password) && !updateDetails.active
     ) {
@@ -646,7 +646,7 @@ const updateCompanyStaff = async (request, h) => {
     if (luserCompanyId !== ruserCompanyId) {
       return h.response({ error: true, message: 'Bad Request! You are not authorized.' }).code(403);
     }
-    
+
     if (updateDetails.active === false) {
       const db1 = request.getDb('xpaxr');
       const sqlStmt = `DELETE
@@ -731,7 +731,7 @@ const updateCompanyStaff = async (request, h) => {
 const getCompanyStaff = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -865,7 +865,7 @@ const getCompanyStaff = async (request, h) => {
 const getFellowCompanyStaff = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -973,7 +973,7 @@ const getFellowCompanyStaff = async (request, h) => {
 const resendCompanyVerificationEmail = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -1044,7 +1044,7 @@ const resendCompanyVerificationEmail = async (request, h) => {
 const getAllJobsForAParticularCompany = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -1222,7 +1222,7 @@ const getAllJobsForAParticularCompany = async (request, h) => {
 const getCompanyJobDetails = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};

@@ -9,7 +9,7 @@ import { camelizeKeys } from '../utils/camelizeKeys';
 const loginUser = async (request, h) => {
   try {
     if (request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden' }).code(401);
     }
     const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
     const { email: rEmail, password, rememberMe } = request.payload || {};

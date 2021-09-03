@@ -12,7 +12,7 @@ const config = require('config');
 const getOnboardingTaskLists = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -92,7 +92,7 @@ const getOnboardingTaskLists = async (request, h) => {
 const getOnboardingLists = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -197,7 +197,7 @@ const getOnboardingLists = async (request, h) => {
 const getOnboardingDetails = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -246,7 +246,7 @@ const getOnboardingDetails = async (request, h) => {
 const updateOnboardingTaskStatus = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;

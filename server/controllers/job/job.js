@@ -11,7 +11,7 @@ const config = require('config');
 const createJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -120,7 +120,7 @@ const createJob = async (request, h) => {
 const getSingleJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -297,7 +297,7 @@ const getSingleJob = async (request, h) => {
 const getAllJobs = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -547,7 +547,7 @@ const getAllJobs = async (request, h) => {
 const getRecruiterJobs = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -758,7 +758,7 @@ const getRecruiterJobs = async (request, h) => {
 const updateJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -900,7 +900,7 @@ const updateJob = async (request, h) => {
 const deleteJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -955,7 +955,7 @@ const deleteJob = async (request, h) => {
 const getAllDeletedJobs = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -1121,7 +1121,7 @@ const getAllDeletedJobs = async (request, h) => {
 const restoreDeletedJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -1164,7 +1164,7 @@ const restoreDeletedJob = async (request, h) => {
 const createJobQuesResponses = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -1226,7 +1226,7 @@ const createJobQuesResponses = async (request, h) => {
 const getJobQuesResponses = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;

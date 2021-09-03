@@ -11,7 +11,7 @@ const config = require('config');
 const getJobDetailsOptions = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
     const [jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
@@ -37,7 +37,7 @@ const getJobDetailsOptions = async (request, h) => {
 const getAutoComplete = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { search, type } = request.query;
     if (!(search && type)) return h.response({ error: true, message: 'Query parameters missing (search and type)!' }).code(400);
@@ -98,7 +98,7 @@ const getAutoComplete = async (request, h) => {
 const getJobVisitCount = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -190,7 +190,7 @@ const getJobVisitCount = async (request, h) => {
 const getTop5EJobWithVisitCount = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -294,7 +294,7 @@ const getTop5EJobWithVisitCount = async (request, h) => {
 const getApplicationPieChart = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -418,7 +418,7 @@ const getApplicationPieChart = async (request, h) => {
 const getJobApplicationPieChart = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -559,7 +559,7 @@ const getJobApplicationPieChart = async (request, h) => {
 const getRecommendedTalents = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -702,7 +702,7 @@ const getRecommendedTalents = async (request, h) => {
 const getTalentsAndApplicants = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: luserId } = credentials || {};
@@ -894,7 +894,7 @@ const getTalentsAndApplicants = async (request, h) => {
 const getTalentProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
