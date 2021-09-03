@@ -1,5 +1,6 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const bcrypt = require('bcrypt');
+const moment = require('moment');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const config = require('config');
@@ -11,7 +12,7 @@ const loginUser = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(403);
     }
     const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
-    const { email: rEmail, password } = request.payload || {};
+    const { email: rEmail, password, rememberMe } = request.payload || {};
     const email = rEmail?.toLowerCase();
 
     if (!(email && password)) {
@@ -79,10 +80,14 @@ const loginUser = async (request, h) => {
       roleName,
     } = userInfoRes || {};
     const token = await jwt.sign({ userUuid, userTypeId, email: userEmail, roleId, active, companyId, companyUuid, firstName, lastName, isAdmin, tzid, primaryMobile, userTypeName, roleName }, config.get('jwtSecret'), { expiresIn: '24h' });
+    
+    const expirationHrs = rememberMe ? 7 * 24 : 12;
+    const expiresAt = moment().add(expirationHrs, 'hours').format();
     await Accesstoken.create({
       token,
       userId: user_id,
-      isValid: true
+      isValid: true,
+      expiresAt,
     });
 
     if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {

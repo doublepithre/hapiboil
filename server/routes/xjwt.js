@@ -20,9 +20,9 @@ const xjwt = {
                             inner join hris.userinfo ui on ato.user_id=ui.user_id
                         where
                             ato.token= :token and is_valid=true
-                            and ato.created_at > :expirationTime`;
+                            and ato.expires_at > :expirationTime`;
                 const sequelize = db1.sequelize;
-                const expirationTime = moment().subtract('12', 'hours').toISOString();
+                const expirationTime = moment().toISOString();
                 console.log({ expirationTime });
                 const ares = await sequelize.query(sqlStmt, {
                     type: QueryTypes.SELECT,
