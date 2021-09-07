@@ -15,7 +15,7 @@ const uploadFile = require('../../utils/uploadFile');
 const createUser = async (request, h) => {
   try {
     if (request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden' }).code(401);
     }
     const { User, Userinfo, Usertype, Userrole, Profileauditlog, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType, tandc, privacyClause } = request.payload || {};
@@ -133,7 +133,7 @@ const createUser = async (request, h) => {
 const getUser = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -146,6 +146,7 @@ const getUser = async (request, h) => {
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select 
       c.is_company_onboarding_complete,
+      c.leadership_message,
       ur.role_name, ut.user_type_name, ui.*
     from hris.userinfo ui
       inner join hris.userrole ur on ur.role_id=ui.role_id
@@ -167,6 +168,9 @@ const getUser = async (request, h) => {
 
       userRecord.isOnboardingComplete = umetaId ? metaValue : "no";
     }
+    if (luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') {
+      delete userRecord.leadershipMessage;
+    }
     if (luserTypeName !== 'companysuperadmin') {
       delete userRecord.isCompanyOnboardingComplete;
     }
@@ -182,11 +186,12 @@ const getUser = async (request, h) => {
 const updateUser = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const updateDetails = request.payload;
     const validUpdateRequests = [
-      'active', 'firstName',
+      // 'active',
+      'firstName',
       'lastName', 'isAdmin',
       'tzid', 'primaryMobile',
       'roleId', 'privacyClause',
@@ -253,7 +258,7 @@ const updateUser = async (request, h) => {
 const updatePassword = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -474,7 +479,7 @@ const verifyEmail = async (request, h) => {
 const createProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -572,7 +577,7 @@ const createProfile = async (request, h) => {
 const getProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let userType = request.auth.artifacts.decoded.userTypeName;
 
@@ -645,7 +650,7 @@ const getProfile = async (request, h) => {
 const getUserMetaData = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -671,7 +676,7 @@ const getUserMetaData = async (request, h) => {
 const updateMetaData = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -725,7 +730,7 @@ const updateMetaData = async (request, h) => {
 const getAllUserMetaData = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -752,7 +757,7 @@ const getAllUserMetaData = async (request, h) => {
 const getResources = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -824,7 +829,7 @@ const getResources = async (request, h) => {
 const saveUserFeedback = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -851,7 +856,7 @@ const saveUserFeedback = async (request, h) => {
 const getQuestionnaire = async (request, h, targetName) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = request.getModels('xpaxr');
     let questions = await Questionnaire.findAll({
@@ -890,7 +895,7 @@ const getQuestionnaire = async (request, h, targetName) => {
 const getWebchatToken = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     const { credentials } = request.auth || {};

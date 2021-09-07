@@ -92,6 +92,8 @@ paths:
                 password:
                   type: string
                   example: password
+                rememberMe:
+                  type: boolean
   
       responses:
         '200':
@@ -110,6 +112,8 @@ paths:
                           type: boolean
                         isCompanyOnboardingComplete:
                           type: boolean
+                        leadershipMessage:
+                          type: string
                     token:
                       type: string
                       description: JWT to be used for authorization 
@@ -392,6 +396,8 @@ paths:
                     type: boolean
                   isOnboardingComplete:
                     type: boolean
+                  leadershipMessage:
+                    type: string
   
   /account/resources:
     get: 
@@ -1370,7 +1376,35 @@ paths:
           application/json: 
             schema:
               type: object
-              $ref: "#/components/schemas/job"
+              properties:
+                jobName:
+                  type: string
+                jobDescription:
+                  type: string
+                jobIndustryId:
+                  type: number
+                jobFunctionId:
+                  type: number
+                jobTypeId:
+                  type: number
+                jobLocationId:
+                  type: number
+                minExp:
+                  type: number
+                duration:
+                  type: number
+                closeDate:
+                  type: string
+                  example: '2027-12-27'
+                isPrivate:
+                  type: boolean
+                isDeleted:
+                  type: boolean
+                jobSkills:
+                  type: array
+                  items:
+                    type: string
+
       responses:
         '201':
           description: Job created

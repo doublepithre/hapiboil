@@ -11,7 +11,7 @@ const config = require('config');
 const applyToJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
@@ -164,7 +164,7 @@ const applyToJob = async (request, h) => {
 const getAppliedJobs = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
@@ -331,7 +331,7 @@ const getAppliedJobs = async (request, h) => {
 const withdrawFromAppliedJob = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
@@ -481,7 +481,7 @@ const withdrawFromAppliedJob = async (request, h) => {
 const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -636,7 +636,7 @@ const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
 const getAllApplicantsSelectiveProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
@@ -795,7 +795,7 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
 const getApplicantProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -875,7 +875,7 @@ const getApplicantProfile = async (request, h) => {
 const updateApplicationStatus = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;

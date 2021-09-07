@@ -16,7 +16,7 @@ const uploadFile = require('../../utils/uploadFile');
 const createCompanySuperAdmin = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const { id: luserId } = credentials || {};
@@ -190,7 +190,7 @@ const createCompanySuperAdmin = async (request, h) => {
 const getAllCompanyBySuperadmin = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -300,7 +300,7 @@ const getAllCompanyBySuperadmin = async (request, h) => {
 const getAllUsersBySuperadmin = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -427,7 +427,7 @@ const getAllUsersBySuperadmin = async (request, h) => {
 const updateCompanyBySuperadmin = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -527,7 +527,7 @@ const updateCompanyBySuperadmin = async (request, h) => {
 const updateUserBySuperadmin = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     const { credentials } = request.auth || {};
     const userId = credentials.id;
@@ -549,10 +549,9 @@ const updateUserBySuperadmin = async (request, h) => {
     const { userUuid } = request.params || {};
     const requestedForUser = await Userinfo.findOne({ where: { userUuid } });
     const ruserInfo = requestedForUser && requestedForUser.toJSON();
-    const { userId: ruserId, active: oldActive } = ruserInfo || {};
+    const { userId: ruserId } = ruserInfo || {};
 
     if (!ruserId) return h.response({ error: true, message: 'No user found!' }).code(400);
-    if (updateDetails.active === oldActive) return h.response({ error: true, message: `The user is already ${updateDetails.active === true ? 'active' : 'deactivated'}!` }).code(400);
 
     if (updateDetails.active === false) {
       const db1 = request.getDb('xpaxr');
@@ -597,7 +596,7 @@ const updateUserBySuperadmin = async (request, h) => {
 const resendVerificationEmailBySuperadmin = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;

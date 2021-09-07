@@ -31,12 +31,6 @@ const manifest = {
         plugin: require('./routes/xjwt')
       },
       {
-        plugin: require('./routes/fix'),
-        routes: {
-          prefix: `${apiRootPrefix}/fix`,
-        },
-      },
-      {
         plugin: require('./routes/account/user'),
         routes: {
           prefix: `${apiRootPrefix}/account`,

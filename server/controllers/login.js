@@ -1,5 +1,6 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const bcrypt = require('bcrypt');
+const moment = require('moment');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const config = require('config');
@@ -8,10 +9,10 @@ import { camelizeKeys } from '../utils/camelizeKeys';
 const loginUser = async (request, h) => {
   try {
     if (request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(403);
+      return h.response({ message: 'Forbidden' }).code(401);
     }
     const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
-    const { email: rEmail, password } = request.payload || {};
+    const { email: rEmail, password, rememberMe } = request.payload || {};
     const email = rEmail?.toLowerCase();
 
     if (!(email && password)) {
@@ -45,6 +46,7 @@ const loginUser = async (request, h) => {
     const db1 = request.getDb('xpaxr');
     const sqlStmt = `select 
        c.is_company_onboarding_complete,
+       c.leadership_message,
        ur.role_name, ut.user_type_name, ui.*
      from hris.userinfo ui
        inner join hris.userrole ur on ur.role_id=ui.role_id
@@ -78,10 +80,14 @@ const loginUser = async (request, h) => {
       roleName,
     } = userInfoRes || {};
     const token = await jwt.sign({ userUuid, userTypeId, email: userEmail, roleId, active, companyId, companyUuid, firstName, lastName, isAdmin, tzid, primaryMobile, userTypeName, roleName }, config.get('jwtSecret'), { expiresIn: '24h' });
+    
+    const expirationHrs = rememberMe ? 7 * 24 : 12;
+    const expiresAt = moment().add(expirationHrs, 'hours').format();
     await Accesstoken.create({
       token,
       userId: user_id,
-      isValid: true
+      isValid: true,
+      expiresAt,
     });
 
     if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
@@ -90,6 +96,9 @@ const loginUser = async (request, h) => {
       const { umetaId, metaValue } = userMetaData || {};
 
       userInfoRes.isOnboardingComplete = umetaId ? metaValue : "no";
+    }
+    if (userTypeName !== 'supervisor' && userTypeName !== 'workbuddy') {
+      delete userInfoRes.leadershipMessage;
     }
     if (userTypeName !== 'companysuperadmin') {
       delete userInfoRes.isCompanyOnboardingComplete;
