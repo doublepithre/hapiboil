@@ -931,7 +931,7 @@ const getWebchatToken = async (request, h) => {
     let endpoint;
     let secret;
 
-    if (luserTypeName === "mentor") {
+    if (["supervisor", "workbuddy"].includes(luserTypeName)) {
       endpoint = config.webchat.empauwerUs.endpoint;
       secret = config.webchat.empauwerUs.secret;
     } else if (luserTypeName === "candidate") {
