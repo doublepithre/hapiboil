@@ -1,6 +1,7 @@
 import {
   createUser,
   getUser,
+  getUserFirstName,
   updateUser,
   updatePassword,  
 
@@ -33,6 +34,14 @@ const xuser = {
         options: {
           auth: false,
           handler: createUser,
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/botuser/{userUuid}',
+        options: {
+          auth: false,
+          handler: getUserFirstName,
         },
       });
       server.route({

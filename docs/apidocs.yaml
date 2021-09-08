@@ -375,6 +375,24 @@ paths:
                     description: Describes reason for failure
                     type: string
   
+  /account/botuser/{userUuid}:
+    get: 
+      summary: Get bot user info
+      security:
+      - bearerAuth: []
+      tags:
+        - User
+      responses:
+        '200':
+          description: Successfully get bot user information
+          content:
+            application/json: 
+              schema:
+                type: object
+                properties:
+                  firstName:
+                    type: string
+  
   /account/me:
     get: 
       summary: Get user info

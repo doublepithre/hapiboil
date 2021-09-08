@@ -459,7 +459,7 @@ const createCompanyStaff = async (request, h) => {
     const { User, Userinfo, Usertype, Userrole, Profileauditlog, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType, firstName, lastName } = request.payload || {};
 
-    if (!(email && password && accountType && firstName && lastName)) {
+    if (!(email && password && accountType)) {
       return h.response({ error: true, message: 'Please provide necessary details' }).code(400);
     }
 
@@ -520,7 +520,7 @@ const createCompanyStaff = async (request, h) => {
       roleId,
       userTypeId,
       active: isDormantType ? true : false,
-      firstName,
+      firstName: firstName || email.split('@')[0],
       lastName,
       companyId,
       companyUuid,
