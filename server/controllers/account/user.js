@@ -183,6 +183,34 @@ const getUser = async (request, h) => {
   }
 }
 
+const getUserFirstName = async (request, h) => {
+  try {
+    if (request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden' }).code(401);
+    }
+    const { userUuid } = request.params || {};
+
+    // get user record info
+    const db1 = request.getDb('xpaxr');
+    const sqlStmt = `select ui.first_name
+    from hris.userinfo ui
+    where ui.user_uuid=:userUuid`;
+
+    const sequelize = db1.sequelize;
+    const userRecordSQL = await sequelize.query(sqlStmt, {
+      type: QueryTypes.SELECT,
+      replacements: { userUuid }
+    });
+    const userRecord = camelizeKeys(userRecordSQL)[0];
+
+    return h.response(userRecord).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Bad Request!' }).code(500);
+  }
+}
+
 const updateUser = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
@@ -928,6 +956,7 @@ const getWebchatToken = async (request, h) => {
 module.exports = {
   createUser,
   getUser,
+  getUserFirstName,
   updateUser,
   updatePassword,  
 
