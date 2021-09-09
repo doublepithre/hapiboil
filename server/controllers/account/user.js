@@ -886,6 +886,23 @@ const getQuestionnaire = async (request, h, targetName) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
+    const { part } = request.query || {};
+
+    const validPartQuery = [1, 2, 3];
+    const isPartQueryValid = (part && isArray(part)) ? (
+      part.every(item => validPartQuery.includes(Number(item)))
+    ) : validPartQuery.includes(Number(part));
+    if (part && !isPartQueryValid) return h.response({ error: true, message: 'Invalid part query parameter!' }).code(400);
+
+
+    let emeWhere = {};
+    if (targetName === 'empauwer_me' && part) {
+      emeWhere = {
+        part: part
+      }
+    }
+
+
     const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = request.getModels('xpaxr');
     let questions = await Questionnaire.findAll({
       raw: true,
@@ -908,9 +925,10 @@ const getQuestionnaire = async (request, h, targetName) => {
       }
       ],
       where: {
-        isActive: true
+        isActive: true,
+        ...emeWhere,
       },
-      attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "questionType.question_type_name", "questionCategory.question_category_name"]
+      attributes: ["questionId", "questionUuid", "questionName", "part", "questionConfig", "questionType.question_type_name", "questionCategory.question_category_name"]
     });;
     return h.response(camelizeKeys({ questions })).code(200);
   }
@@ -958,7 +976,7 @@ module.exports = {
   getUser,
   getUserFirstName,
   updateUser,
-  updatePassword,  
+  updatePassword,
 
   forgotPassword,
   resetPassword,
@@ -966,7 +984,7 @@ module.exports = {
 
   createProfile,
   getProfile,
-  
+
   getUserMetaData,
   updateMetaData,
   getAllUserMetaData,
