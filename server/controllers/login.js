@@ -12,10 +12,10 @@ const loginUser = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(401);
     }
     const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
-    const { email: rEmail, password, rememberMe } = request.payload || {};
+    const { email: rEmail, password, rememberMe, captcha } = request.payload || {};
     const email = rEmail?.toLowerCase();
 
-    if (!(email && password)) {
+    if (!(email && password && captcha)) {
       return h.response({ error: true, message: 'Please provide necessary credentials' }).code(400);
     }
 

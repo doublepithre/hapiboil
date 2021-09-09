@@ -92,6 +92,8 @@ paths:
                 password:
                   type: string
                   example: password
+                captcha:
+                  type: string
                 rememberMe:
                   type: boolean
   
