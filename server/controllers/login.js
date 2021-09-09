@@ -15,8 +15,11 @@ const loginUser = async (request, h) => {
     const { email: rEmail, password, rememberMe, captcha } = request.payload || {};
     const email = rEmail?.toLowerCase();
 
-    if (!(email && password && captcha)) {
+    if (!(email && password)) {
       return h.response({ error: true, message: 'Please provide necessary credentials' }).code(400);
+    }
+    if (!captcha) {
+      return h.response({ error: true, message: 'Please click on robot captcha' }).code(400);
     }
 
     if (!validator.isEmail(email)) {
