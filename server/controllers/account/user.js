@@ -602,7 +602,7 @@ const createProfile = async (request, h) => {
   }
 }
 
-const getProfile = async (request, h) => {
+const OLDgetProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
@@ -667,6 +667,113 @@ const getProfile = async (request, h) => {
     let isComplete = userQuesCount === userResCount;
 
     if (userType !== 'supervisor' && userType !== 'workbuddy' && userType !== 'candidate') isComplete = true;
+    return h.response({ isComplete, responses }).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
+  }
+}
+
+const getProfile = async (request, h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
+    }
+    let userType = request.auth.artifacts.decoded.userTypeName;
+
+    const { credentials } = request.auth || {};
+    const { id: userId } = credentials || {};
+    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+
+    // attaching isComplete property
+    const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;
+
+
+
+    let quesResponses = [];
+    let isComplete = [];
+
+    if (userType === 'candidate') {
+      quesResponses = await Userquesresponse.findAll({ where: { userId } });
+
+      const sqlStmtForUserQuesCount = `select count(*), q.part
+        from hris.questionnaire q
+          inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+        where qt.target_id=1
+        group by q.part`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = camelizeKeys(allSQLUserQuesCount);
+
+      const sqlStmtForUserResCount = `select count(*), q.part
+        from hris.userquesresponses uqr
+          inner join hris.questionnaire q on q.question_id=uqr.question_id
+        where uqr.user_id=:userId
+        group by q.part`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = camelizeKeys(allSQLUserResCount);
+
+      // user(Ques/Res)count---------- [{count: 5, part: 1}]
+      const quesCountmap = new Map(); // { part: count }
+      for (let item of userQuesCount) {
+        const mapItem = quesCountmap.get(item.part);
+        if (mapItem === undefined) quesCountmap.set(item.part, item.count);
+      };
+
+      for (let item of userResCount) {
+        const mapItem = quesCountmap.get(item.part);
+        if (item.count === mapItem && item.part) isComplete.push(item.part);
+      }
+      isComplete.sort((a, b) => a - b);
+    }
+    if (userType === 'supervisor' || userType === 'workbuddy') {
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId } });
+
+      const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
+    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+    where qt.target_id=3`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = allSQLUserQuesCount[0].count;
+
+      const sqlStmtForUserResCount = `select count(*) 
+      from hris.mentorquesresponses mqr
+      where mqr.user_id=:userId`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = allSQLUserResCount[0].count;
+
+      isComplete = userQuesCount === userResCount;
+
+    }
+
+    const responses = [];
+    for (let response of quesResponses) {
+      const responseInfo = response && response.toJSON();
+      const { questionId, responseVal, timeTaken } = responseInfo || {};
+      const res = { questionId, answer: responseVal.answer, timeTaken };
+      responses.push(res);
+    }
+
     return h.response({ isComplete, responses }).code(200);
   }
   catch (error) {
