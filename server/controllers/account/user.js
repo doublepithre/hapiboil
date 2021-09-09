@@ -637,79 +637,6 @@ const createProfile = async (request, h) => {
   }
 }
 
-const OLDgetProfile = async (request, h) => {
-  try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
-    let userType = request.auth.artifacts.decoded.userTypeName;
-
-    const { credentials } = request.auth || {};
-    const { id: userId } = credentials || {};
-    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
-
-    let quesResponses = [];
-    let targetId = 1;
-    let answerTable = 'userquesresponses';
-
-    if (userType === 'candidate') {
-      quesResponses = await Userquesresponse.findAll({ where: { userId } });
-      targetId = 1;
-      answerTable = 'userquesresponses';
-    }
-    if (userType === 'supervisor' || userType === 'workbuddy') {
-      quesResponses = await Mentorquesresponse.findAll({ where: { userId } });
-      targetId = 3;
-      answerTable = 'mentorquesresponses';
-    }
-
-    const responses = [];
-    for (let response of quesResponses) {
-      const responseInfo = response && response.toJSON();
-      const { questionId, responseVal, timeTaken } = responseInfo || {};
-      const res = { questionId, answer: responseVal.answer, timeTaken };
-      responses.push(res);
-    }
-
-    // attaching isComplete property
-    const db1 = request.getDb('xpaxr');
-    const sequelize = db1.sequelize;
-
-    const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
-    where qt.target_id=:targetId`;
-
-    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
-      type: QueryTypes.SELECT,
-      replacements: {
-        targetId,
-      },
-    });
-    const userQuesCount = allSQLUserQuesCount[0].count;
-
-    const sqlStmtForUserResCount = `select count(*) 
-      from hris.${answerTable} uqr
-      where uqr.user_id=:userId`;
-
-    const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
-      type: QueryTypes.SELECT,
-      replacements: {
-        userId,
-      },
-    });
-    const userResCount = allSQLUserResCount[0].count;
-
-    let isComplete = userQuesCount === userResCount;
-
-    if (userType !== 'supervisor' && userType !== 'workbuddy' && userType !== 'candidate') isComplete = true;
-    return h.response({ isComplete, responses }).code(200);
-  }
-  catch (error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
-  }
-}
-
 const getProfile = async (request, h) => {
   try {
     if (!request.auth.isAuthenticated) {
@@ -723,7 +650,7 @@ const getProfile = async (request, h) => {
 
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
-    
+
     let quesResponses = [];
     let isComplete = [];
 
