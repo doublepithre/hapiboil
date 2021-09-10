@@ -3,6 +3,7 @@ var _Accesstoken = require("./accesstoken");
 var _Applicationauditlog = require("./applicationauditlog");
 var _Applicationhiremember = require("./applicationhiremember");
 var _Attributeset = require("./attributeset");
+var _AutismCategory = require("./autism_category");
 var _Company = require("./company");
 var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
@@ -12,8 +13,10 @@ var _Companyworkaccommodation = require("./companyworkaccommodation");
 var _Country = require("./country");
 var _Cronofy = require("./cronofy");
 var _Cronofytoken = require("./cronofytoken");
+var _Education = require("./education");
 var _Emaillog = require("./emaillog");
 var _Emailtemplate = require("./emailtemplate");
+var _GenderCategory = require("./gender_category");
 var _Jobapplication = require("./jobapplication");
 var _Jobauditlog = require("./jobauditlog");
 var _Jobfunction = require("./jobfunction");
@@ -54,6 +57,7 @@ var _Trainingmode = require("./trainingmode");
 var _Trainingtopic = require("./trainingtopic");
 var _User = require("./user");
 var _Usercompatibilitydatum = require("./usercompatibilitydatum");
+var _Userdemographic = require("./userdemographic");
 var _Userfeedback = require("./userfeedback");
 var _Userinfo = require("./userinfo");
 var _Usermetum = require("./usermetum");
@@ -69,6 +73,7 @@ function initModels(sequelize) {
   var Applicationauditlog = _Applicationauditlog(sequelize, DataTypes);
   var Applicationhiremember = _Applicationhiremember(sequelize, DataTypes);
   var Attributeset = _Attributeset(sequelize, DataTypes);
+  var AutismCategory = _AutismCategory(sequelize, DataTypes);
   var Company = _Company(sequelize, DataTypes);
   var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
@@ -78,8 +83,10 @@ function initModels(sequelize) {
   var Country = _Country(sequelize, DataTypes);
   var Cronofy = _Cronofy(sequelize, DataTypes);
   var Cronofytoken = _Cronofytoken(sequelize, DataTypes);
+  var Education = _Education(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
   var Emailtemplate = _Emailtemplate(sequelize, DataTypes);
+  var GenderCategory = _GenderCategory(sequelize, DataTypes);
   var Jobapplication = _Jobapplication(sequelize, DataTypes);
   var Jobauditlog = _Jobauditlog(sequelize, DataTypes);
   var Jobfunction = _Jobfunction(sequelize, DataTypes);
@@ -120,6 +127,7 @@ function initModels(sequelize) {
   var Trainingtopic = _Trainingtopic(sequelize, DataTypes);
   var User = _User(sequelize, DataTypes);
   var Usercompatibilitydatum = _Usercompatibilitydatum(sequelize, DataTypes);
+  var Userdemographic = _Userdemographic(sequelize, DataTypes);
   var Userfeedback = _Userfeedback(sequelize, DataTypes);
   var Userinfo = _Userinfo(sequelize, DataTypes);
   var Usermetum = _Usermetum(sequelize, DataTypes);
@@ -182,10 +190,18 @@ function initModels(sequelize) {
   Jobapplication.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "affectedApplicationId"});
   Job.belongsTo(Jobfunction, { as: "jobFunction", foreignKey: "jobFunctionId"});
   Jobfunction.hasMany(Job, { as: "jobs", foreignKey: "jobFunctionId"});
+  Userdemographic.belongsTo(Jobfunction, { as: "preferredJobFunctionJobfunction", foreignKey: "preferredJobFunction"});
+  Jobfunction.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "preferredJobFunction"});
   Job.belongsTo(Jobindustry, { as: "jobIndustry", foreignKey: "jobIndustryId"});
   Jobindustry.hasMany(Job, { as: "jobs", foreignKey: "jobIndustryId"});
+  Userdemographic.belongsTo(Jobindustry, { as: "preferredJobIndustryJobindustry", foreignKey: "preferredJobIndustry"});
+  Jobindustry.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "preferredJobIndustry"});
   Job.belongsTo(Joblocation, { as: "jobLocation", foreignKey: "jobLocationId"});
   Joblocation.hasMany(Job, { as: "jobs", foreignKey: "jobLocationId"});
+  Userdemographic.belongsTo(Joblocation, { as: "personLocationJoblocation", foreignKey: "personLocation"});
+  Joblocation.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "personLocation"});
+  Userdemographic.belongsTo(Joblocation, { as: "preferredJobLocationJoblocation", foreignKey: "preferredJobLocation"});
+  Joblocation.hasMany(Userdemographic, { as: "preferredJobLocationUserdemographics", foreignKey: "preferredJobLocation"});
   Job.belongsTo(Jobname, { as: "jobName", foreignKey: "jobNameId"});
   Jobname.hasMany(Job, { as: "jobs", foreignKey: "jobNameId"});
   Jobapplication.belongsTo(Job, { as: "job", foreignKey: "jobId"});
@@ -208,6 +224,8 @@ function initModels(sequelize) {
   Job.hasMany(Recommendationfeedback, { as: "recommendationfeedbacks", foreignKey: "jobId"});
   Job.belongsTo(Jobtype, { as: "jobType", foreignKey: "jobTypeId"});
   Jobtype.hasMany(Job, { as: "jobs", foreignKey: "jobTypeId"});
+  Userdemographic.belongsTo(Jobtype, { as: "preferredJobTypeJobtype", foreignKey: "preferredJobType"});
+  Jobtype.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "preferredJobType"});
   Onboardingtask.belongsTo(Onboardingfixedtask, { as: "task", foreignKey: "taskId"});
   Onboardingfixedtask.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "taskId"});
   Onboardingtask.belongsTo(Onboarding, { as: "onboarding", foreignKey: "onboardingId"});
@@ -294,6 +312,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Recommendationfeedback, { as: "recommendationfeedbacks", foreignKey: "userId"});
   Usercompatibilitydatum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasOne(Usercompatibilitydatum, { as: "usercompatibilitydatum", foreignKey: "userId"});
+  Userdemographic.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "userId"});
   Userfeedback.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "userId"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
@@ -318,6 +338,7 @@ function initModels(sequelize) {
     Applicationauditlog,
     Applicationhiremember,
     Attributeset,
+    AutismCategory,
     Company,
     Companyauditlog,
     Companyindustry,
@@ -327,8 +348,10 @@ function initModels(sequelize) {
     Country,
     Cronofy,
     Cronofytoken,
+    Education,
     Emaillog,
     Emailtemplate,
+    GenderCategory,
     Jobapplication,
     Jobauditlog,
     Jobfunction,
@@ -369,6 +392,7 @@ function initModels(sequelize) {
     Trainingtopic,
     User,
     Usercompatibilitydatum,
+    Userdemographic,
     Userfeedback,
     Userinfo,
     Usermetum,

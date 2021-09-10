@@ -18,7 +18,6 @@ import {
   getResources,
 
   saveUserFeedback,
-  getDemographicQuestionnaire,
   getQuestionnaire,
   getWebchatToken
 } from "../../controllers/account/user";
@@ -173,16 +172,6 @@ const xuser = {
             mode: 'try',
           },
           handler: saveUserFeedback,
-        },
-      });
-      server.route({
-        method: 'GET',
-        path: '/empauwer-me-demographic',
-        options: {
-          auth: {
-            mode: 'try',
-          },
-          handler: getDemographicQuestionnaire,
         },
       });
       server.route({

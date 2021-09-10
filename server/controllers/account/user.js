@@ -10,6 +10,7 @@ import { formatQueryRes } from '../../utils/index';
 import { getDomainURL } from '../../utils/toolbox';
 import { camelizeKeys } from '../../utils/camelizeKeys';
 import { update } from 'lodash';
+import { getDemographicQuestionnaire } from './demographic';
 const uploadFile = require('../../utils/uploadFile');
 
 const createUser = async (request, h) => {
@@ -948,26 +949,26 @@ const saveUserFeedback = async (request, h) => {
   }
 }
 
-const getDemographicQuestionnaire = async(request,h) => {
-  try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
-    const { Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
-    const [jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
-      Jobtype.findAll({}),
-      Jobfunction.findAll({}),
-      Jobindustry.findAll({}),
-      Joblocation.findAll({})
-    ]);
+// const getDemographicQuestionnaire = async(request,h) => {
+//   try {
+//     if (!request.auth.isAuthenticated) {
+//       return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
+//     }
+//     const { Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
+//     const [jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
+//       Jobtype.findAll({}),
+//       Jobfunction.findAll({}),
+//       Jobindustry.findAll({}),
+//       Joblocation.findAll({})
+//     ]);
     
-    return h.response({}).code(200);
-  }
-  catch (error) {
-    console.error(error.stack);
-    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
-  }
-}
+//     return h.response({}).code(200);
+//   }
+//   catch (error) {
+//     console.error(error.stack);
+//     return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
+//   }
+// }
 
 const getQuestionnaire = async (request, h, targetName) => {
   try {
@@ -976,7 +977,7 @@ const getQuestionnaire = async (request, h, targetName) => {
     }
     const { part } = request.query || {};
 
-    const validPartQuery = [1, 2, 3];
+    const validPartQuery = [0, 1, 2, 3];
     const isPartQueryValid = (part && isArray(part)) ? (
       part.every(item => validPartQuery.includes(Number(item)))
     ) : validPartQuery.includes(Number(part));
@@ -990,8 +991,14 @@ const getQuestionnaire = async (request, h, targetName) => {
       }
     }
 
+    const models = request.getModels('xpaxr');
+    const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = models;
 
-    const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = request.getModels('xpaxr');
+    if ((isArray(part) && part.includes(0)|| Number(part) === 0)){
+      // This part corresponds to demographic questions which uses a different schema from normal questions
+      let demographicQuestions = await getDemographicQuestionnaire(models);
+    }
+
     let questions = await Questionnaire.findAll({
       raw: true,
       include: [{
@@ -1079,7 +1086,6 @@ module.exports = {
   getResources,
 
   saveUserFeedback,
-  getDemographicQuestionnaire,
   getQuestionnaire,
   getWebchatToken
 };
