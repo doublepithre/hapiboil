@@ -994,11 +994,6 @@ const getQuestionnaire = async (request, h, targetName) => {
     const models = request.getModels('xpaxr');
     const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = models;
 
-    if ((isArray(part) && part.includes(0)|| Number(part) === 0)){
-      // This part corresponds to demographic questions which uses a different schema from normal questions
-      let demographicQuestions = await getDemographicQuestionnaire(models);
-    }
-
     let questions = await Questionnaire.findAll({
       raw: true,
       include: [{
@@ -1025,6 +1020,11 @@ const getQuestionnaire = async (request, h, targetName) => {
       },
       attributes: ["questionId", "questionUuid", "questionName", "part", "questionConfig", "questionType.question_type_name", "questionCategory.question_category_name"]
     });;
+    if ((isArray(part) && part.includes(0)|| Number(part) === 0 || part === undefined)){
+      // This part corresponds to demographic questions which uses a different schema from normal questions
+      let demographicQuestions = await getDemographicQuestionnaire(models);
+      questions.push(...demographicQuestions);
+    }
     return h.response(camelizeKeys({ questions })).code(200);
   }
   catch (error) {
