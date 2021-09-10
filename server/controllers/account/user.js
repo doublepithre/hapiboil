@@ -881,6 +881,27 @@ const saveUserFeedback = async (request, h) => {
   }
 }
 
+const getDemographicQuestionnaire = async(request,h) => {
+  try {
+    if (!request.auth.isAuthenticated) {
+      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
+    }
+    const { Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
+    const [jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
+      Jobtype.findAll({}),
+      Jobfunction.findAll({}),
+      Jobindustry.findAll({}),
+      Joblocation.findAll({})
+    ]);
+    
+    return h.response({}).code(200);
+  }
+  catch (error) {
+    console.error(error.stack);
+    return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
+  }
+}
+
 const getQuestionnaire = async (request, h, targetName) => {
   try {
     if (!request.auth.isAuthenticated) {
@@ -973,6 +994,7 @@ module.exports = {
   getResources,
 
   saveUserFeedback,
+  getDemographicQuestionnaire,
   getQuestionnaire,
   getWebchatToken
 };
