@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Userrecommendationlog', {
+  return sequelize.define('Usercompatibilitydatum', {
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -14,18 +14,18 @@ module.exports = function(sequelize, DataTypes) {
       },
       field: 'user_id'
     },
-    timestamp: {
-      type: DataTypes.DATE,
+    compatibility: {
+      type: DataTypes.JSON,
       allowNull: true
     }
   }, {
     sequelize,
-    tableName: 'userrecommendationlog',
+    tableName: 'usercompatibilitydata',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "userrecommendationlog_pkey",
+        name: "usercompatibilitydata_pkey",
         unique: true,
         fields: [
           { name: "user_id" },

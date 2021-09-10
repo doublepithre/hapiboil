@@ -7,7 +7,7 @@ module.exports = (sequelize, DataTypes) => {
       primaryKey: true,
       references: {
         model: {
-          tableName: 'user',
+          tableName: 'userinfo',
           schema: 'hris'
         },
         key: 'user_id'
@@ -61,10 +61,10 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Recommendation = model.Recommendation;
   const Job = model.Job;
-  const User = model.User;
+  const Userinfo = model.Userinfo;
 
 
   Recommendation.belongsTo(Job, { as: "job", foreignKey: "jobId"});
-  Recommendation.belongsTo(User, { as: "user", foreignKey: "userId"});
+  Recommendation.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

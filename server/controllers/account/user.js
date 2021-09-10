@@ -521,10 +521,10 @@ const createProfile = async (request, h) => {
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
+
     let data = []
     let createProfileResponse;
-    let targetId;
-    let targetTable;
+    let isComplete = [];
 
     if (userTypeName === "candidate") {
       // create profile for a candidate
@@ -544,8 +544,46 @@ const createProfile = async (request, h) => {
       }
 
       createProfileResponse = resRecord;
-      targetId = 1;
-      targetTable = 'userquesresponses'
+
+      // attaching isComplete 
+      const sqlStmtForUserQuesCount = `select count(*), q.part
+        from hris.questionnaire q
+          inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+        where qt.target_id=1
+        group by q.part`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = camelizeKeys(allSQLUserQuesCount);
+
+      const sqlStmtForUserResCount = `select count(*), q.part
+        from hris.userquesresponses uqr
+          inner join hris.questionnaire q on q.question_id=uqr.question_id
+        where uqr.user_id=:userId
+        group by q.part`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = camelizeKeys(allSQLUserResCount);
+
+      // user(Ques/Res)count---------- [{count: 5, part: 1}]
+      const quesCountmap = new Map(); // { part: count }
+      for (let item of userQuesCount) {
+        const mapItem = quesCountmap.get(item.part);
+        if (mapItem === undefined) quesCountmap.set(item.part, item.count);
+      };
+
+      for (let item of userResCount) {
+        const mapItem = quesCountmap.get(item.part);
+        if (item.count === mapItem && item.part) isComplete.push(item.part);
+      }
+      isComplete.sort((a, b) => a - b);
 
     } else if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
       // create profile for a mentor
@@ -564,36 +602,33 @@ const createProfile = async (request, h) => {
         resRecord.push(res);
       }
       createProfileResponse = resRecord;
-      targetId = 3;
-      targetTable = 'mentorquesresponses'
+
+      // attaching isComplete
+      const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      where qt.target_id=3`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = allSQLUserQuesCount[0].count;
+
+      const sqlStmtForUserResCount = `select count(*) 
+      from hris.mentorquesresponses mqr
+      where mqr.user_id=:userId`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = allSQLUserResCount[0].count;
+
+      isComplete = userQuesCount === userResCount;
     }
 
-    // attaching isComplete property
-    const sqlStmtForUserQues = `select count(*) from hris.questionnaire q
-    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
-    where qt.target_id=:targetId`;
-
-    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQues, {
-      type: QueryTypes.SELECT,
-      replacements: {
-        targetId,
-      },
-    });
-    const userQuesCount = allSQLUserQuesCount[0].count;
-
-    const sqlStmtForUserRes = `select count(*) 
-      from hris.${targetTable} uqr
-      where uqr.user_id=:userId`;
-
-    const allSQLUserResCount = await sequelize.query(sqlStmtForUserRes, {
-      type: QueryTypes.SELECT,
-      replacements: {
-        userId,
-      },
-    });
-    const userResCount = allSQLUserResCount[0].count;
-
-    const isComplete = userQuesCount === userResCount;
     return h.response({ isComplete, responses: createProfileResponse }).code(200);
   }
   catch (error) {
@@ -613,19 +648,82 @@ const getProfile = async (request, h) => {
     const { id: userId } = credentials || {};
     const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
 
+    const db1 = request.getDb('xpaxr');
+    const sequelize = db1.sequelize;
+
     let quesResponses = [];
-    let targetId = 1;
-    let answerTable = 'userquesresponses';
+    let isComplete = [];
 
     if (userType === 'candidate') {
       quesResponses = await Userquesresponse.findAll({ where: { userId } });
-      targetId = 1;
-      answerTable = 'userquesresponses';
+
+      // attaching isComplete 
+      const sqlStmtForUserQuesCount = `select count(*), q.part
+        from hris.questionnaire q
+          inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+        where qt.target_id=1
+        group by q.part`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = camelizeKeys(allSQLUserQuesCount);
+
+      const sqlStmtForUserResCount = `select count(*), q.part
+        from hris.userquesresponses uqr
+          inner join hris.questionnaire q on q.question_id=uqr.question_id
+        where uqr.user_id=:userId
+        group by q.part`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = camelizeKeys(allSQLUserResCount);
+
+      // user(Ques/Res)count---------- [{count: 5, part: 1}]
+      const quesCountmap = new Map(); // { part: count }
+      for (let item of userQuesCount) {
+        const mapItem = quesCountmap.get(item.part);
+        if (mapItem === undefined) quesCountmap.set(item.part, item.count);
+      };
+
+      for (let item of userResCount) {
+        const mapItem = quesCountmap.get(item.part);
+        if (item.count === mapItem && item.part) isComplete.push(item.part);
+      }
+      isComplete.sort((a, b) => a - b);
     }
     if (userType === 'supervisor' || userType === 'workbuddy') {
       quesResponses = await Mentorquesresponse.findAll({ where: { userId } });
-      targetId = 3;
-      answerTable = 'mentorquesresponses';
+
+      // attaching isComplete
+      const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      where qt.target_id=3`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = allSQLUserQuesCount[0].count;
+
+      const sqlStmtForUserResCount = `select count(*) 
+      from hris.mentorquesresponses mqr
+      where mqr.user_id=:userId`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = allSQLUserResCount[0].count;
+
+      isComplete = userQuesCount === userResCount;
     }
 
     const responses = [];
@@ -636,37 +734,6 @@ const getProfile = async (request, h) => {
       responses.push(res);
     }
 
-    // attaching isComplete property
-    const db1 = request.getDb('xpaxr');
-    const sequelize = db1.sequelize;
-
-    const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-    inner join hris.questiontarget qt on qt.target_id=q.question_target_id
-    where qt.target_id=:targetId`;
-
-    const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
-      type: QueryTypes.SELECT,
-      replacements: {
-        targetId,
-      },
-    });
-    const userQuesCount = allSQLUserQuesCount[0].count;
-
-    const sqlStmtForUserResCount = `select count(*) 
-      from hris.${answerTable} uqr
-      where uqr.user_id=:userId`;
-
-    const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
-      type: QueryTypes.SELECT,
-      replacements: {
-        userId,
-      },
-    });
-    const userResCount = allSQLUserResCount[0].count;
-
-    let isComplete = userQuesCount === userResCount;
-
-    if (userType !== 'supervisor' && userType !== 'workbuddy' && userType !== 'candidate') isComplete = true;
     return h.response({ isComplete, responses }).code(200);
   }
   catch (error) {
@@ -907,6 +974,23 @@ const getQuestionnaire = async (request, h, targetName) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
+    const { part } = request.query || {};
+
+    const validPartQuery = [1, 2, 3];
+    const isPartQueryValid = (part && isArray(part)) ? (
+      part.every(item => validPartQuery.includes(Number(item)))
+    ) : validPartQuery.includes(Number(part));
+    if (part && !isPartQueryValid) return h.response({ error: true, message: 'Invalid part query parameter!' }).code(400);
+
+
+    let emeWhere = {};
+    if (targetName === 'empauwer_me' && part) {
+      emeWhere = {
+        part: part
+      }
+    }
+
+
     const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = request.getModels('xpaxr');
     let questions = await Questionnaire.findAll({
       raw: true,
@@ -929,9 +1013,10 @@ const getQuestionnaire = async (request, h, targetName) => {
       }
       ],
       where: {
-        isActive: true
+        isActive: true,
+        ...emeWhere,
       },
-      attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "questionType.question_type_name", "questionCategory.question_category_name"]
+      attributes: ["questionId", "questionUuid", "questionName", "part", "questionConfig", "questionType.question_type_name", "questionCategory.question_category_name"]
     });;
     return h.response(camelizeKeys({ questions })).code(200);
   }
@@ -979,7 +1064,7 @@ module.exports = {
   getUser,
   getUserFirstName,
   updateUser,
-  updatePassword,  
+  updatePassword,
 
   forgotPassword,
   resetPassword,
@@ -987,7 +1072,7 @@ module.exports = {
 
   createProfile,
   getProfile,
-  
+
   getUserMetaData,
   updateMetaData,
   getAllUserMetaData,

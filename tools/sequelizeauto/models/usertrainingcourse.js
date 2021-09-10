@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Userrecommendationlog', {
+  return sequelize.define('Usertrainingcourse', {
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -14,21 +14,36 @@ module.exports = function(sequelize, DataTypes) {
       },
       field: 'user_id'
     },
-    timestamp: {
-      type: DataTypes.DATE,
-      allowNull: true
+    courseId: {
+      type: DataTypes.BIGINT,
+      allowNull: false,
+      primaryKey: true,
+      references: {
+        model: {
+          tableName: 'trainingcourse',
+          schema: 'hris'
+        },
+        key: 'course_id'
+      },
+      field: 'course_id'
+    },
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "not started"
     }
   }, {
     sequelize,
-    tableName: 'userrecommendationlog',
+    tableName: 'usertrainingcourse',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "userrecommendationlog_pkey",
+        name: "usertrainingcourse_pkey",
         unique: true,
         fields: [
           { name: "user_id" },
+          { name: "course_id" },
         ]
       },
     ]

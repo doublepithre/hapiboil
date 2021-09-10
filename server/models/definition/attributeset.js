@@ -27,6 +27,26 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.STRING,
       allowNull: true,
       field: 'high_text'
+    },
+    displayLowEnd: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'display_low_end'
+    },
+    displayHighEnd: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'display_high_end'
+    },
+    lowTextCompat: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'low_text_compat'
+    },
+    highTextCompat: {
+      type: DataTypes.STRING,
+      allowNull: true,
+      field: 'high_text_compat'
     }
   }, {
     sequelize,
@@ -59,9 +79,11 @@ const initRelations = (model) =>{
   const Attributeset = model.Attributeset;
   const Qaattribute = model.Qaattribute;
   const Reportfilter = model.Reportfilter;
+  const Trainingtopic = model.Trainingtopic;
 
 
   Attributeset.hasMany(Qaattribute, { as: "qaattributes", foreignKey: "attributeId"});
   Attributeset.hasMany(Reportfilter, { as: "reportfilters", foreignKey: "attributeId"});
+  Attributeset.hasMany(Trainingtopic, { as: "trainingtopics", foreignKey: "attributeId"});
 
 }

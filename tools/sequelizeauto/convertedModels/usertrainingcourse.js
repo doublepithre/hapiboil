@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  const Recommendation = sequelize.define('Recommendation', {
+  const Usertrainingcourse = sequelize.define('Usertrainingcourse', {
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
@@ -14,57 +14,52 @@ module.exports = (sequelize, DataTypes) => {
       },
       field: 'user_id'
     },
-    jobId: {
+    courseId: {
       type: DataTypes.BIGINT,
       allowNull: false,
       primaryKey: true,
       references: {
         model: {
-          tableName: 'jobs',
+          tableName: 'trainingcourse',
           schema: 'hris'
         },
-        key: 'job_id'
+        key: 'course_id'
       },
-      field: 'job_id'
+      field: 'course_id'
     },
-    score: {
-      type: DataTypes.REAL,
-      allowNull: true
+    status: {
+      type: DataTypes.STRING,
+      allowNull: false,
+      defaultValue: "not started"
     }
   }, {
     sequelize,
-    tableName: 'recommendation',
+    tableName: 'usertrainingcourse',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "idx_score",
-        fields: [
-          { name: "score" },
-        ]
-      },
-      {
-        name: "recommendation_pkey",
+        name: "usertrainingcourse_pkey",
         unique: true,
         fields: [
           { name: "user_id" },
-          { name: "job_id" },
+          { name: "course_id" },
         ]
       },
     ]
   });
-  Recommendation.associate = function(model) {
+  Usertrainingcourse.associate = function(model) {
     initRelations(model);
   }
-  return Recommendation;
+  return Usertrainingcourse;
 }
 const initRelations = (model) =>{
-  const Recommendation = model.Recommendation;
-  const Job = model.Job;
+  const Usertrainingcourse = model.Usertrainingcourse;
+  const Trainingcourse = model.Trainingcourse;
   const Userinfo = model.Userinfo;
 
 
-  Recommendation.belongsTo(Job, { as: "job", foreignKey: "jobId"});
-  Recommendation.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Usertrainingcourse.belongsTo(Trainingcourse, { as: "course", foreignKey: "courseId"});
+  Usertrainingcourse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }
