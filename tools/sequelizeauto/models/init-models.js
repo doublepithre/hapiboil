@@ -8,6 +8,7 @@ var _Company = require("./company");
 var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
 var _Companyinfo = require("./companyinfo");
+var _Companysuperadminquesresponse = require("./companysuperadminquesresponse");
 var _Companyvisit = require("./companyvisit");
 var _Companyworkaccommodation = require("./companyworkaccommodation");
 var _Country = require("./country");
@@ -78,6 +79,7 @@ function initModels(sequelize) {
   var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
   var Companyinfo = _Companyinfo(sequelize, DataTypes);
+  var Companysuperadminquesresponse = _Companysuperadminquesresponse(sequelize, DataTypes);
   var Companyvisit = _Companyvisit(sequelize, DataTypes);
   var Companyworkaccommodation = _Companyworkaccommodation(sequelize, DataTypes);
   var Country = _Country(sequelize, DataTypes);
@@ -145,6 +147,7 @@ function initModels(sequelize) {
   Questionnaire.belongsToMany(Job, { through: Jobsquesresponse, foreignKey: "questionId", otherKey: "jobId" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid" });
+  Questionnaire.belongsToMany(Userinfo, { through: Companysuperadminquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsToMany(Userinfo, { through: Mentorquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Trainingcourse.belongsToMany(Trainingtopic, { through: Trainingcoursetopic, foreignKey: "courseId", otherKey: "topicId" });
@@ -154,6 +157,7 @@ function initModels(sequelize) {
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsToMany(Job, { through: Recommendation, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsToMany(Job, { through: Recommendationfeedback, foreignKey: "userId", otherKey: "jobId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Companysuperadminquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Mentorquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Trainingcourse, { through: Usertrainingcourse, foreignKey: "userId", otherKey: "courseId" });
@@ -232,6 +236,8 @@ function initModels(sequelize) {
   Onboarding.hasMany(Onboardingtask, { as: "onboardingtasks", foreignKey: "onboardingId"});
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
   Questioncategory.hasMany(Questionnaire, { as: "questionnaires", foreignKey: "questionCategoryId"});
+  Companysuperadminquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
+  Questionnaire.hasMany(Companysuperadminquesresponse, { as: "companysuperadminquesresponses", foreignKey: "questionId"});
   Jobsquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Questionnaire.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "questionId"});
   Mentorquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
@@ -274,6 +280,8 @@ function initModels(sequelize) {
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Companyauditlog.belongsTo(Userinfo, { as: "performerUser", foreignKey: "performerUserId"});
   Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
+  Companysuperadminquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Userinfo.hasMany(Companysuperadminquesresponse, { as: "companysuperadminquesresponses", foreignKey: "userId"});
   Companyvisit.belongsTo(Userinfo, { as: "visitor", foreignKey: "visitorId"});
   Userinfo.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "visitorId"});
   Cronofy.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
@@ -343,6 +351,7 @@ function initModels(sequelize) {
     Companyauditlog,
     Companyindustry,
     Companyinfo,
+    Companysuperadminquesresponse,
     Companyvisit,
     Companyworkaccommodation,
     Country,

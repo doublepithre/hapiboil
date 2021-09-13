@@ -185,6 +185,7 @@ const initRelations = (model) =>{
   const Applicationauditlog = model.Applicationauditlog;
   const Applicationhiremember = model.Applicationhiremember;
   const Companyauditlog = model.Companyauditlog;
+  const Companysuperadminquesresponse = model.Companysuperadminquesresponse;
   const Companyvisit = model.Companyvisit;
   const Cronofy = model.Cronofy;
   const Cronofytoken = model.Cronofytoken;
@@ -213,6 +214,7 @@ const initRelations = (model) =>{
   Userinfo.belongsToMany(Job, { through: Jobhiremember, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsToMany(Job, { through: Recommendation, foreignKey: "userId", otherKey: "jobId" });
   Userinfo.belongsToMany(Job, { through: Recommendationfeedback, foreignKey: "userId", otherKey: "jobId" });
+  Userinfo.belongsToMany(Questionnaire, { through: Companysuperadminquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Mentorquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Questionnaire, { through: Userquesresponse, foreignKey: "userId", otherKey: "questionId" });
   Userinfo.belongsToMany(Trainingcourse, { through: Usertrainingcourse, foreignKey: "userId", otherKey: "courseId" });
@@ -223,6 +225,7 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Applicationauditlog, { as: "applicationauditlogs", foreignKey: "performerUserId"});
   Userinfo.hasMany(Applicationhiremember, { as: "applicationhiremembers", foreignKey: "userId"});
   Userinfo.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "performerUserId"});
+  Userinfo.hasMany(Companysuperadminquesresponse, { as: "companysuperadminquesresponses", foreignKey: "userId"});
   Userinfo.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "visitorId"});
   Userinfo.hasOne(Cronofy, { as: "cronofy", foreignKey: "userId"});
   Userinfo.hasMany(Cronofytoken, { as: "cronofytokens", foreignKey: "userId"});

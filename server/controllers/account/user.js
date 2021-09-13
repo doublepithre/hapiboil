@@ -10,7 +10,7 @@ import { formatQueryRes } from '../../utils/index';
 import { getDomainURL } from '../../utils/toolbox';
 import { camelizeKeys } from '../../utils/camelizeKeys';
 import { update } from 'lodash';
-import { getDemographicQuestionnaire,demoQuestionId2Column ,updateDemographicAnswers, demoRow2Answers} from './demographic';
+import { getDemographicQuestionnaire, demoQuestionId2Column, updateDemographicAnswers, demoRow2Answers } from './demographic';
 const uploadFile = require('../../utils/uploadFile');
 
 const createUser = async (request, h) => {
@@ -512,14 +512,14 @@ const createProfile = async (request, h) => {
     }
     // Checking user type from jwt
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
-    if (userTypeName !== 'candidate' && userTypeName !== 'supervisor' && userTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+    if (userTypeName !== 'candidate' && userTypeName !== 'companysuperadmin' && userTypeName !== 'supervisor' && userTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
     const { responses } = request.payload || {};
 
-    const { Userquesresponse, Mentorquesresponse,Userdemographic } = request.getModels('xpaxr');
+    const { Userquesresponse, Mentorquesresponse, Companysuperadminquesresponse, Userdemographic } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
 
@@ -533,18 +533,18 @@ const createProfile = async (request, h) => {
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
         const record = { questionId, responseVal: { answer }, userId, timeTaken }
-        if (Number(questionId) in demoQuestionId2Column){
+        if (Number(questionId) in demoQuestionId2Column) {
           demographicData.push(record);
-        }else{
+        } else {
           data.push(record);
         }
       }
-      let {demoIsComplete,responses:demoResponses} = await updateDemographicAnswers(demographicData,Userdemographic);
-      if (demoIsComplete){
+      let { demoIsComplete, responses: demoResponses } = await updateDemographicAnswers(demographicData, Userdemographic);
+      if (demoIsComplete) {
         isComplete.push(0);
       }
       await Userquesresponse.bulkCreate(data, { updateOnDuplicate: ["responseVal", "timeTaken"] });
-      const quesResponses = await Userquesresponse.findAll({ where: { userId } ,raw:true});
+      const quesResponses = await Userquesresponse.findAll({ where: { userId }, raw: true });
       const resRecord = [];
       quesResponses.push(...demoResponses);
       for (let response of quesResponses) {
@@ -636,6 +636,49 @@ const createProfile = async (request, h) => {
       const userResCount = allSQLUserResCount[0].count;
 
       isComplete = userQuesCount === userResCount;
+
+    } else if (userTypeName === 'companysuperadmin') {
+      // create profile for a company superadmin
+      for (const response of responses) {
+        const { questionId, answer, timeTaken } = response || {};
+        const record = { questionId, responseVal: { answer }, userId, timeTaken }
+        data.push(record);
+      }
+      await Companysuperadminquesresponse.bulkCreate(data, { updateOnDuplicate: ["responseVal", "timeTaken"] });
+      const quesResponses = await Companysuperadminquesresponse.findAll({ where: { userId } });
+      const resRecord = [];
+      for (let response of quesResponses) {
+        response = response && response.toJSON();
+        const { questionId, responseVal, timeTaken } = response;
+        const res = { questionId, answer: responseVal.answer, timeTaken };
+        resRecord.push(res);
+      }
+      createProfileResponse = resRecord;
+
+      // attaching isComplete
+      const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      where qt.target_id=4`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = allSQLUserQuesCount[0].count;
+
+      const sqlStmtForUserResCount = `select count(*) 
+      from hris.companysuperadminquesresponses cqr
+      where cqr.user_id=:userId`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = allSQLUserResCount[0].count;
+
+      isComplete = userQuesCount === userResCount;
     }
 
     return h.response({ isComplete, responses: createProfileResponse }).code(200);
@@ -655,7 +698,7 @@ const getProfile = async (request, h) => {
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    const { Userquesresponse, Mentorquesresponse,Userdemographic } = request.getModels('xpaxr');
+    const { Userquesresponse, Mentorquesresponse, Userdemographic } = request.getModels('xpaxr');
 
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
@@ -664,9 +707,9 @@ const getProfile = async (request, h) => {
     let isComplete = [];
 
     if (userType === 'candidate') {
-      quesResponses = await Userquesresponse.findAll({ where: { userId },raw:true});
-      let {demoIsComplete,responses:demoResponses} = await demoRow2Answers(userId,Userdemographic);
-      if (demoIsComplete){
+      quesResponses = await Userquesresponse.findAll({ where: { userId }, raw: true });
+      let { demoIsComplete, responses: demoResponses } = await demoRow2Answers(userId, Userdemographic);
+      if (demoIsComplete) {
         isComplete.push(0);
       }
       quesResponses.push(...demoResponses);
@@ -711,7 +754,7 @@ const getProfile = async (request, h) => {
       isComplete.sort((a, b) => a - b);
     }
     if (userType === 'supervisor' || userType === 'workbuddy') {
-      quesResponses = await Mentorquesresponse.findAll({ where: { userId },raw:true});
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId }, raw: true });
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
@@ -727,6 +770,34 @@ const getProfile = async (request, h) => {
       const sqlStmtForUserResCount = `select count(*) 
       from hris.mentorquesresponses mqr
       where mqr.user_id=:userId`;
+
+      const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
+        type: QueryTypes.SELECT,
+        replacements: {
+          userId,
+        },
+      });
+      const userResCount = allSQLUserResCount[0].count;
+
+      isComplete = userQuesCount === userResCount;
+    }
+    if (userType === 'companysuperadmin') {
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId }, raw: true });
+
+      // attaching isComplete
+      const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      where qt.target_id=4`;
+
+      const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
+        type: QueryTypes.SELECT,
+        replacements: {},
+      });
+      const userQuesCount = allSQLUserQuesCount[0].count;
+
+      const sqlStmtForUserResCount = `select count(*) 
+      from hris.companysuperadminquesresponses cqr
+      where cqr.user_id=:userId`;
 
       const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
         type: QueryTypes.SELECT,
@@ -1010,7 +1081,7 @@ const getQuestionnaire = async (request, h, targetName) => {
       },
       attributes: ["questionId", "questionUuid", "questionName", "part", "questionConfig", "questionType.question_type_name", "questionCategory.question_category_name"]
     });;
-    if ((isArray(part) && part.includes(0)|| Number(part) === 0 || part === undefined)){
+    if ((isArray(part) && part.includes(0) || Number(part) === 0 || part === undefined)) {
       // This part corresponds to demographic questions which uses a different schema from normal questions
       let demographicQuestions = await getDemographicQuestionnaire(models);
       questions.push(...demographicQuestions);
