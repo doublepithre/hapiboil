@@ -10,7 +10,7 @@ import { formatQueryRes } from '../../utils/index';
 import { getDomainURL } from '../../utils/toolbox';
 import { camelizeKeys } from '../../utils/camelizeKeys';
 import { update } from 'lodash';
-import { getDemographicQuestionnaire } from './demographic';
+import { getDemographicQuestionnaire,demoQuestionId2Column ,updateDemographicAnswers, demoRow2Answers} from './demographic';
 const uploadFile = require('../../utils/uploadFile');
 
 const createUser = async (request, h) => {
@@ -519,33 +519,41 @@ const createProfile = async (request, h) => {
 
     const { responses } = request.payload || {};
 
-    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    const { Userquesresponse, Mentorquesresponse,Userdemographic } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
 
     let data = []
     let createProfileResponse;
     let isComplete = [];
+    let demographicData = [];
 
     if (userTypeName === "candidate") {
       // create profile for a candidate
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
         const record = { questionId, responseVal: { answer }, userId, timeTaken }
-        data.push(record);
+        if (Number(questionId) in demoQuestionId2Column){
+          demographicData.push(record);
+        }else{
+          data.push(record);
+        }
+      }
+      let {demoIsComplete,responses:demoResponses} = await updateDemographicAnswers(demographicData,Userdemographic);
+      if (demoIsComplete){
+        isComplete.push(0);
       }
       await Userquesresponse.bulkCreate(data, { updateOnDuplicate: ["responseVal", "timeTaken"] });
-      const quesResponses = await Userquesresponse.findAll({ where: { userId } });
+      const quesResponses = await Userquesresponse.findAll({ where: { userId } ,raw:true});
       const resRecord = [];
+      quesResponses.push(...demoResponses);
       for (let response of quesResponses) {
-        response = response && response.toJSON();
         const { questionId, responseVal, timeTaken } = response;
         const res = { questionId, answer: responseVal.answer, timeTaken };
         resRecord.push(res);
       }
 
       createProfileResponse = resRecord;
-
       // attaching isComplete 
       const sqlStmtForUserQuesCount = `select count(*), q.part
         from hris.questionnaire q
@@ -647,7 +655,7 @@ const getProfile = async (request, h) => {
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    const { Userquesresponse, Mentorquesresponse,Userdemographic } = request.getModels('xpaxr');
 
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
@@ -656,8 +664,12 @@ const getProfile = async (request, h) => {
     let isComplete = [];
 
     if (userType === 'candidate') {
-      quesResponses = await Userquesresponse.findAll({ where: { userId } });
-
+      quesResponses = await Userquesresponse.findAll({ where: { userId },raw:true});
+      let {demoIsComplete,responses:demoResponses} = await demoRow2Answers(userId,Userdemographic);
+      if (demoIsComplete){
+        isComplete.push(0);
+      }
+      quesResponses.push(...demoResponses);
       // attaching isComplete 
       const sqlStmtForUserQuesCount = `select count(*), q.part
         from hris.questionnaire q
@@ -699,7 +711,7 @@ const getProfile = async (request, h) => {
       isComplete.sort((a, b) => a - b);
     }
     if (userType === 'supervisor' || userType === 'workbuddy') {
-      quesResponses = await Mentorquesresponse.findAll({ where: { userId } });
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId },raw:true});
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
@@ -728,8 +740,7 @@ const getProfile = async (request, h) => {
     }
 
     const responses = [];
-    for (let response of quesResponses) {
-      const responseInfo = response && response.toJSON();
+    for (let responseInfo of quesResponses) {
       const { questionId, responseVal, timeTaken } = responseInfo || {};
       const res = { questionId, answer: responseVal.answer, timeTaken };
       responses.push(res);
@@ -948,27 +959,6 @@ const saveUserFeedback = async (request, h) => {
     return h.response({ error: true, message: 'Bad Request!' }).code(500);
   }
 }
-
-// const getDemographicQuestionnaire = async(request,h) => {
-//   try {
-//     if (!request.auth.isAuthenticated) {
-//       return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-//     }
-//     const { Jobtype, Jobfunction, Jobindustry, Joblocation } = request.getModels('xpaxr');
-//     const [jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
-//       Jobtype.findAll({}),
-//       Jobfunction.findAll({}),
-//       Jobindustry.findAll({}),
-//       Joblocation.findAll({})
-//     ]);
-    
-//     return h.response({}).code(200);
-//   }
-//   catch (error) {
-//     console.error(error.stack);
-//     return h.response({ error: true, message: 'Internal Server Error!' }).code(500);
-//   }
-// }
 
 const getQuestionnaire = async (request, h, targetName) => {
   try {

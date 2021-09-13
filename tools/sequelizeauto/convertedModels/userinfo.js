@@ -242,7 +242,7 @@ const initRelations = (model) =>{
   Userinfo.hasMany(Recommendation, { as: "recommendations", foreignKey: "userId"});
   Userinfo.hasMany(Recommendationfeedback, { as: "recommendationfeedbacks", foreignKey: "userId"});
   Userinfo.hasOne(Usercompatibilitydatum, { as: "usercompatibilitydatum", foreignKey: "userId"});
-  Userinfo.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "userId"});
+  Userinfo.hasOne(Userdemographic, { as: "userdemographic", foreignKey: "userId"});
   Userinfo.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "userId"});
   Userinfo.hasMany(Usermeta, { as: "usermeta", foreignKey: "userId"});
   Userinfo.hasMany(Userquesresponse, { as: "userquesresponses", foreignKey: "userId"});

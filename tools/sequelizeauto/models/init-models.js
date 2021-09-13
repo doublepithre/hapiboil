@@ -313,7 +313,7 @@ function initModels(sequelize) {
   Usercompatibilitydatum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasOne(Usercompatibilitydatum, { as: "usercompatibilitydatum", foreignKey: "userId"});
   Userdemographic.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
-  Userinfo.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "userId"});
+  Userinfo.hasOne(Userdemographic, { as: "userdemographic", foreignKey: "userId"});
   Userfeedback.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
   Userinfo.hasMany(Userfeedback, { as: "userfeedbacks", foreignKey: "userId"});
   Usermetum.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});

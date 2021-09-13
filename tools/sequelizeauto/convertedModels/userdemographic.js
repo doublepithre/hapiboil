@@ -1,16 +1,10 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
   const Userdemographic = sequelize.define('Userdemographic', {
-    demographicId: {
-      autoIncrement: true,
-      type: DataTypes.BIGINT,
-      allowNull: false,
-      primaryKey: true,
-      field: 'demographic_id'
-    },
     userId: {
       type: DataTypes.BIGINT,
       allowNull: false,
+      primaryKey: true,
       references: {
         model: {
           tableName: 'userinfo',
@@ -127,6 +121,11 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.DATEONLY,
       allowNull: true,
       field: 'expected_start_date'
+    },
+    timeTaken: {
+      type: DataTypes.JSONB,
+      allowNull: true,
+      field: 'time_taken'
     }
   }, {
     sequelize,
@@ -138,7 +137,7 @@ module.exports = (sequelize, DataTypes) => {
         name: "userdemographic_pkey",
         unique: true,
         fields: [
-          { name: "demographic_id" },
+          { name: "user_id" },
         ]
       },
     ]

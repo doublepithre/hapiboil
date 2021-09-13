@@ -50,6 +50,80 @@ const getDemographicQuestionnaire = async(models) => {
     ];
 }
 
+const demoQuestionId2Column = {
+    100000:"isAutism",
+    100001:"personLocation",
+    100002:"age",
+    100003:"gender",
+    100004:"highestEducation",
+    100005:"educationYear",
+    1000006:"isEmployed",
+    100007:"employmentMonths",
+    100008:"preferredJobLocation",
+    100009:"preferredJobType",
+    100010:"preferredJobFunction",
+    100011:"preferredJobIndustry",
+    100012:"isInTouchNgos",
+    100013:"numMonthsInTouchNgos",
+    100014:"expectedStartDate"
+}
+
+const demoColumn2QuestionId = {
+    isAutism: 100000,
+    personLocation: 100001,
+    age: 100002,
+    gender: 100003,
+    highestEducation: 100004,
+    educationYear: 100005,
+    employmentMonths: 100007,
+    preferredJobLocation: 100008,
+    preferredJobType: 100009,
+    preferredJobFunction: 100010,
+    preferredJobIndustry: 100011,
+    isInTouchNgos: 100012,
+    numMonthsInTouchNgos: 100013,
+    expectedStartDate: 100014,
+    isEmployed: 1000006
+}
+
+const updateDemographicAnswers = async(demographicData,Userdemographic) => {
+    let userId = demographicData[0]["userId"];
+    let row = {userId};
+    let timeTaken = {};
+    for(let data of demographicData){
+        let column = demoQuestionId2Column[data["questionId"]];
+        row[column] = data["responseVal"]["answer"];
+        timeTaken[data["questionId"]] = data["timeTaken"]
+    }
+    row["timeTaken"] = timeTaken;
+    await Userdemographic.upsert(row);
+    let res = await demoRow2Answers(userId,Userdemographic);
+    return res;
+}
+
+/**
+ * 
+ * @param {Number} userId 
+ * @param {Sequelize} Userdemographic 
+ * 
+ * Returns responses from question in user demographic table
+ * 
+ * {isComplete,responses:[{questionId,answer,timeTaken}]}
+ */
+const demoRow2Answers = async(userId,Userdemographic) => {
+    const row = await Userdemographic.findOne({where:{userId},raw:true});
+    let responses = []
+    for (const [key, value] of Object.entries(row)) {
+        if (key==="userId" || key === "timeTaken" || value == undefined){
+            continue;
+        }
+        let questionId = demoColumn2QuestionId[key];
+        responses.push({questionId,responseVal:{answer:value},timeTaken:row["timeTaken"][questionId]});
+    }
+    let isComplete = responses.every((x)=>x.answer!=undefined);
+    return {isComplete,responses}
+}
+
 const PART = 0;
 
 const getAutism = (autismCategory) => {
@@ -154,7 +228,7 @@ const getEducationYear = () => {
 
 const getIsEmployed = () => {
     let obj = {
-        questionId:1000006,
+        questionId:100006,
         questionName: "Are you currently employed?",
         questionTypeName: "yes_no",
         questionCategoryName:"demographics",
@@ -305,5 +379,8 @@ const stringHash = function(str, seed = 821) {
 };
 
 module.exports = {
-    getDemographicQuestionnaire
+    getDemographicQuestionnaire,
+    demoQuestionId2Column,
+    updateDemographicAnswers,
+    demoRow2Answers
 }
