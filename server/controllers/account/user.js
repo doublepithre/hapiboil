@@ -10,6 +10,7 @@ import { formatQueryRes } from '../../utils/index';
 import { getDomainURL } from '../../utils/toolbox';
 import { camelizeKeys } from '../../utils/camelizeKeys';
 import { update } from 'lodash';
+import { getDemographicQuestionnaire,demoQuestionId2Column ,updateDemographicAnswers, demoRow2Answers} from './demographic';
 const uploadFile = require('../../utils/uploadFile');
 
 const createUser = async (request, h) => {
@@ -518,33 +519,41 @@ const createProfile = async (request, h) => {
 
     const { responses } = request.payload || {};
 
-    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    const { Userquesresponse, Mentorquesresponse,Userdemographic } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
 
     let data = []
     let createProfileResponse;
     let isComplete = [];
+    let demographicData = [];
 
     if (userTypeName === "candidate") {
       // create profile for a candidate
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
         const record = { questionId, responseVal: { answer }, userId, timeTaken }
-        data.push(record);
+        if (Number(questionId) in demoQuestionId2Column){
+          demographicData.push(record);
+        }else{
+          data.push(record);
+        }
+      }
+      let {demoIsComplete,responses:demoResponses} = await updateDemographicAnswers(demographicData,Userdemographic);
+      if (demoIsComplete){
+        isComplete.push(0);
       }
       await Userquesresponse.bulkCreate(data, { updateOnDuplicate: ["responseVal", "timeTaken"] });
-      const quesResponses = await Userquesresponse.findAll({ where: { userId } });
+      const quesResponses = await Userquesresponse.findAll({ where: { userId } ,raw:true});
       const resRecord = [];
+      quesResponses.push(...demoResponses);
       for (let response of quesResponses) {
-        response = response && response.toJSON();
         const { questionId, responseVal, timeTaken } = response;
         const res = { questionId, answer: responseVal.answer, timeTaken };
         resRecord.push(res);
       }
 
       createProfileResponse = resRecord;
-
       // attaching isComplete 
       const sqlStmtForUserQuesCount = `select count(*), q.part
         from hris.questionnaire q
@@ -646,7 +655,7 @@ const getProfile = async (request, h) => {
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    const { Userquesresponse, Mentorquesresponse } = request.getModels('xpaxr');
+    const { Userquesresponse, Mentorquesresponse,Userdemographic } = request.getModels('xpaxr');
 
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
@@ -655,8 +664,12 @@ const getProfile = async (request, h) => {
     let isComplete = [];
 
     if (userType === 'candidate') {
-      quesResponses = await Userquesresponse.findAll({ where: { userId } });
-
+      quesResponses = await Userquesresponse.findAll({ where: { userId },raw:true});
+      let {demoIsComplete,responses:demoResponses} = await demoRow2Answers(userId,Userdemographic);
+      if (demoIsComplete){
+        isComplete.push(0);
+      }
+      quesResponses.push(...demoResponses);
       // attaching isComplete 
       const sqlStmtForUserQuesCount = `select count(*), q.part
         from hris.questionnaire q
@@ -698,7 +711,7 @@ const getProfile = async (request, h) => {
       isComplete.sort((a, b) => a - b);
     }
     if (userType === 'supervisor' || userType === 'workbuddy') {
-      quesResponses = await Mentorquesresponse.findAll({ where: { userId } });
+      quesResponses = await Mentorquesresponse.findAll({ where: { userId },raw:true});
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
@@ -727,8 +740,7 @@ const getProfile = async (request, h) => {
     }
 
     const responses = [];
-    for (let response of quesResponses) {
-      const responseInfo = response && response.toJSON();
+    for (let responseInfo of quesResponses) {
       const { questionId, responseVal, timeTaken } = responseInfo || {};
       const res = { questionId, answer: responseVal.answer, timeTaken };
       responses.push(res);
@@ -955,7 +967,7 @@ const getQuestionnaire = async (request, h, targetName) => {
     }
     const { part } = request.query || {};
 
-    const validPartQuery = [1, 2, 3];
+    const validPartQuery = [0, 1, 2, 3];
     const isPartQueryValid = (part && isArray(part)) ? (
       part.every(item => validPartQuery.includes(Number(item)))
     ) : validPartQuery.includes(Number(part));
@@ -969,8 +981,9 @@ const getQuestionnaire = async (request, h, targetName) => {
       }
     }
 
+    const models = request.getModels('xpaxr');
+    const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = models;
 
-    const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = request.getModels('xpaxr');
     let questions = await Questionnaire.findAll({
       raw: true,
       include: [{
@@ -997,6 +1010,11 @@ const getQuestionnaire = async (request, h, targetName) => {
       },
       attributes: ["questionId", "questionUuid", "questionName", "part", "questionConfig", "questionType.question_type_name", "questionCategory.question_category_name"]
     });;
+    if ((isArray(part) && part.includes(0)|| Number(part) === 0 || part === undefined)){
+      // This part corresponds to demographic questions which uses a different schema from normal questions
+      let demographicQuestions = await getDemographicQuestionnaire(models);
+      questions.push(...demographicQuestions);
+    }
     return h.response(camelizeKeys({ questions })).code(200);
   }
   catch (error) {
