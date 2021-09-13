@@ -111,16 +111,20 @@ const updateDemographicAnswers = async(demographicData,Userdemographic) => {
  * {isComplete,responses:[{questionId,answer,timeTaken}]}
  */
 const demoRow2Answers = async(userId,Userdemographic) => {
-    const row = await Userdemographic.findOne({where:{userId},raw:true});
+    let isComplete = false;
+
+    const row = await Userdemographic.findOne({ where: { userId }, raw: true });
     let responses = []
-    for (const [key, value] of Object.entries(row)) {
-        if (key==="userId" || key === "timeTaken" || value == undefined){
-            continue;
+    if (row) {
+        for (const [key, value] of Object.entries(row)) {
+            if (key==="userId" || key === "timeTaken" || value == undefined){
+                continue;
+            }
+            let questionId = demoColumn2QuestionId[key];
+            responses.push({questionId,responseVal:{answer:value},timeTaken:row["timeTaken"][questionId]});
         }
-        let questionId = demoColumn2QuestionId[key];
-        responses.push({questionId,responseVal:{answer:value},timeTaken:row["timeTaken"][questionId]});
-    }
-    let isComplete = responses.every((x)=>x.answer!=undefined);
+        isComplete = responses.every((x)=>x.answer!=undefined);
+    } 
     return {isComplete,responses}
 }
 
