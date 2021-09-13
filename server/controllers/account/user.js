@@ -625,6 +625,7 @@ const createProfile = async (request, h) => {
 
       const sqlStmtForUserResCount = `select count(*) 
       from hris.mentorquesresponses mqr
+        inner join hris.questionnaire q on q.question_id=mqr.question_id and q.question_target_id=3
       where mqr.user_id=:userId`;
 
       const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
@@ -668,6 +669,7 @@ const createProfile = async (request, h) => {
 
       const sqlStmtForUserResCount = `select count(*) 
       from hris.companysuperadminquesresponses cqr
+      inner join hris.questionnaire q on q.question_id=mqr.question_id and q.question_target_id=4
       where cqr.user_id=:userId`;
 
       const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
@@ -769,6 +771,7 @@ const getProfile = async (request, h) => {
 
       const sqlStmtForUserResCount = `select count(*) 
       from hris.mentorquesresponses mqr
+        inner join hris.questionnaire q on q.question_id=mqr.question_id and q.question_target_id=3
       where mqr.user_id=:userId`;
 
       const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
@@ -786,7 +789,7 @@ const getProfile = async (request, h) => {
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+        inner join hris.questiontarget qt on qt.target_id=q.question_target_id
       where qt.target_id=4`;
 
       const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
@@ -797,6 +800,7 @@ const getProfile = async (request, h) => {
 
       const sqlStmtForUserResCount = `select count(*) 
       from hris.companysuperadminquesresponses cqr
+        inner join hris.questionnaire q on q.question_id=mqr.question_id and q.question_target_id=4
       where cqr.user_id=:userId`;
 
       const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
