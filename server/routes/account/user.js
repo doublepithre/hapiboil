@@ -188,13 +188,25 @@ const xuser = {
       });
       server.route({
         method: 'GET',
-        path: '/empauwer-us',
+        path: '/empauwer-us-mentor',
         options: {
           auth: {
             mode: 'try',
           },
           handler: async (request, h) => {
-            return await getQuestionnaire(request, h, 'empauwer_us')
+            return await getQuestionnaire(request, h, 'empauwer_us_mentor')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/empauwer-us-admin',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async (request, h) => {
+            return await getQuestionnaire(request, h, 'empauwer_us_admin')
           },
         },
       });

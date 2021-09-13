@@ -727,9 +727,29 @@ paths:
                     items:
                       $ref:  "#/components/schemas/Question"
 
-  /account/empauwer-us:
+  /account/empauwer-us-mentor:
     get:
-      summary:  Get Empauwer Us Questionnaire
+      summary:  Get Empauwer Us Mentor Questionnaire
+      tags:
+      - User
+      security:
+      - bearerAuth: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  questions:
+                    type: array
+                    items:
+                      $ref:  "#/components/schemas/Question"
+
+  /account/empauwer-us-admin:
+    get:
+      summary:  Get Empauwer Us Admin Questionnaire
       tags:
       - User
       security:
