@@ -54,6 +54,18 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BIGINT,
       allowNull: true,
       field: 'time_taken'
+    },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'company',
+          schema: 'hris'
+        },
+        key: 'company_id'
+      },
+      field: 'company_id'
     }
   }, {
     sequelize,

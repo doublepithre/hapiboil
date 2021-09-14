@@ -172,6 +172,8 @@ function initModels(sequelize) {
   Company.hasMany(Companyauditlog, { as: "companyauditlogs", foreignKey: "affectedCompanyId"});
   Companyinfo.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasOne(Companyinfo, { as: "companyinfo", foreignKey: "companyId"});
+  Companysuperadminquesresponse.belongsTo(Company, { as: "company", foreignKey: "companyId"});
+  Company.hasMany(Companysuperadminquesresponse, { as: "companysuperadminquesresponses", foreignKey: "companyId"});
   Companyvisit.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Company.hasMany(Companyvisit, { as: "companyvisits", foreignKey: "companyId"});
   Companyworkaccommodation.belongsTo(Company, { as: "company", foreignKey: "companyId"});

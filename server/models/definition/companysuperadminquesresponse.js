@@ -54,6 +54,18 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.BIGINT,
       allowNull: true,
       field: 'time_taken'
+    },
+    companyId: {
+      type: DataTypes.BIGINT,
+      allowNull: true,
+      references: {
+        model: {
+          tableName: 'company',
+          schema: 'hris'
+        },
+        key: 'company_id'
+      },
+      field: 'company_id'
     }
   }, {
     sequelize,
@@ -78,10 +90,12 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Companysuperadminquesresponse = model.Companysuperadminquesresponse;
+  const Company = model.Company;
   const Questionnaire = model.Questionnaire;
   const Userinfo = model.Userinfo;
 
 
+  Companysuperadminquesresponse.belongsTo(Company, { as: "company", foreignKey: "companyId"});
   Companysuperadminquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
   Companysuperadminquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 

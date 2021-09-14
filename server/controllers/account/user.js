@@ -519,7 +519,7 @@ const createProfile = async (request, h) => {
 
     const { responses } = request.payload || {};
 
-    const { Userquesresponse, Mentorquesresponse, Companysuperadminquesresponse, Userdemographic } = request.getModels('xpaxr');
+    const { Userinfo, Userquesresponse, Mentorquesresponse, Companysuperadminquesresponse, Userdemographic } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
 
@@ -640,9 +640,13 @@ const createProfile = async (request, h) => {
 
     } else if (userTypeName === 'companysuperadmin') {
       // create profile for a company superadmin
+      const userRecord = await Userinfo.findOne({ where: { userId } });
+      const userData = userRecord && userRecord.toJSON();
+      const { companyId } = userData || {};
+
       for (const response of responses) {
         const { questionId, answer, timeTaken } = response || {};
-        const record = { questionId, responseVal: { answer }, userId, timeTaken }
+        const record = { questionId, responseVal: { answer }, userId, companyId, timeTaken }
         data.push(record);
       }
       await Companysuperadminquesresponse.bulkCreate(data, { updateOnDuplicate: ["responseVal", "timeTaken"] });
@@ -669,7 +673,7 @@ const createProfile = async (request, h) => {
 
       const sqlStmtForUserResCount = `select count(*) 
       from hris.companysuperadminquesresponses cqr
-      inner join hris.questionnaire q on q.question_id=mqr.question_id and q.question_target_id=4
+      inner join hris.questionnaire q on q.question_id=cqr.question_id and q.question_target_id=4
       where cqr.user_id=:userId`;
 
       const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
