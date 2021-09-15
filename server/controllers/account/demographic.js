@@ -57,7 +57,7 @@ const demoQuestionId2Column = {
     100003: "gender",
     100004: "highestEducation",
     100005: "educationYear",
-    1000006: "isEmployed",
+    100006: "isEmployed",
     100007: "employmentMonths",
     100008: "preferredJobLocation",
     100009: "preferredJobType",
@@ -83,7 +83,7 @@ const demoColumn2QuestionId = {
     isInTouchNgos: 100012,
     numMonthsInTouchNgos: 100013,
     expectedStartDate: 100014,
-    isEmployed: 1000006
+    isEmployed: 100006
 }
 
 const updateDemographicAnswers = async (demographicData, Userdemographic) => {
@@ -130,7 +130,7 @@ const demoRow2Answers = async (userId, Userdemographic) => {
             let questionId = demoColumn2QuestionId[key];
             responses.push({ questionId, responseVal: { answer: value }, timeTaken: row["timeTaken"][questionId] });
         }
-        isComplete = responses.every((x) => x.answer != undefined);
+        isComplete = responses.every((x) => x.responseVal.answer != undefined);
     }
     return { isComplete, responses }
 }
