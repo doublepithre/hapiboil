@@ -137,10 +137,13 @@ const getAutism = (autismCategory) => {
         questionConfig: {
             options: [
             ]
+            ,
+            desc:""
         },
         questionTypeName: "single_choice",
         questionCategoryName: "demographics",
-        part:PART
+        part:PART,
+        isActive:true
     };
     autismCategory.map(x=>{
         obj.questionConfig.options.push({optionId:x.autismCatId,option_name:x.categoryName})
@@ -156,10 +159,13 @@ const getPersonLocation = (jobLocation) => {
         questionConfig: {
             options: [
             ]
+            ,
+            desc:""
         },
         questionTypeName: "single_choice",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     jobLocation.map(x=>{
         obj.questionConfig.options.push({optionId:x.jobLocationId,optionName:x.jobLocationName})
@@ -172,9 +178,16 @@ const getAge = () => {
     let obj = {
         questionId:100002,
         questionName:"What is your age in years?",
+        questionConfig: {
+            options: [
+            ]
+            ,
+            desc:""
+        },
         questionTypeName: "integer",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     obj["questionUuid"] = stringHash(obj.questionName);
     return obj
@@ -184,13 +197,16 @@ const getGender = (genderCategory) => {
     let obj = {
         questionId:100003,
         questionName: "What is your gender?",
-        "questionConfig": {
-            "options": [
+        questionConfig: {
+            options: [
             ]
+            ,
+            desc:""
         },
         questionTypeName: "single_choice",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     genderCategory.map(x=>{
         obj.questionConfig.options.push({optionId:x.genderId,optionName:x.categoryName})
@@ -206,10 +222,13 @@ const getHighestEducation = (education) => {
         questionConfig: {
             options: [
             ]
+            ,
+            desc:""
         },
         questionTypeName: "single_choice",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     education.map(x=>{
         obj.questionConfig.options.push({optionId:x.educationId,optionName:x.educationName})
@@ -222,9 +241,16 @@ const getEducationYear = () => {
     let obj = {
         questionId:100005,
         questionName: "Which year did you attain your highest qualification?",
+        questionConfig: {
+            options: [
+            ]
+            ,
+            desc:""
+        },
         questionTypeName: "date", //or integer??
         questionCategoryName: "demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     obj["questionUuid"] = stringHash(obj.questionName);
     return obj;
@@ -234,9 +260,16 @@ const getIsEmployed = () => {
     let obj = {
         questionId:100006,
         questionName: "Are you currently employed?",
+        questionConfig: {
+            options: [
+            ]
+            ,
+            desc:""
+        },
         questionTypeName: "yes_no",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     obj["questionUuid"] = stringHash(obj.questionName);
     return obj;
@@ -246,9 +279,16 @@ const getEmploymentMonths = () => {
     let obj = {
         questionId:100007,
         questionName: "How many months have you been working for in total (nearest month)?",
+        questionConfig: {
+            options: [
+            ]
+            ,
+            desc:""
+        },
         questionTypeName: "integer",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     obj["questionUuid"] = stringHash(obj.questionName);
     return obj;
@@ -261,10 +301,13 @@ const getPreferredJobLocation = (jobLocations) => {
         questionConfig: {
             options: [
             ]
+            ,
+            desc:""
         },
         questionTypeName: "single_choice",
         questionCategoryName: "demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     jobLocations.map(x=>{
         obj.questionConfig.options.push({optionId:x.jobLocationId,optionName:x.jobLocationName})
@@ -280,10 +323,13 @@ const getPreferredJobType = (jobTypes) => {
         questionConfig: {
             options: [
             ]
+            ,
+            desc:""
         },
         questionTypeName:"single_choice",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     jobTypes.map(x=>{
         obj.questionConfig.options.push({optionId:x.jobTypeId,option_name:x.jobTypeName})
@@ -299,10 +345,13 @@ const getPreferredJobFunction = (jobFunctions) => {
         questionConfig: {
             options: [
             ]
+            ,
+            desc:""
         },
         questionTypeName: "single_choice",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     jobFunctions.map(x=>{
         obj.questionConfig.options.push({optionId:x.jobFunctionId,option_name:x.jobFunctionName})
@@ -318,10 +367,12 @@ const getPreferredJobIndustry = (jobIndustries) => {
         questionConfig: {
             options: [
             ]
-        },
-        questionTypeName: "single_choice",
+            ,
+            desc:""
+        },tionTypeName: "single_choice",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     jobIndustries.map(x=>{
         obj.questionConfig.options.push({optionId:x.jobIndustryId,option_name:x.jobIndustryName})
@@ -334,9 +385,16 @@ const getIsInTouchNGOs = () => {
     let obj = {
         questionId:100012,
         questionName: "Are you in touch with any NGOs?",
+        questionConfig: {
+            options: [
+            ]
+            ,
+            desc:""
+        },
         questionTypeName: "yes_no",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     obj["questionUuid"] = stringHash(obj.questionName);
     return obj;
@@ -346,9 +404,16 @@ const getNumMonthsInTouchNGOs = () => {
     let obj = {
         questionId:100013,
         questionName: "How many months have you been in touch with the NGO (nearest month)?",
+        questionConfig: {
+            options: [
+            ]
+            ,
+            desc:""
+        },
         questionTypeName: "integer",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     obj["questionUuid"] = stringHash(obj.questionName);
     return obj;
@@ -358,9 +423,16 @@ const getExpectedStartDate = () => {
     let obj = {
         questionId:100014,
         questionName: "What is your expected start date?",
+        questionConfig: {
+            options: [
+            ]
+            ,
+            desc:""
+        },
         questionTypeName: "date",
         questionCategoryName:"demographics",
-        part:PART
+        part:PART,
+        isActive:true
     }
     obj["questionUuid"] = stringHash(obj.questionName);
     return obj;
