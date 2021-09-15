@@ -539,7 +539,7 @@ const createProfile = async (request, h) => {
           data.push(record);
         }
       }
-      let { demoIsComplete, responses: demoResponses } = await updateDemographicAnswers(demographicData, Userdemographic);
+      let { isComplete: demoIsComplete, responses: demoResponses } = await updateDemographicAnswers(demographicData, Userdemographic);
       if (demoIsComplete) {
         isComplete.push(0);
       }
