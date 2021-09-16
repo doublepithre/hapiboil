@@ -41,7 +41,7 @@ const getQuestions = async (request, h, targetName) => {
         let demographicQuestions = await getDemographicQuestionnaire(models);
         questions.push(...demographicQuestions);
         questions = camelizeKeys(questions);
-        questions.sort((a,b)=>a.questionId-b.questionId).sort(((a,b)=>a.part-b.part)).sort((a,b)=>b.isActive-a.isActive); // sort them by reverse order of importance since node sort is stable
+        questions.sort((a,b)=>a.questionId-b.questionId).sort(((a,b)=>a.part-b.part)).sort((a,b)=>b.isActive-a.isActive); // sort them by reverse order of importance since nodejs (12+) sort is stable
         return h.response(questions).code(200);
     }
     catch (error) {
