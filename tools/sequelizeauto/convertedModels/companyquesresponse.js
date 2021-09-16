@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('Companysuperadminquesresponse', {
+module.exports = (sequelize, DataTypes) => {
+  const Companyquesresponse = sequelize.define('Companyquesresponse', {
     responseId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -69,7 +69,7 @@ module.exports = function(sequelize, DataTypes) {
     }
   }, {
     sequelize,
-    tableName: 'companysuperadminquesresponses',
+    tableName: 'companyquesresponses',
     schema: 'hris',
     timestamps: false,
     indexes: [
@@ -83,4 +83,20 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  Companyquesresponse.associate = function(model) {
+    initRelations(model);
+  }
+  return Companyquesresponse;
+}
+const initRelations = (model) =>{
+  const Companyquesresponse = model.Companyquesresponse;
+  const Company = model.Company;
+  const Questionnaire = model.Questionnaire;
+  const Userinfo = model.Userinfo;
+
+
+  Companyquesresponse.belongsTo(Company, { as: "company", foreignKey: "companyId"});
+  Companyquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
+  Companyquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+
+}

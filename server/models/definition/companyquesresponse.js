@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
 module.exports = (sequelize, DataTypes) => {
-  const Companysuperadminquesresponse = sequelize.define('Companysuperadminquesresponse', {
+  const Companyquesresponse = sequelize.define('Companyquesresponse', {
     responseId: {
       autoIncrement: true,
       type: DataTypes.BIGINT,
@@ -69,7 +69,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     sequelize,
-    tableName: 'companysuperadminquesresponses',
+    tableName: 'companyquesresponses',
     schema: 'hris',
     timestamps: false,
     indexes: [
@@ -83,20 +83,20 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  Companysuperadminquesresponse.associate = function(model) {
+  Companyquesresponse.associate = function(model) {
     initRelations(model);
   }
-  return Companysuperadminquesresponse;
+  return Companyquesresponse;
 }
 const initRelations = (model) =>{
-  const Companysuperadminquesresponse = model.Companysuperadminquesresponse;
+  const Companyquesresponse = model.Companyquesresponse;
   const Company = model.Company;
   const Questionnaire = model.Questionnaire;
   const Userinfo = model.Userinfo;
 
 
-  Companysuperadminquesresponse.belongsTo(Company, { as: "company", foreignKey: "companyId"});
-  Companysuperadminquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
-  Companysuperadminquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
+  Companyquesresponse.belongsTo(Company, { as: "company", foreignKey: "companyId"});
+  Companyquesresponse.belongsTo(Questionnaire, { as: "question", foreignKey: "questionId"});
+  Companyquesresponse.belongsTo(Userinfo, { as: "user", foreignKey: "userId"});
 
 }

@@ -672,7 +672,7 @@ const createProfile = async (request, h) => {
       const userQuesCount = allSQLUserQuesCount[0].count;
 
       const sqlStmtForUserResCount = `select count(*) 
-      from hris.companysuperadminquesresponses cqr
+      from hris.companyquesresponses cqr
       inner join hris.questionnaire q on q.question_id=cqr.question_id and q.question_target_id=4
       where cqr.user_id=:userId`;
 
@@ -803,8 +803,8 @@ const getProfile = async (request, h) => {
       const userQuesCount = allSQLUserQuesCount[0].count;
 
       const sqlStmtForUserResCount = `select count(*) 
-      from hris.companysuperadminquesresponses cqr
-        inner join hris.questionnaire q on q.question_id=mqr.question_id and q.question_target_id=4
+      from hris.companyquesresponses cqr
+        inner join hris.questionnaire q on q.question_id=cqr.question_id and q.question_target_id=4
       where cqr.user_id=:userId`;
 
       const allSQLUserResCount = await sequelize.query(sqlStmtForUserResCount, {
