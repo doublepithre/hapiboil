@@ -376,7 +376,8 @@ const getPreferredJobIndustry = (jobIndustries) => {
             ]
             ,
             desc:""
-        },tionTypeName: "single_choice",
+        },
+        questionTypeName: "single_choice",
         questionCategoryName:"demographics",
         part:PART,
         isActive:true
