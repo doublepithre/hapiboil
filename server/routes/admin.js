@@ -25,7 +25,7 @@ const xadmin = {
     try {
       server.route({
         method: 'GET',
-        path: '/questions/empauwer-me',
+        path: '/questions/empauwer_me',
         options: {
           auth: {
             mode: 'try',
@@ -37,7 +37,7 @@ const xadmin = {
       });
       server.route({
         method: 'GET',
-        path: '/questions/empauwer-all',
+        path: '/questions/empauwer_all',
         options: {
           auth: {
             mode: 'try',
@@ -49,13 +49,25 @@ const xadmin = {
       });
       server.route({
         method: 'GET',
-        path: '/questions/empauwer-us',
+        path: '/questions/empauwer_us_mentor',
         options: {
           auth: {
             mode: 'try',
           },
           handler: async(request,h)=>{
-            return await getQuestions(request,h,'empauwer_us')
+            return await getQuestions(request,h,'empauwer_us_mentor')
+          },
+        },
+      });
+      server.route({
+        method: 'GET',
+        path: '/questions/empauwer_us_admin',
+        options: {
+          auth: {
+            mode: 'try',
+          },
+          handler: async(request,h)=>{
+            return await getQuestions(request,h,'empauwer_us_admin')
           },
         },
       });

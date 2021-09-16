@@ -1,5 +1,6 @@
 const request = require("request");
 import { camelizeKeys } from '../utils/camelizeKeys';
+import { getDemographicQuestionnaire, demoQuestionId2Column, updateDemographicAnswers, demoRow2Answers } from './account/demographic';
 // note potential json injection when passing directly 
 // from request.payload into sequelize fn but okay as this is for admin only
 
@@ -14,7 +15,8 @@ const getQuestions = async (request, h, targetName) => {
         if (userTypeName !== 'superadmin') {
             return h.response({ message: 'Not authorized' }).code(403);
         }
-        const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = request.getModels('xpaxr');
+        const models = request.getModels('xpaxr')
+        const { Questionnaire, Questiontarget, Questiontype, Questioncategory } = models;
         let questions = await Questionnaire.findAll({
             raw: true,
             include: [{
@@ -34,10 +36,13 @@ const getQuestions = async (request, h, targetName) => {
                 required: true
             }
             ],
-            order: [["isActive", "DESC"]],
-            attributes: ["questionId", "questionUuid", "questionName", "questionConfig", "questionCategory.question_category_name", "questionType.question_type_name", "isActive"],
+            attributes: ["questionId", "questionUuid", "questionName","part","questionConfig", "questionCategory.question_category_name", "questionType.question_type_name", "isActive"],
         })
-        return h.response(camelizeKeys(questions)).code(200);
+        let demographicQuestions = await getDemographicQuestionnaire(models);
+        questions.push(...demographicQuestions);
+        questions = camelizeKeys(questions);
+        questions.sort((a,b)=>a.questionId-b.questionId).sort(((a,b)=>a.part-b.part)).sort((a,b)=>b.isActive-a.isActive); // sort them by reverse order of importance since nodejs (12+) sort is stable
+        return h.response(questions).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -74,6 +79,7 @@ const createQuestions = async (request, h) => {
                 for (let ques of questions) {
                     if (ques.questionName && ques.questionTypeName && ques.target) {
                         let questionName = ques.questionName;
+                        let part = ques.part;
                         let createdBy = userId;
                         let questionCategoryId = questionCategoryMap[ques.category];
                         let questionTypeId = questionTypeMap[ques.questionTypeName];
@@ -81,7 +87,9 @@ const createQuestions = async (request, h) => {
                         let isActive = ques.isActive !== undefined ? ques.isActive : true; //default active is true
                         let questionConfig = ques.questionConfig || {};
                         let weight = ques.weight || 1.0;
-
+                        if (part == null){
+                            throw new incorrectQuestionFormatException(`Question part cannot be empty`);
+                        }
                         if (questionTypeId == null) {
                             throw new incorrectQuestionFormatException(`Question type ${ques.questionTypeName} is not in database please add question type first`);
                         }
@@ -104,7 +112,7 @@ const createQuestions = async (request, h) => {
                                 throw new incorrectQuestionFormatException("single choice and multiple choice questions require and options array of non zero length in questionconfig");
                             }
                         }
-                        quesArr.push({ questionTypeId, questionName, questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, weight });
+                        quesArr.push({ questionTypeId, questionName,part ,questionCategoryId, createdBy, questionTargetId, questionConfig, isActive, weight });
                     } else {
                         throw new incorrectQuestionFormatException("Some fields are missing");
                     }
@@ -200,7 +208,7 @@ const getQuestionById = async (request, h, questionId) => {
                 where: {
                     questionId
                 },
-                attributes: ["questionId", "questionConfig", "questionName", "weight"]
+                attributes: ["questionId","part","questionConfig", "questionName", "weight"]
             });
             return h.response(res).code(200);
         } catch (err) {
@@ -239,6 +247,7 @@ const editQuestion = async (request, h) => {
 
             let res = await Questionnaire.update({
                 questionName: questionPayload.questionName,
+                part:questionPayload.part,
                 questionConfig: questionPayload.questionConfig,
                 questionTypeId: questionTypeMap[questionPayload.questionTypeName],
                 questionCategoryId: questionCategoryMap[questionPayload.category],
