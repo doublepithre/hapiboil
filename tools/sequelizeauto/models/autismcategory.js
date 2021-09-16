@@ -1,11 +1,11 @@
 const Sequelize = require('sequelize');
 module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('GenderCategory', {
-    genderId: {
+  return sequelize.define('Autismcategory', {
+    autismCatId: {
       type: DataTypes.INTEGER,
       allowNull: false,
       primaryKey: true,
-      field: 'gender_id'
+      field: 'autism_cat_id'
     },
     categoryName: {
       type: DataTypes.TEXT,
@@ -14,15 +14,15 @@ module.exports = function(sequelize, DataTypes) {
     }
   }, {
     sequelize,
-    tableName: 'gender_categories',
+    tableName: 'autismcategories',
     schema: 'hris',
     timestamps: false,
     indexes: [
       {
-        name: "gender_categories_pkey",
+        name: "autism_categories_pkey",
         unique: true,
         fields: [
-          { name: "gender_id" },
+          { name: "autism_cat_id" },
         ]
       },
     ]

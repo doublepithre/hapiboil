@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = (sequelize, DataTypes) => {
-  const GenderCategory = sequelize.define('GenderCategory', {
+module.exports = function(sequelize, DataTypes) {
+  return sequelize.define('Gendercategory', {
     genderId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -14,7 +14,7 @@ module.exports = (sequelize, DataTypes) => {
     }
   }, {
     sequelize,
-    tableName: 'gender_categories',
+    tableName: 'gendercategories',
     schema: 'hris',
     timestamps: false,
     indexes: [
@@ -27,14 +27,4 @@ module.exports = (sequelize, DataTypes) => {
       },
     ]
   });
-  GenderCategory.associate = function(model) {
-    initRelations(model);
-  }
-  return GenderCategory;
-}
-const initRelations = (model) =>{
-  const GenderCategory = model.GenderCategory;
-
-
-
-}
+};

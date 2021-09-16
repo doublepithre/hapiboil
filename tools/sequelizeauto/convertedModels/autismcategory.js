@@ -1,6 +1,6 @@
 const Sequelize = require('sequelize');
-module.exports = function(sequelize, DataTypes) {
-  return sequelize.define('AutismCategory', {
+module.exports = (sequelize, DataTypes) => {
+  const Autismcategory = sequelize.define('Autismcategory', {
     autismCatId: {
       type: DataTypes.INTEGER,
       allowNull: false,
@@ -14,7 +14,7 @@ module.exports = function(sequelize, DataTypes) {
     }
   }, {
     sequelize,
-    tableName: 'autism_categories',
+    tableName: 'autismcategories',
     schema: 'hris',
     timestamps: false,
     indexes: [
@@ -27,4 +27,14 @@ module.exports = function(sequelize, DataTypes) {
       },
     ]
   });
-};
+  Autismcategory.associate = function(model) {
+    initRelations(model);
+  }
+  return Autismcategory;
+}
+const initRelations = (model) =>{
+  const Autismcategory = model.Autismcategory;
+
+
+
+}
