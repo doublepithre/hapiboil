@@ -539,7 +539,7 @@ const createProfile = async (request, h) => {
           data.push(record);
         }
       }
-      let { demoIsComplete, responses: demoResponses } = await updateDemographicAnswers(demographicData, Userdemographic);
+      let { isComplete: demoIsComplete, responses: demoResponses } = await updateDemographicAnswers(demographicData, Userdemographic);
       if (demoIsComplete) {
         isComplete.push(0);
       }
@@ -714,7 +714,7 @@ const getProfile = async (request, h) => {
 
     if (userType === 'candidate') {
       quesResponses = await Userquesresponse.findAll({ where: { userId }, raw: true });
-      let { demoIsComplete, responses: demoResponses } = await demoRow2Answers(userId, Userdemographic);
+      let { isComplete: demoIsComplete, responses: demoResponses } = await demoRow2Answers(userId, Userdemographic);
       if (demoIsComplete) {
         isComplete.push(0);
       }
