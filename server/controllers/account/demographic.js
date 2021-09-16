@@ -4,11 +4,11 @@
  */
 
 const getDemographicQuestionnaire = async (models) => {
-    const { GenderCategory, Education, AutismCategory, Jobtype, Jobfunction, Jobindustry, Joblocation } = models;
+    const { Gendercategory, Education, Autismcategory, Jobtype, Jobfunction, Jobindustry, Joblocation } = models;
     const [genderCategory, education, autismCategory, jobTypes, jobFunctions, jobIndustries, jobLocations] = await Promise.all([
-        GenderCategory.findAll({}),
+        Gendercategory.findAll({}),
         Education.findAll({}),
-        AutismCategory.findAll({ raw: true }),
+        Autismcategory.findAll({ raw: true }),
         Jobtype.findAll({}),
         Jobfunction.findAll({}),
         Jobindustry.findAll({}),

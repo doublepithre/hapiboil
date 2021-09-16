@@ -3,7 +3,7 @@ var _Accesstoken = require("./accesstoken");
 var _Applicationauditlog = require("./applicationauditlog");
 var _Applicationhiremember = require("./applicationhiremember");
 var _Attributeset = require("./attributeset");
-var _AutismCategory = require("./autism_category");
+var _Autismcategory = require("./autismcategory");
 var _Company = require("./company");
 var _Companyauditlog = require("./companyauditlog");
 var _Companyindustry = require("./companyindustry");
@@ -17,7 +17,7 @@ var _Cronofytoken = require("./cronofytoken");
 var _Education = require("./education");
 var _Emaillog = require("./emaillog");
 var _Emailtemplate = require("./emailtemplate");
-var _GenderCategory = require("./gender_category");
+var _Gendercategory = require("./gendercategory");
 var _Jobapplication = require("./jobapplication");
 var _Jobauditlog = require("./jobauditlog");
 var _Jobfunction = require("./jobfunction");
@@ -74,7 +74,7 @@ function initModels(sequelize) {
   var Applicationauditlog = _Applicationauditlog(sequelize, DataTypes);
   var Applicationhiremember = _Applicationhiremember(sequelize, DataTypes);
   var Attributeset = _Attributeset(sequelize, DataTypes);
-  var AutismCategory = _AutismCategory(sequelize, DataTypes);
+  var Autismcategory = _Autismcategory(sequelize, DataTypes);
   var Company = _Company(sequelize, DataTypes);
   var Companyauditlog = _Companyauditlog(sequelize, DataTypes);
   var Companyindustry = _Companyindustry(sequelize, DataTypes);
@@ -88,7 +88,7 @@ function initModels(sequelize) {
   var Education = _Education(sequelize, DataTypes);
   var Emaillog = _Emaillog(sequelize, DataTypes);
   var Emailtemplate = _Emailtemplate(sequelize, DataTypes);
-  var GenderCategory = _GenderCategory(sequelize, DataTypes);
+  var Gendercategory = _Gendercategory(sequelize, DataTypes);
   var Jobapplication = _Jobapplication(sequelize, DataTypes);
   var Jobauditlog = _Jobauditlog(sequelize, DataTypes);
   var Jobfunction = _Jobfunction(sequelize, DataTypes);
@@ -348,7 +348,7 @@ function initModels(sequelize) {
     Applicationauditlog,
     Applicationhiremember,
     Attributeset,
-    AutismCategory,
+    Autismcategory,
     Company,
     Companyauditlog,
     Companyindustry,
@@ -362,7 +362,7 @@ function initModels(sequelize) {
     Education,
     Emaillog,
     Emailtemplate,
-    GenderCategory,
+    Gendercategory,
     Jobapplication,
     Jobauditlog,
     Jobfunction,
