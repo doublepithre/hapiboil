@@ -146,6 +146,11 @@ module.exports = function(sequelize, DataTypes) {
       allowNull: true,
       defaultValue: false,
       field: 'allow_send_email'
+    },
+    lastLoggedInAt: {
+      type: DataTypes.DATE,
+      allowNull: true,
+      field: 'last_logged_in_at'
     }
   }, {
     sequelize,

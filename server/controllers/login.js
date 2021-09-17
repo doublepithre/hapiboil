@@ -12,11 +12,14 @@ const loginUser = async (request, h) => {
       return h.response({ message: 'Forbidden' }).code(401);
     }
     const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
-    const { email: rEmail, password, rememberMe } = request.payload || {};
+    const { email: rEmail, password, rememberMe, captcha } = request.payload || {};
     const email = rEmail?.toLowerCase();
 
     if (!(email && password)) {
       return h.response({ error: true, message: 'Please provide necessary credentials' }).code(400);
+    }
+    if (!captcha) {
+      return h.response({ error: true, message: 'Please click on robot captcha' }).code(400);
     }
 
     if (!validator.isEmail(email)) {
@@ -80,16 +83,21 @@ const loginUser = async (request, h) => {
       roleName,
     } = userInfoRes || {};
     const token = await jwt.sign({ userUuid, userTypeId, email: userEmail, roleId, active, companyId, companyUuid, firstName, lastName, isAdmin, tzid, primaryMobile, userTypeName, roleName }, config.get('jwtSecret'), { expiresIn: '24h' });
-    
+
     const expirationHrs = rememberMe ? 7 * 24 : 12;
     const expiresAt = moment().add(expirationHrs, 'hours').format();
-    await Accesstoken.create({
-      token,
-      userId: user_id,
-      isValid: true,
-      expiresAt,
-    });
-
+    const timeNow = new Date();
+    await Promise.all([
+      Accesstoken.create({
+        token,
+        userId: user_id,
+        isValid: true,
+        expiresAt,
+      }),
+      Userinfo.update({ lastLoggedInAt: timeNow }, {where: { userId }})
+    ]);
+    userInfoRes.lastLoggedInAt = timeNow;
+    
     if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
       const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey: 'is_onboarding_complete' }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
       const userMetaData = userMetaRecord && userMetaRecord.toJSON();

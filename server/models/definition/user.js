@@ -102,16 +102,11 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const User = model.User;
   const Job = model.Job;
-  const Recommendation = model.Recommendation;
   const Userinfo = model.Userinfo;
-  const Userrecommendationlog = model.Userrecommendationlog;
 
 
-  User.belongsToMany(Job, { through: Recommendation, foreignKey: "userId", otherKey: "jobId" });
   User.hasMany(Job, { as: "jobs", foreignKey: "userId"});
-  User.hasMany(Recommendation, { as: "recommendations", foreignKey: "userId"});
   User.hasOne(Userinfo, { as: "userinfo", foreignKey: "userId"});
   User.hasMany(Userinfo, { as: "userUuUserinfos", foreignKey: "userUuid"});
-  User.hasOne(Userrecommendationlog, { as: "userrecommendationlog", foreignKey: "userId"});
 
 }

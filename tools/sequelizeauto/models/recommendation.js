@@ -7,7 +7,7 @@ module.exports = function(sequelize, DataTypes) {
       primaryKey: true,
       references: {
         model: {
-          tableName: 'user',
+          tableName: 'userinfo',
           schema: 'hris'
         },
         key: 'user_id'

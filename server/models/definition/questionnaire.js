@@ -95,6 +95,10 @@ module.exports = (sequelize, DataTypes) => {
       type: DataTypes.REAL,
       allowNull: true,
       defaultValue: 1.0
+    },
+    part: {
+      type: DataTypes.INTEGER,
+      allowNull: true
     }
   }, {
     sequelize,
@@ -125,8 +129,10 @@ module.exports = (sequelize, DataTypes) => {
 }
 const initRelations = (model) =>{
   const Questionnaire = model.Questionnaire;
+  const Job = model.Job;
   const Userinfo = model.Userinfo;
   const Questioncategory = model.Questioncategory;
+  const Companyquesresponse = model.Companyquesresponse;
   const Jobsquesresponse = model.Jobsquesresponse;
   const Mentorquesresponse = model.Mentorquesresponse;
   const Questionmapping = model.Questionmapping;
@@ -137,11 +143,14 @@ const initRelations = (model) =>{
   const Questiontype = model.Questiontype;
 
 
+  Questionnaire.belongsToMany(Job, { through: Jobsquesresponse, foreignKey: "questionId", otherKey: "jobId" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerAllQid", otherKey: "empauwerMeQid", as:"ea2em" });
   Questionnaire.belongsToMany(Questionnaire, { through: Questionmapping, foreignKey: "empauwerMeQid", otherKey: "empauwerAllQid", as:"em2ea" });
+  Questionnaire.belongsToMany(Userinfo, { through: Companyquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsToMany(Userinfo, { through: Mentorquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsToMany(Userinfo, { through: Userquesresponse, foreignKey: "questionId", otherKey: "userId" });
   Questionnaire.belongsTo(Questioncategory, { as: "questionCategory", foreignKey: "questionCategoryId"});
+  Questionnaire.hasMany(Companyquesresponse, { as: "companyquesresponses", foreignKey: "questionId"});
   Questionnaire.hasMany(Jobsquesresponse, { as: "jobsquesresponses", foreignKey: "questionId"});
   Questionnaire.hasMany(Mentorquesresponse, { as: "mentorquesresponses", foreignKey: "questionId"});
   Questionnaire.hasMany(Questionmapping, { as: "questionmappings", foreignKey: "empauwerAllQid"});

@@ -47,8 +47,10 @@ module.exports = (sequelize, DataTypes) => {
 const initRelations = (model) =>{
   const Jobindustry = model.Jobindustry;
   const Job = model.Job;
+  const Userdemographic = model.Userdemographic;
 
 
   Jobindustry.hasMany(Job, { as: "jobs", foreignKey: "jobIndustryId"});
+  Jobindustry.hasMany(Userdemographic, { as: "userdemographics", foreignKey: "preferredJobIndustry"});
 
 }
