@@ -165,7 +165,7 @@ if (require.main === module) {
         // let questions = await getQuestionnaire(client,COMPANY_NAME);
         // let answers = createRandomResponses(questions);
         // await inputJobAnswers(client,jobId,answers);
-        await client.end();;
+        await client.end();
     }   
     )();
 }

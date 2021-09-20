@@ -804,7 +804,7 @@ const getTalentsAndApplicants = async (request, h) => {
     const refinedApplicantUnique = new Set([...applicantIds]);
     const refinedTalentUnique = new Set([...talentUserIds]);
     const finalArray = typeReq === 'talent' ? [...refinedTalentUnique] : [...refinedApplicantUnique];
-    if (!finalArray.length) return h.response({ error: true, message: 'No users found!' }).code(400);;
+    if (!finalArray.length) return h.response({ error: true, message: 'No users found!' }).code(400);
 
     // get sql statement for getting jobs or jobs count
     const filters = { search, sortBy, sortType };
