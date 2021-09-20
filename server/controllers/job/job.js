@@ -1281,12 +1281,14 @@ const isUserQuestionnaireDone = async (userId, model) => {
       model: Questiontarget,
       as: "questionTarget",
       where: {
-        targetName: "empauwer_me"
+        targetName: "empauwer_me",        
+        
       },
       required: true
     }],
     where: {
-      isActive: true
+      isActive: true,
+      part: [1, 2]
     },
     required: true
   })
@@ -1307,7 +1309,7 @@ const isUserQuestionnaireDone = async (userId, model) => {
       userId
     }
   });
-  return await questionnaireCount === await responsesCount;
+  return await questionnaireCount <= await responsesCount;
 }
 
 module.exports = {
