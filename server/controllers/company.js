@@ -638,7 +638,7 @@ const updateCompanyStaff = async (request, h) => {
     const { userId: luserId, isAdmin, companyId: luserCompanyId } = luser || {};
 
     const { userUuid } = request.params || {};
-    const requestedForUser = await Userinfo.findOne({ where: { userUuid } });;
+    const requestedForUser = await Userinfo.findOne({ where: { userUuid } });
     const requestedForUserInfo = requestedForUser && requestedForUser.toJSON();
     const { userId: staffUserId, companyId: ruserCompanyId } = requestedForUserInfo || {};
 
