@@ -10,6 +10,7 @@ const cron = require('node-cron');
 
 // DB models
 const EmailtemplateMF = require('../../tools/sequelizeauto/models/emailtemplate');
+const CompanyworkaccommodationMF = require('../../tools/sequelizeauto/models/companyworkaccommodation');
 // const Userinfo = require('../../tools/sequelizeauto/models/userinfo');
 // const Companyinfo = require('../../tools/sequelizeauto/models/companyinfo');
 // const Emaillog = require('../../tools/sequelizeauto/models/emaillog');
@@ -58,10 +59,48 @@ async function fixCompanyEmailTemplates() {
         console.log({ templateName: defaultData.templateName })
         Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, companyId: c.company_id, templateName: defaultData.templateName, ownerId: csaList[0].user_id });
       }
-      console.log(`${c.display_name} DONE!`);  
+      console.log(`${c.display_name} DONE!`);
     }
   }
   await client.end();
+  return { msg: 'DONE' }
+}
+
+async function fixCompanyWorkAccommodations() {
+  const client = new Client({
+    host: config.scriptDB.host, //"localhost",
+    user: config.scriptDB.user,
+    password: config.scriptDB.password,
+    database: config.scriptDB.database,
+  });
+  await client.connect();
+  const allETLessCompaniesRecords = await client.query(`
+    select * from hris.company c
+    left join hris.companyworkaccommodations csa on csa.company_id = c.company_id
+    where csa.company_id is null
+    `);
+  const allETLessCompanies = allETLessCompaniesRecords.rows;
+  console.log(allETLessCompanies);
+
+  for (let c of allETLessCompanies) {
+    const Companyworkaccommodation = CompanyworkaccommodationMF(sequelize, DataTypes);
+
+    // creating company work accommodations (copying the fixed x0pa given work accommodations)
+    const allWorkAcoomodations = await Workaccommodation.findAll({ attributes: { exclude: ['createdAt', 'updatedAt'] } });
+    for (let record of allWorkAcoomodations) {
+      const defaultData = record.toJSON();
+      Companyworkaccommodation.create({
+        workaccommodationId: defaultData.workaccommodationId,
+        companyId: c.company_id,
+        status: 'not started',
+      });
+    };
+    console.log(`${c.display_name} DONE!`);
+
+  }
+  await client.end();
+  return { msg: 'DONE' }
 }
 
 fixCompanyEmailTemplates()
+fixCompanyWorkAccommodations()
