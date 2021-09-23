@@ -45,10 +45,14 @@ const getCompanyOptions = async (request, h) => {
     if (!request.auth.isAuthenticated) {
       return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
     }
-    const { Companyindustry } = request.getModels('xpaxr');
-    const companyIndustries = await Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] });
+    const { Companyindustry, Country } = request.getModels('xpaxr');
+    const [companyIndustries, countries] = await Promise.all([
+      Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] }),
+      Country.findAll({}),
+    ]);
     const responses = {
       industry: companyIndustries,
+      country: countries,
     };
     return h.response(responses).code(200);
   }
