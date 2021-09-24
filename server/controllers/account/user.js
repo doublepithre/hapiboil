@@ -704,7 +704,7 @@ const getProfile = async (request, h) => {
 
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
-    const { Userquesresponse, Mentorquesresponse, Userdemographic } = request.getModels('xpaxr');
+    const { Userquesresponse, Companyquesresponse, Mentorquesresponse, Userdemographic } = request.getModels('xpaxr');
 
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
@@ -789,7 +789,7 @@ const getProfile = async (request, h) => {
       isComplete = userQuesCount === userResCount;
     }
     if (userType === 'companysuperadmin') {
-      quesResponses = await Mentorquesresponse.findAll({ where: { userId }, raw: true });
+      quesResponses = await Companyquesresponse.findAll({ where: { userId }, raw: true });
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
