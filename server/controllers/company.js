@@ -537,6 +537,15 @@ const createCompanyStaff = async (request, h) => {
       actionDescription: `The user of userId ${csaUserId} has created the user of userId ${userId}, with the accountType of ${accountType}`
     });
 
+    if (accountType === 'employer') {
+      // creating company custom email templates (copying the default ones)
+      const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { companyId: companyId, isDefaultTemplate: false, isCompanyLevel: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate', 'isCompanyLevel'] } });
+      for (let record of allDefaultTemplatesRecord) {
+        const defaultData = record.toJSON();
+        Emailtemplate.create({ ...defaultData, isCompanyLevel: false, isDefaultTemplate: false, companyId: companyId, templateName: defaultData.templateName, ownerId: userId });
+      }
+    }
+
     // SENDING THE VERIFICATION EMAIL (confirmation email)
     const token = randtoken.generate(16);               // Generating 16 character alpha numeric token.
     const expiresInHrs = 1;                             // Specifying expiry time in hrs

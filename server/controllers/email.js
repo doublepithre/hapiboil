@@ -25,7 +25,14 @@ const getAllCustomEmailTemplates = async (request, h) => {
         const userProfileInfo = userRecord && userRecord.toJSON();
         const { companyId: luserCompanyId } = userProfileInfo || {};
 
-        const allCustomTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: false, companyId: luserCompanyId, status: 'active' } });
+        const whereClause = {
+            isCompanyLevel: luserTypeName === 'companysuperadmin' ? true : false,
+        };
+        if (luserTypeName === 'employer') {
+            whereClause.ownerId = userId;
+        }
+
+        const allCustomTemplates = await Emailtemplate.findAll({ where: { ...whereClause, isDefaultTemplate: false, companyId: luserCompanyId, status: 'active' } });
         return h.response({ emailTemplates: allCustomTemplates }).code(200);
     }
     catch (error) {
@@ -45,10 +52,20 @@ const getAllDefaultEmailTemplates = async (request, h) => {
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'employer' && luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
-        const { Emailtemplate } = request.getModels('xpaxr');
-        const allDefaultTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' } });
+        const { Emailtemplate, Userinfo } = request.getModels('xpaxr');
 
-        return h.response({ emailTemplates: allDefaultTemplates }).code(200);
+        // get the company of the luser
+        const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+        const userProfileInfo = userRecord && userRecord.toJSON();
+        const { companyId: luserCompanyId } = userProfileInfo || {};
+
+        let allEmailTemplates;
+        if (luserTypeName === 'employer') {
+            allEmailTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: false, isCompanyLevel: true, companyId: luserCompanyId, status: 'active' } });
+        } else {
+            allEmailTemplates = await Emailtemplate.findAll({ where: { isDefaultTemplate: true, companyId: null, ownerId: null, status: 'active' } });
+        }
+        return h.response({ emailTemplates: allEmailTemplates }).code(200);
     }
     catch (error) {
         console.error(error.stack);
@@ -125,16 +142,24 @@ const maintainCompanyEmailTemplates = async (request, h) => {
         const luserProfileInfo = luserRecord && luserRecord.toJSON();
         const { companyId: luserCompanyId } = luserProfileInfo || {};
 
+        // employer vs companysuperadmin
+        const whereClause = {
+            isCompanyLevel: luserTypeName === 'companysuperadmin',
+        };
+        if (luserTypeName === 'employer') {
+            whereClause.ownerId = userId;
+        }
+
         // find if this company already has the customized template
-        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { id: templateId } });
+        const existingCustomizedTemplateRecord = await Emailtemplate.findOne({ where: { id: templateId, ...whereClause } });
         const existingCustomizedTemplateInfo = existingCustomizedTemplateRecord && existingCustomizedTemplateRecord.toJSON();
         const { id: existingCustomizedTemplateId, companyId: etCompanyId } = existingCustomizedTemplateInfo || {};
 
         if (!existingCustomizedTemplateId) return h.response({ error: true, message: 'No email template found!' }).code(400);
         if (luserCompanyId !== etCompanyId) return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
-        await Emailtemplate.update(customizedData, { where: { id: templateId } });
-        const updatedRecord = await Emailtemplate.findOne({ where: { id: templateId } });
+        await Emailtemplate.update({ ...customizedData, updatedAt: new Date() }, { where: { id: templateId, ...whereClause } });
+        const updatedRecord = await Emailtemplate.findOne({ where: { id: templateId, ...whereClause } });
         return h.response(updatedRecord).code(200);
     }
     catch (error) {
