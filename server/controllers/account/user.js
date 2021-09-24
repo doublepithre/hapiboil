@@ -519,7 +519,7 @@ const createProfile = async (request, h) => {
 
     const { responses } = request.payload || {};
 
-    const { Userinfo, Userquesresponse, Mentorquesresponse, Companysuperadminquesresponse, Userdemographic } = request.getModels('xpaxr');
+    const { Userinfo, Userquesresponse, Mentorquesresponse, Companyquesresponse, Userdemographic } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
     const sequelize = db1.sequelize;
 
@@ -649,8 +649,8 @@ const createProfile = async (request, h) => {
         const record = { questionId, responseVal: { answer }, userId, companyId, timeTaken }
         data.push(record);
       }
-      await Companysuperadminquesresponse.bulkCreate(data, { updateOnDuplicate: ["responseVal", "timeTaken"] });
-      const quesResponses = await Companysuperadminquesresponse.findAll({ where: { userId } });
+      await Companyquesresponse.bulkCreate(data, { updateOnDuplicate: ["responseVal", "timeTaken"] });
+      const quesResponses = await Companyquesresponse.findAll({ where: { userId } });
       const resRecord = [];
       for (let response of quesResponses) {
         response = response && response.toJSON();
