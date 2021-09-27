@@ -81,10 +81,12 @@ const getOwnCompanyInfo = async (request, h) => {
 
     const db1 = request.getDb('xpaxr');
 
-    const sqlStmt = `select 	
+    const sqlStmt = `select
+        cntry.country_full as country_name,	
         ci.logo, ci.email_bg, ci.banner, c.*
       from hris.company c
-        inner join hris.companyinfo ci on c.company_id=ci.company_id
+        inner join hris.companyinfo ci on ci.company_id=c.company_id
+        left join hris.country cntry on cntry.country_id=c.country_id
       where c.company_id=:luserCompanyId`;
 
     const sequelize = db1.sequelize;
@@ -118,10 +120,12 @@ const getAnyCompanyInfo = async (request, h) => {
     const { Companyvisit } = request.getModels('xpaxr');
     const db1 = request.getDb('xpaxr');
 
-    const sqlStmt = `select 	
+    const sqlStmt = `select
+        cntry.country_full as country_name,
         ci.logo, ci.email_bg, ci.banner, c.*
       from hris.company c
         inner join hris.companyinfo ci on c.company_id=ci.company_id
+        left join hris.country cntry on cntry.country_id=c.country_id
       where c.company_id=:companyId`;
 
     const sequelize = db1.sequelize;
@@ -333,7 +337,7 @@ const updateCompanyProfile = async (request, h) => {
       companyName, website, description,
       companyIndustryId, noOfEmployees, foundedYear,
       emailBg, supervisorRandR, workbuddyRandR,
-      isCompanyOnboardingComplete, countryId,
+      isCompanyOnboardingComplete, countryName,
       leadershipMessage,
     } = updateDetails || {};
     const { companyUuid } = request.params || {};
@@ -345,7 +349,7 @@ const updateCompanyProfile = async (request, h) => {
       'noOfEmployees', 'foundedYear',
       'logo', 'banner', 'emailBg',
       'supervisorRandR', 'workbuddyRandR',
-      'isCompanyOnboardingComplete', 'countryId',
+      'isCompanyOnboardingComplete', 'countryName',
       'leadershipMessage',
     ];
     const requestedUpdateOperations = Object.keys(updateDetails) || [];
@@ -367,11 +371,14 @@ const updateCompanyProfile = async (request, h) => {
       return h.response({ error: true, message: 'Bad Request! You are not authorized!' }).code(403);
     }
 
-    if (countryId) {
-      const countryRecord = await Country.findOne({ where: { countryId } });
+    let countryId = null;
+    if (countryName) {
+      const countryRecord = await Country.findOne({ where: { countryFull: countryName } });
       const countryData = countryRecord && countryRecord.toJSON();
       const { countryId: existingCountryId } = countryData || {};
       if (!existingCountryId) return h.response({ error: true, message: 'No country found for this given country id!' }).code(403);
+      
+      countryId = existingCountryId
     }
 
     // upload picture to azure and use that generated link to save on db
@@ -422,8 +429,9 @@ const updateCompanyProfile = async (request, h) => {
 
     // find all company info (using SQL to avoid nested ugliness in the response)
     const db1 = request.getDb('xpaxr');
-    const sqlStmt = `select * from hris.company c
+    const sqlStmt = `select cntry.country_full as country_name, * from hris.company c
         inner join hris.companyinfo ci on ci.company_id=c.company_id
+        left join hris.country cntry on cntry.country_id=c.country_id
         where c.company_id=:rCompanyId`;
 
     const sequelize = db1.sequelize;
