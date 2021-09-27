@@ -889,6 +889,19 @@ paths:
                           type: number
                         companyIndustryName:
                           type: string
+                  country:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        countryId:
+                          type: number
+                        companyCode:
+                          type: string
+                        countryShort:
+                          type: string
+                        countryFull:
+                          type: string
   
   /company/c/names:
     get: 
@@ -3274,6 +3287,8 @@ components:
           type: string
         displayName:
           type: string
+        countryId:
+          type: number
         website:
           type: string
         description:

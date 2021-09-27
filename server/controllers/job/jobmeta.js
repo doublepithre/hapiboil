@@ -63,7 +63,7 @@ const getAutoComplete = async (request, h) => {
         if (type === 'jobName') sqlStmt += ` jn.job_name_id, jn.job_name`;
         if (type === 'jobIndustry') sqlStmt += `  ji.job_industry_id, ji.job_industry_name`;
         if (type === 'jobFunction') sqlStmt += ` jf.job_function_id, jf.job_function_name`;
-        if (type === 'countryName') sqlStmt += ` c.country_id, c.country_full`;
+        if (type === 'countryName') sqlStmt += ` c.country_id, c.country_full as country_name`;
       }
 
       if (type === 'jobName') sqlStmt += ` from hris.jobname jn where jn.job_name ilike :searchVal`;
