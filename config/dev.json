@@ -20,5 +20,9 @@
     "NY_CLIENT_ID": "25b4wykrunl06p9vakclwxypx",
     "NY_CLIENT_SECRET": "ecnkbk9sni69uwi3u0w5b5861",
     "NY_REDIRECT_URI": "https://staging.x0pa.ai/nylas/cb"
+  },
+  "recaptcha": {
+    "secret": "6LfjrYIcAAAAAKU103kkwRFfz0dqO5XCGilzgLfZ",
+    "captchaVerificationUrl": "https://www.google.com/recaptcha/api/siteverify"
   }
 }

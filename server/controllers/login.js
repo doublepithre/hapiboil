@@ -22,6 +22,43 @@ const loginUser = async (request, h) => {
       return h.response({ error: true, message: 'Please click on robot captcha' }).code(400);
     }
 
+    /* __________________________________________________
+    When pushing to production, 
+    remove the above if (!captcha) validation
+    and uncomment the following captcha validation
+    __________________________________________________ */
+    // //verify captch if exists
+    // let isValidCaptcha = false;
+    // const recaptchaObj = config.get('recaptcha');
+    // if (
+    //   recaptchaObj &&
+    //   recaptchaObj.secret &&
+    //   request.payload.captcha
+    // ) {
+    //   let secret = recaptchaObj.secret;
+    //   let qs = `?secret=${secret}&response=${captcha}`;
+    //   const captchResponse = await axios.post(recaptchaObj.captchaVerificationUrl + qs, {
+    //     secret: recaptchaObj.secret,
+    //     response: captcha
+    //   });
+
+    //   isValidCaptcha =
+    //     captchResponse &&
+    //     captchResponse.data &&
+    //     captchResponse.data.success &&
+    //     captchResponse.data.success == true;
+    // } else {
+    //   //if not configured properly, then skip
+    //   isValidCaptcha = true;
+    // }
+    // console.log({ isValidCaptcha });
+
+    // if (!isValidCaptcha) {
+    //   return h.response({ error: true, message: 'Invalid captcha token' }).code(400);
+    // }
+
+    // __________CAPTCHA VALIDATION ENDS HERE
+
     if (!validator.isEmail(email)) {
       return h.response({ error: true, message: 'Please provide a valid Email' }).code(400);
     }
@@ -94,10 +131,10 @@ const loginUser = async (request, h) => {
         isValid: true,
         expiresAt,
       }),
-      Userinfo.update({ lastLoggedInAt: timeNow }, {where: { userId }})
+      Userinfo.update({ lastLoggedInAt: timeNow }, { where: { userId } })
     ]);
     userInfoRes.lastLoggedInAt = timeNow;
-    
+
     if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
       const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey: 'is_onboarding_complete' }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
       const userMetaData = userMetaRecord && userMetaRecord.toJSON();
