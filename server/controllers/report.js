@@ -28,6 +28,9 @@ const getAbout = async (request, h) => {
     }
     catch (error) {
         console.error(error.stack);
+        if (error.response){
+            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        }
         return h.response({ error: true, message: 'Bad Request' }).code(400);
     }
 }
@@ -52,6 +55,9 @@ const getUserStats = async (request, h) => {
     }
     catch (error) {
         console.error(error.stack);
+        if (error.response){
+            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        }
         return h.response({ error: true, message: 'Bad Request' }).code(400);
     }
 }
@@ -74,6 +80,9 @@ const getMentorStats = async (request, h) => {
     }
     catch (error) {
         console.error(error.stack);
+        if (error.response){
+            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        }
         return h.response({ error: true, message: 'Bad Request' }).code(400);
     }
 }
@@ -97,6 +106,9 @@ const getCompatibility = async (request, h) => {
     }
     catch (error) {
         console.error(error.stack);
+        if (error.response){
+            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        }
         return h.response({ error: true, message: 'Bad Request' }).code(400);
     }
 }
@@ -120,6 +132,9 @@ const getMentorRecommendations = async (request, h) => {
     }
     catch (error) {
         console.error(error.stack);
+        if (error.response){
+            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        }
         return h.response({ error: true, message: 'Bad Request' }).code(400);
     }
 }
