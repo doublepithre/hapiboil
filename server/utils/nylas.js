@@ -36,12 +36,12 @@ Nylas.config({
 
 const axiosErrorHandling = (error) => {
   let errMessage = 'Unknown error happened';
-  if (error.response) {
+  if (error.response && error.response.data && error.response.status) {
     // The request was made and the server responded with a status code
     // that falls out of the range of 2xx
     console.error(error.response.data);
     console.error(error.response.status);
-    if (error.response.data && error.response.data.message) {
+    if (error.response && error.response.data && error.response.status.data && error.response.data.message) {
       errMessage = error.response.data.message;
     }
   } else if (error.request) {

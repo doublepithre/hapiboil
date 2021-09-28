@@ -384,7 +384,7 @@ const getAllJobs = async (request, h) => {
         });
       } catch (error) {
         console.error(error.stack);
-        if (error.response){
+        if (error.response && error.response.data && error.response.status){
             return h.response(camelizeKeys(error.response.data)).code(error.response.status);
         }
         return h.response({ error: true, message: 'Bad Request' }).code(400);
