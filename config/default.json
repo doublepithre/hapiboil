@@ -61,7 +61,7 @@
     "NY_REDIRECT_URI": "https://staging.x0pa.ai/nylas/cb"
   },
   "recaptcha": {
-    "secret": "6LfjrYIcAAAAAKU103kkwRFfz0dqO5XCGilzgLfZ",
+    "secret": "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe",
     "captchaVerificationUrl": "https://www.google.com/recaptcha/api/siteverify"
   }
 }

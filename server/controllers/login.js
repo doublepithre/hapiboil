@@ -4,6 +4,7 @@ const moment = require('moment');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const config = require('config');
+import axios from 'axios';
 import { camelizeKeys } from '../utils/camelizeKeys';
 
 const loginUser = async (request, h) => {
@@ -18,9 +19,9 @@ const loginUser = async (request, h) => {
     if (!(email && password)) {
       return h.response({ error: true, message: 'Please provide necessary credentials' }).code(400);
     }
-    if (!captcha) {
-      return h.response({ error: true, message: 'Please click on robot captcha' }).code(400);
-    }
+    // if (!captcha) {
+    //   return h.response({ error: true, message: 'Please click on robot captcha' }).code(400);
+    // }
 
     /* __________________________________________________
     When pushing to production, 
@@ -28,34 +29,34 @@ const loginUser = async (request, h) => {
     and uncomment the following captcha validation
     __________________________________________________ */
     // //verify captch if exists
-    // let isValidCaptcha = false;
-    // const recaptchaObj = config.get('recaptcha');
-    // if (
-    //   recaptchaObj &&
-    //   recaptchaObj.secret &&
-    //   request.payload.captcha
-    // ) {
-    //   let secret = recaptchaObj.secret;
-    //   let qs = `?secret=${secret}&response=${captcha}`;
-    //   const captchResponse = await axios.post(recaptchaObj.captchaVerificationUrl + qs, {
-    //     secret: recaptchaObj.secret,
-    //     response: captcha
-    //   });
+    let isValidCaptcha = false;
+    const recaptchaObj = config.get('recaptcha');
+    if (
+      recaptchaObj &&
+      recaptchaObj.secret &&
+      request.payload.captcha
+    ) {
+      let secret = recaptchaObj.secret;
+      let qs = `?secret=${secret}&response=${captcha}`;
+      const captchResponse = await axios.post(recaptchaObj.captchaVerificationUrl + qs, {
+        secret: recaptchaObj.secret,
+        response: captcha
+      });
 
-    //   isValidCaptcha =
-    //     captchResponse &&
-    //     captchResponse.data &&
-    //     captchResponse.data.success &&
-    //     captchResponse.data.success == true;
-    // } else {
-    //   //if not configured properly, then skip
-    //   isValidCaptcha = true;
-    // }
-    // console.log({ isValidCaptcha });
+      isValidCaptcha =
+        captchResponse &&
+        captchResponse.data &&
+        captchResponse.data.success &&
+        captchResponse.data.success == true;
+    } else {
+      //if not configured properly, then skip
+      isValidCaptcha = true;
+    }
+    console.log({ isValidCaptcha });
 
-    // if (!isValidCaptcha) {
-    //   return h.response({ error: true, message: 'Invalid captcha token' }).code(400);
-    // }
+    if (!isValidCaptcha) {
+      return h.response({ error: true, message: 'Invalid captcha token' }).code(400);
+    }
 
     // __________CAPTCHA VALIDATION ENDS HERE
 
