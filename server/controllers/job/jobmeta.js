@@ -589,7 +589,11 @@ const getRecommendedTalents = async (request, h) => {
         userIdArray.push(item.user_id);
       });
     } catch (error) {
-      return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
+      console.error(error.stack);
+      if (error.response && error.response.data && error.response.status){
+          return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+      }
+      return h.response({ error: true, message: 'Bad Request' }).code(400);
     }
 
     // FAKE RECOMMENDED DATA (delete it when going for staging)
@@ -778,8 +782,11 @@ const getTalentsAndApplicants = async (request, h) => {
           recommendations[0] && recommendations.forEach((item) => addIdsIfNotExist(item.user_id, talentUserIds));
 
         } catch (error) {
-          console.log(error.stack);
-          return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
+          console.error(error.stack);
+          if (error.response && error.response.data && error.response.status){
+              return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+          }
+          return h.response({ error: true, message: 'Bad Request' }).code(400);
 
           // recommendations = [
           //     { user_id: '167', user_score: '1.0' },

@@ -383,8 +383,11 @@ const getAllJobs = async (request, h) => {
           jobIdArray.push(item.job_id);
         });
       } catch (error) {
-        console.log(error.stack);
-        return h.response({ error: true, message: 'Something wrong with Data Science Server!' }).code(500);
+        console.error(error.stack);
+        if (error.response && error.response.data && error.response.status){
+            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        }
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
 
         // recommendations = [
         //     { job_id: '1', score: '1.0' },
