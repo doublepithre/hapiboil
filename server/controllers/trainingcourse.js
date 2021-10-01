@@ -8,12 +8,12 @@ const getAll = async (request, h) => {
         if (!request.auth.isAuthenticated) {
             return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
         }
-        let { attributes, search, limit,mode,status, sortBy,sortType,recommendation,offset,limit } = request.query;
+        let { attributes, search, limit,mode,status, sortBy,sortType,recommendation,offset } = request.query;
         if (sortBy ==="courseTitle"){
             sortBy = "course_title"
         }
         let userId = request.auth.credentials.id;
-        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/trainingcourse/all`, { params: { user_id: userId,attributes, search, limit, mode, status,sort_by:sortBy, sort_type:sortType,recommendation,offset,limit } });
+        let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/trainingcourse/all`, { params: { user_id: userId,attributes, search, limit, mode, status,sort_by:sortBy, sort_type:sortType,recommendation,offset } });
         return h.response(camelizeKeys(recommendations.data)).code(200);
     }
     catch (error) {
