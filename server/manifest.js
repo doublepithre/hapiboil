@@ -132,6 +132,12 @@ const manifest = {
           prefix: `${apiRootPrefix}/trainingcourse`,
         },
       },
+      {
+        plugin: require('./routes/info'),
+        routes: {
+          prefix: `${apiRootPrefix}/info`,
+        },
+      },
     ],
     options: {},
   },
