@@ -557,7 +557,7 @@ const createProfile = async (request, h) => {
       // attaching isComplete 
       const sqlStmtForUserQuesCount = `select count(*), q.part
         from hris.questionnaire q
-          inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+          inner join hris.questiontarget qt on qt.target_id=q.question_target_id and q.is_active=true
         where qt.target_id=1
         group by q.part`;
 
@@ -614,7 +614,7 @@ const createProfile = async (request, h) => {
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id and q.is_active=true
       where qt.target_id=3`;
 
       const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
@@ -662,7 +662,7 @@ const createProfile = async (request, h) => {
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id and q.is_active=true
       where qt.target_id=4`;
 
       const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
@@ -722,7 +722,7 @@ const getProfile = async (request, h) => {
       // attaching isComplete 
       const sqlStmtForUserQuesCount = `select count(*), q.part
         from hris.questionnaire q
-          inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+          inner join hris.questiontarget qt on qt.target_id=q.question_target_id and q.is_active=true
         where qt.target_id=1
         group by q.part`;
 
@@ -764,7 +764,7 @@ const getProfile = async (request, h) => {
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-      inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+      inner join hris.questiontarget qt on qt.target_id=q.question_target_id and q.is_active=true
       where qt.target_id=3`;
 
       const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
@@ -793,7 +793,7 @@ const getProfile = async (request, h) => {
 
       // attaching isComplete
       const sqlStmtForUserQuesCount = `select count(*) from hris.questionnaire q
-        inner join hris.questiontarget qt on qt.target_id=q.question_target_id
+        inner join hris.questiontarget qt on qt.target_id=q.question_target_id and q.is_active=true
       where qt.target_id=4`;
 
       const allSQLUserQuesCount = await sequelize.query(sqlStmtForUserQuesCount, {
