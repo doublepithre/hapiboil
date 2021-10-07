@@ -1018,7 +1018,7 @@ const resendCompanyVerificationEmail = async (request, h) => {
       userId,
       expiresAt,
       resourceType: 'user',
-      actionType: 'reset-password'
+      actionType: 'account-creation-reset-password'
     });
     const reqToken = reqTokenRecord && reqTokenRecord.toJSON();
 
