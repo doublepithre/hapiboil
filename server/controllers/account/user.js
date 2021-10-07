@@ -590,7 +590,7 @@ const createProfile = async (request, h) => {
 
       for (let item of userResCount) {
         const mapItem = quesCountmap.get(item.part);
-        if (item.count === mapItem && item.part) isComplete.push(item.part);
+        if (item.count >= mapItem && item.part) isComplete.push(item.part);
       }
       isComplete.sort((a, b) => a - b);
 
@@ -636,7 +636,7 @@ const createProfile = async (request, h) => {
       });
       const userResCount = allSQLUserResCount[0].count;
 
-      isComplete = userQuesCount === userResCount;
+      isComplete = userQuesCount <= userResCount;
 
     } else if (userTypeName === 'companysuperadmin') {
       // create profile for a company superadmin
@@ -684,7 +684,7 @@ const createProfile = async (request, h) => {
       });
       const userResCount = allSQLUserResCount[0].count;
 
-      isComplete = userQuesCount === userResCount;
+      isComplete = userQuesCount <= userResCount;
     }
 
     return h.response({ isComplete, responses: createProfileResponse }).code(200);
@@ -755,7 +755,7 @@ const getProfile = async (request, h) => {
 
       for (let item of userResCount) {
         const mapItem = quesCountmap.get(item.part);
-        if (item.count === mapItem && item.part) isComplete.push(item.part);
+        if (item.count >= mapItem && item.part) isComplete.push(item.part);
       }
       isComplete.sort((a, b) => a - b);
     }
@@ -786,7 +786,7 @@ const getProfile = async (request, h) => {
       });
       const userResCount = allSQLUserResCount[0].count;
 
-      isComplete = userQuesCount === userResCount;
+      isComplete = userQuesCount <= userResCount;
     }
     if (userType === 'companysuperadmin') {
       quesResponses = await Companyquesresponse.findAll({ where: { userId }, raw: true });
@@ -815,7 +815,7 @@ const getProfile = async (request, h) => {
       });
       const userResCount = allSQLUserResCount[0].count;
 
-      isComplete = userQuesCount === userResCount;
+      isComplete = userQuesCount <= userResCount;
     }
 
     const responses = [];
