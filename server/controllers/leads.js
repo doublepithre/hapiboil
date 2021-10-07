@@ -13,6 +13,7 @@ const {
 } = require('../utils/excelHandler');
 const { sanitizeString } = require('../utils/sanitizer');
 const { sendEmailAsync } = require('../utils/email');
+const { validateIsLoggedIn } = require('../utils/authValidations');
 
 // status is made global temporarily, it'll be moved to the db
 const leadStatuses = [
@@ -31,9 +32,10 @@ const leadStatuses = [
 
 const listLeads = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     const { Leads, Company, Userinfo, Industry, Jobfunction } = request.getModels('xpaxr');
     const { credentials, artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -129,9 +131,10 @@ const listLeads = async (request, h) => {
 
 const getLead = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
     const { companyId, active } = luser || {};
@@ -183,9 +186,10 @@ const getLead = async (request, h) => {
 
 const getFilters = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
     const { companyId } = luser || {};
@@ -265,9 +269,10 @@ const getFilters = async (request, h) => {
 
 const createLead = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
     const { userId, companyId, active } = luser || {};
@@ -317,9 +322,10 @@ const createLead = async (request, h) => {
 
 const patchLead = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
     const { userId, companyId, active, firstname, lastname } = luser || {};
@@ -423,9 +429,10 @@ const patchLead = async (request, h) => {
 
 const getLeadAuditLogs = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
 
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -472,9 +479,10 @@ const getLeadAuditLogs = async (request, h) => {
 
 const sendMaps = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
 
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -538,9 +546,10 @@ const sendMaps = async (request, h) => {
 
 const bulkImportLeads = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     console.log(request.payload);
 
     const { payload } = request;
@@ -704,9 +713,10 @@ const bulkImportLeads = async (request, h) => {
 
 const leadsExport = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
 
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};
@@ -815,9 +825,10 @@ const exportLeadsToFile = async (request, queryHash) => {
 
 const downloadLeads = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
 
     const { artifacts } = request.auth || {};
     const { luser } = artifacts || {};

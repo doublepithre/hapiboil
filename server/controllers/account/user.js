@@ -1,4 +1,4 @@
-const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
+import { validateIsLoggedIn, validateIsNotLoggedIn } from '../../utils/authValidations'; const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const bcrypt = require('bcrypt');
 const validator = require('validator');
 const axios = require('axios');
@@ -11,13 +11,13 @@ import { getDomainURL } from '../../utils/toolbox';
 import { camelizeKeys } from '../../utils/camelizeKeys';
 import { update } from 'lodash';
 import { getDemographicQuestionnaire, demoQuestionId2Column, updateDemographicAnswers, demoRow2Answers } from './demographic';
+
 const uploadFile = require('../../utils/uploadFile');
 
 const createUser = async (request, h) => {
   try {
-    if (request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(401);
-    }
+    const authRes = validateIsNotLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
     const { User, Userinfo, Usertype, Userrole, Profileauditlog, Emailtemplate, Companyinfo, Emaillog, Requesttoken } = request.getModels('xpaxr');
     const { email, password, accountType, tandc, privacyClause } = request.payload || {};
 
@@ -133,9 +133,10 @@ const createUser = async (request, h) => {
 
 const getUser = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
     // Checking user type from jwt
@@ -186,9 +187,8 @@ const getUser = async (request, h) => {
 
 const getUserFirstName = async (request, h) => {
   try {
-    if (request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(401);
-    }
+    const authRes = validateIsNotLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
     const { userUuid } = request.params || {};
 
     // get user record info
@@ -214,9 +214,10 @@ const getUserFirstName = async (request, h) => {
 
 const updateUser = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const updateDetails = request.payload;
     const validUpdateRequests = [
       // 'active',
@@ -286,9 +287,10 @@ const updateUser = async (request, h) => {
 
 const updatePassword = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
     const { oldPassword, password } = request.payload || {};
@@ -507,9 +509,10 @@ const verifyEmail = async (request, h) => {
 
 const createProfile = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
     if (userTypeName !== 'candidate' && userTypeName !== 'companysuperadmin' && userTypeName !== 'supervisor' && userTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -697,9 +700,10 @@ const createProfile = async (request, h) => {
 
 const getProfile = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     let userType = request.auth.artifacts.decoded.userTypeName;
 
     const { credentials } = request.auth || {};
@@ -835,9 +839,10 @@ const getProfile = async (request, h) => {
 
 const getUserMetaData = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
@@ -861,9 +866,10 @@ const getUserMetaData = async (request, h) => {
 
 const updateMetaData = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
     const metaDataItems = isArray(request.payload) ? request.payload : [request.payload];
@@ -915,9 +921,10 @@ const updateMetaData = async (request, h) => {
 
 const getAllUserMetaData = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
@@ -942,9 +949,10 @@ const getAllUserMetaData = async (request, h) => {
 
 const getResources = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
     let userTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -1014,9 +1022,10 @@ const getResources = async (request, h) => {
 
 const saveUserFeedback = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
@@ -1041,9 +1050,10 @@ const saveUserFeedback = async (request, h) => {
 
 const getQuestionnaire = async (request, h, targetName) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { part } = request.query || {};
 
     const validPartQuery = [0, 1, 2, 3];
@@ -1104,9 +1114,10 @@ const getQuestionnaire = async (request, h, targetName) => {
 
 const getWebchatToken = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     const { credentials } = request.auth || {};
 

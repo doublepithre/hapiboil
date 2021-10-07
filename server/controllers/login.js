@@ -4,13 +4,14 @@ const moment = require('moment');
 const validator = require('validator');
 const jwt = require('jsonwebtoken');
 const config = require('config');
+import { validateIsNotLoggedIn } from '../utils/authValidations';
 import { camelizeKeys } from '../utils/camelizeKeys';
 
 const loginUser = async (request, h) => {
   try {
-    if (request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden' }).code(401);
-    }
+    const authRes = validateIsNotLoggedIn(request, h);
+    if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
     const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
     const { email: rEmail, password, rememberMe, captcha } = request.payload || {};
     const email = rEmail?.toLowerCase();
@@ -94,10 +95,10 @@ const loginUser = async (request, h) => {
         isValid: true,
         expiresAt,
       }),
-      Userinfo.update({ lastLoggedInAt: timeNow }, {where: { userId }})
+      Userinfo.update({ lastLoggedInAt: timeNow }, { where: { userId } })
     ]);
     userInfoRes.lastLoggedInAt = timeNow;
-    
+
     if (userTypeName === 'supervisor' || userTypeName === 'workbuddy') {
       const userMetaRecord = await Usermeta.findOne({ where: { userId, metaKey: 'is_onboarding_complete' }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
       const userMetaData = userMetaRecord && userMetaRecord.toJSON();

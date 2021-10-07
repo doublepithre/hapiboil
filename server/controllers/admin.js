@@ -1,14 +1,16 @@
 const request = require("request");
+import { validateIsLoggedIn } from '../utils/authValidations';
 import { camelizeKeys } from '../utils/camelizeKeys';
 import { getDemographicQuestionnaire, demoQuestionId2Column, updateDemographicAnswers, demoRow2Answers } from './account/demographic';
-// note potential json injection when passing directly 
+
+// note potential json injection when passing directly
 // from request.payload into sequelize fn but okay as this is for admin only
 
 const getQuestions = async (request, h, targetName) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
 
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
@@ -53,9 +55,10 @@ const getQuestions = async (request, h, targetName) => {
 
 const createQuestions = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -161,9 +164,10 @@ const createQuestions = async (request, h) => {
 
 const getQuestionById = async (request, h, questionId) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -232,9 +236,10 @@ const getQuestionById = async (request, h, questionId) => {
 
 const editQuestion = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -285,9 +290,10 @@ const editQuestion = async (request, h) => {
 
 const updateIsActive = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -309,9 +315,10 @@ const updateIsActive = async (request, h) => {
 
 const deleteQuestions = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -335,9 +342,10 @@ const deleteQuestions = async (request, h) => {
 
 const getQuestionCategories = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -355,9 +363,10 @@ const getQuestionCategories = async (request, h) => {
 
 const getQuestionTypes = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -375,9 +384,10 @@ const getQuestionTypes = async (request, h) => {
 
 const getAttributes = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -397,9 +407,10 @@ const getAttributes = async (request, h) => {
 
 const createAttribute = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -417,9 +428,10 @@ const createAttribute = async (request, h) => {
 
 const deleteAttribute = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -441,9 +453,10 @@ const deleteAttribute = async (request, h) => {
 
 const editAttribute = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         let attribute = JSON.parse(JSON.stringify(request.payload));
@@ -467,9 +480,10 @@ const editAttribute = async (request, h) => {
 
 const createQuestionAttributes = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -517,9 +531,10 @@ const createQuestionAttributes = async (request, h) => {
 
 const addQuestionMapping = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -542,9 +557,10 @@ const addQuestionMapping = async (request, h) => {
 
 const getQuestionMapping = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {
@@ -610,9 +626,10 @@ const getQuestionMapping = async (request, h) => {
 
 const deleteQuestionMapping = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         if (userTypeName !== 'superadmin') {

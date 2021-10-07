@@ -4,15 +4,17 @@ import { camelizeKeys } from '../../utils/camelizeKeys'
 import { sendEmailAsync } from '../../utils/email'
 import formatQueryRes from '../../utils/index'
 import { isArray } from 'lodash';
+import { validateIsLoggedIn } from '../../utils/authValidations';
 const axios = require('axios')
 const moment = require('moment');
 const config = require('config');
 
 const applyToJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
       return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -163,9 +165,10 @@ const applyToJob = async (request, h) => {
 
 const getAppliedJobs = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
       return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -330,9 +333,10 @@ const getAppliedJobs = async (request, h) => {
 
 const withdrawFromAppliedJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
       return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -480,9 +484,10 @@ const withdrawFromAppliedJob = async (request, h) => {
 
 const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -635,9 +640,10 @@ const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
 
 const getAllApplicantsSelectiveProfile = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -794,9 +800,10 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
 
 const getApplicantProfile = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') {
@@ -874,9 +881,10 @@ const getApplicantProfile = async (request, h) => {
 
 const updateApplicationStatus = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+    
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -1017,7 +1025,7 @@ module.exports = {
   applyToJob,
   getAppliedJobs,
   withdrawFromAppliedJob,
-  
+
   updateApplicationStatus,
 
   getAllEmployerApplicantsSelectiveProfile,

@@ -4,14 +4,15 @@ import { camelizeKeys } from '../utils/camelizeKeys'
 import { sendEmailAsync } from '../utils/email'
 import formatQueryRes from '../utils/index'
 import { isArray } from 'lodash';
+import { validateIsLoggedIn } from '../utils/authValidations';
 const axios = require('axios')
 const config = require('config');
 
 const getMentorRandR = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -56,9 +57,7 @@ const getMentorRandR = async (request, h) => {
 
 const mentorCandidateLinking = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -159,9 +158,7 @@ const mentorCandidateLinking = async (request, h) => {
 
 const getMentorCandidates = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
         // Checking user type from jwt
@@ -241,9 +238,7 @@ const getMentorCandidates = async (request, h) => {
 
 const getAllMentorCandidates = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
         // Checking user type from jwt
@@ -303,9 +298,7 @@ const getAllMentorCandidates = async (request, h) => {
 
 const replaceMentorForOne = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -374,9 +367,7 @@ const replaceMentorForOne = async (request, h) => {
 
 const replaceMentorForAll = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -450,9 +441,7 @@ const replaceMentorForAll = async (request, h) => {
 
 const deleteMentorCandidateMappingRecord = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -496,9 +485,7 @@ const deleteMentorCandidateMappingRecord = async (request, h) => {
 
 const getMentorApplicantProfile = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') {
@@ -568,9 +555,7 @@ const getMentorApplicantProfile = async (request, h) => {
 
 const getAllMentorApplicantsSelectiveProfile = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        validateIsLoggedIn(request, h);
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
         // Checking user type from jwt

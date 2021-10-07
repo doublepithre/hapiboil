@@ -2,40 +2,41 @@ const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const moment = require("moment");
 
 import { isArray } from 'lodash';
+import { validateIsLoggedIn } from '../utils/authValidations';
 
 import { requestNyAccessToken, revokeNylasAccount, listCalendars } from '../utils/nylas'
 import { saveAccessToken, getAccessToken } from '../utils/nylasHelpers'
 
 const requestNyToken = async (request, h) => { //tokenRecord, userId
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }   
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { token: code } = request.payload || {}; //this is data
     const { Cronofy, Userinfo } = request.getModels('xpaxr');
-    
+
     const requestToken = {
       code
     };
     const tokenRes = await requestNyAccessToken(requestToken);
-    const {id, account_id, email_address, name, calendars} = tokenRes || {};
+    const { id, account_id, email_address, name, calendars } = tokenRes || {};
 
     const ctokensRes = await saveAccessToken(request, tokenRes, userId);
-    const {accessToken, error: saveTokenErr} = ctokensRes || {};
+    const { accessToken, error: saveTokenErr } = ctokensRes || {};
     if (saveTokenErr) {
       let {
         message: saveTokenErrMsg = "Unknown error occured while saving token"
       } = saveTokenErr || {};
-      return h.response({error:true, message: saveTokenErrMsg }).code(400);      
+      return h.response({ error: true, message: saveTokenErrMsg }).code(400);
     }
 
     if (!accessToken) {
-      return h.response({error:true, message: 'Invalid tokens received from the provider' }).code(400);           
+      return h.response({ error: true, message: 'Invalid tokens received from the provider' }).code(400);
     }
 
-    const userRecord = await Userinfo.findOne({ where: { userId }});
+    const userRecord = await Userinfo.findOne({ where: { userId } });
     const userInfo = userRecord && userRecord.toJSON();
     const { tzid = "Etc/UTC" } = userInfo || {};
     const createdAt = new Date().toISOString();
@@ -53,33 +54,33 @@ const requestNyToken = async (request, h) => { //tokenRecord, userId
     };
     const res = await Cronofy.upsert(
       cronofyData,
-      { 
+      {
         where: {
           userId: userId || 0,
           accountEmail: email_address,
         },
       }
     );
-    await Userinfo.update({ allowSendEmail: true }, { where: { userId: userId || 0 }});
+    await Userinfo.update({ allowSendEmail: true }, { where: { userId: userId || 0 } });
     const record = res[0];
-    return h.response(record).code(200);    
+    return h.response(record).code(200);
   } catch (err) {
     console.error(err);
-    return h.response({error:true, message: err.message || `Unable to request nylas token!` }).code(400);    
+    return h.response({ error: true, message: err.message || `Unable to request nylas token!` }).code(400);
   }
 };
 
 const revokeNyAccount = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }   
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Cronofy, Cronofytoken, Userinfo } = request.getModels('xpaxr');
     const { accountId } = request.payload || {};
-    if(!accountId) return h.response({error:true, message:'Please provide an accountId!'}).code(400);
-      
+    if (!accountId) return h.response({ error: true, message: 'Please provide an accountId!' }).code(400);
+
     const nyRes = await Cronofy.findOne({
       where: {
         userId: userId || 0,
@@ -87,39 +88,39 @@ const revokeNyAccount = async (request, h) => {
       },
     });
     const nyInfo = nyRes && nyRes.toJSON();
-    const {id, accountId: nylasAccountId} = nyInfo || {};
-    if (!nylasAccountId) return h.response({error:true, message:'No connected calendar account found for this user!'}).code(400);            
-    
+    const { id, accountId: nylasAccountId } = nyInfo || {};
+    if (!nylasAccountId) return h.response({ error: true, message: 'No connected calendar account found for this user!' }).code(400);
+
     await revokeNylasAccount(nylasAccountId || 0);
-    await Cronofytoken.destroy({ 
+    await Cronofytoken.destroy({
       where: {
         userId: userId || 0,
         accountId: accountId || 0,
       }
     });
-    await Cronofy.destroy({ where: { id }});
+    await Cronofy.destroy({ where: { id } });
     const usdata = {
       allowSendEmail: false,
       updatedAt: moment().format(),
     };
-    await Userinfo.update(usdata, { where: { userId }});
-    return h.response({ message:'Successfully revoked account!'}).code(200);
+    await Userinfo.update(usdata, { where: { userId } });
+    return h.response({ message: 'Successfully revoked account!' }).code(200);
   } catch (error) {
     console.error(error);
-    return h.response({error:true, message:'Unable to revoke account!'}).code(400);
-    
+    return h.response({ error: true, message: 'Unable to revoke account!' }).code(400);
+
   }
 };
 
 const userCalendars = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }   
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Cronofy } = request.getModels('xpaxr');
-      
+
     const res = await Cronofy.findAll({
       where: { userId },
       order: [['id', 'DESC']],
@@ -127,8 +128,8 @@ const userCalendars = async (request, h) => {
     });
 
     const calendarsArray = [];
-    if(isArray(res) && res.length) {
-      for(let record of res){
+    if (isArray(res) && res.length) {
+      for (let record of res) {
         const info = record.toJSON();
         const { calendar } = info || {};
         info.calendar = JSON.parse(calendar);
@@ -136,38 +137,38 @@ const userCalendars = async (request, h) => {
       }
     }
 
-    const fres =  {
+    const fres = {
       calendars: calendarsArray || [],
     };
 
     return h.response(fres).code(200);
   } catch (error) {
     console.error(error);
-    return h.response({error:true, message:'Server error!'}).code(500);
-    
+    return h.response({ error: true, message: 'Server error!' }).code(500);
+
   }
 };
 
 const refreshUserCalendars = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }   
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { Cronofy } = request.getModels('xpaxr');
-      
-    const cronofyRecord = await Cronofy.findOne({ where: { userId: userId }});
+
+    const cronofyRecord = await Cronofy.findOne({ where: { userId: userId } });
     const cronofyInfo = cronofyRecord && cronofyRecord.toJSON();
     const { accountEmail } = cronofyInfo || {};
 
     const accessToken = await getAccessToken(request, userId);
     const calendarsRes = await listCalendars(accessToken);
-    const {calendars, error} = calendarsRes || {};
+    const { calendars, error } = calendarsRes || {};
     if (error) {
       return error;
     }
-    
+
     const upsertResponse = await Cronofy.upsert({
       userId: userId,
       accountEmail: accountEmail,
@@ -183,8 +184,8 @@ const refreshUserCalendars = async (request, h) => {
     return h.response(info).code(200);
   } catch (error) {
     console.error(error);
-    return h.response({error:true, message:'Unable to get calendar details!'}).code(400);
-    
+    return h.response({ error: true, message: 'Unable to get calendar details!' }).code(400);
+
   }
 };
 

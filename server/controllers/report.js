@@ -1,14 +1,15 @@
 const axios = require('axios')
 const config = require('config');
 const { Sequelize, QueryTypes } = require('sequelize');
+import { validateIsLoggedIn } from '../utils/authValidations';
 import { camelizeKeys } from '../utils/camelizeKeys'
 
 
 const getAbout = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
@@ -34,9 +35,9 @@ const getAbout = async (request, h) => {
 
 const getUserStats = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
@@ -58,9 +59,9 @@ const getUserStats = async (request, h) => {
 
 const getMentorStats = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
@@ -80,9 +81,9 @@ const getMentorStats = async (request, h) => {
 
 const getCompatibility = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         let db = request.getDb('xpaxr');
@@ -103,9 +104,9 @@ const getCompatibility = async (request, h) => {
 
 const getMentorRecommendations = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
         let userTypeName = request.auth.artifacts.decoded.userTypeName;
         let userId = request.auth.credentials.id;
         let { talentId } = request.query;

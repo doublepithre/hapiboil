@@ -4,14 +4,16 @@ import { camelizeKeys } from '../utils/camelizeKeys'
 import { sendEmailAsync } from '../utils/email'
 import formatQueryRes from '../utils/index'
 import { isArray } from 'lodash';
+import { validateIsLoggedIn } from '../utils/authValidations';
 const axios = require('axios')
 const config = require('config');
 
 const getAllCustomEmailTemplates = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
         // Checking user type from jwt
@@ -36,9 +38,10 @@ const getAllCustomEmailTemplates = async (request, h) => {
 
 const getAllDefaultEmailTemplates = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
         // Checking user type from jwt
@@ -58,9 +61,10 @@ const getAllDefaultEmailTemplates = async (request, h) => {
 
 const getEmailTemplateInfo = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         const { credentials } = request.auth || {};
         const { id: userId } = credentials || {};
         // Checking user type from jwt
@@ -94,9 +98,10 @@ const getEmailTemplateInfo = async (request, h) => {
 
 const maintainCompanyEmailTemplates = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'companysuperadmin' && luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -145,9 +150,10 @@ const maintainCompanyEmailTemplates = async (request, h) => {
 
 const sendEmailFromRecruiterToCandidate = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         // Checking user type from jwt
         let luserTypeName = request.auth.artifacts.decoded.userTypeName;
         if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);

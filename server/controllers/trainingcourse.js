@@ -1,13 +1,15 @@
 const axios = require('axios')
 const config = require('config');
 const { Sequelize, QueryTypes } = require('sequelize');
+import { validateIsLoggedIn } from '../utils/authValidations';
 import { camelizeKeys } from '../utils/camelizeKeys'
 
 const getRecommendation = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userId = request.auth.credentials.id;
         let { limit } = request.query;
         let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/trainingcourse/recommendation`, { params: { user_id: userId, limit } });
@@ -21,9 +23,10 @@ const getRecommendation = async (request, h) => {
 
 const getAll = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let { attributes, search, limit } = request.query;
         let recommendations = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/trainingcourse/all`, { params: { attributes, search, limit } });
         return h.response(camelizeKeys(recommendations.data)).code(200);
@@ -36,9 +39,10 @@ const getAll = async (request, h) => {
 
 const updateStatus = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userId = request.auth.credentials.id;
         const { courseId } = request.params || {};
         const { status } = request.payload || {};

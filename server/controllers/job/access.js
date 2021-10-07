@@ -7,13 +7,14 @@ import { isArray } from 'lodash';
 const axios = require('axios')
 const moment = require('moment');
 const config = require('config');
-
+import { validateIsLoggedIn, validateIsNotLoggedIn } from '../../utils/authValidations';
 
 const getJobAccessRecords = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -67,9 +68,10 @@ const getJobAccessRecords = async (request, h) => {
 
 const shareJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -154,9 +156,10 @@ const shareJob = async (request, h) => {
 
 const updateSharedJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -238,9 +241,10 @@ const updateSharedJob = async (request, h) => {
 
 const deleteJobAccessRecord = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -303,9 +307,10 @@ const deleteJobAccessRecord = async (request, h) => {
 
 const getApplicationAccessRecords = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -364,9 +369,10 @@ const getApplicationAccessRecords = async (request, h) => {
 
 const shareApplication = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -456,9 +462,10 @@ const shareApplication = async (request, h) => {
 
 const updateSharedApplication = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -552,9 +559,10 @@ const updateSharedApplication = async (request, h) => {
 
 const deleteApplicationAccessRecord = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+     if(authRes.error) return h.response(authRes.response).code(authRes.code);
+    
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -624,7 +632,7 @@ module.exports = {
   getJobAccessRecords,
   shareJob,
   updateSharedJob,
-  deleteJobAccessRecord, 
+  deleteJobAccessRecord,
 
   getApplicationAccessRecords,
   shareApplication,
