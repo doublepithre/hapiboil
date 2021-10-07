@@ -4,15 +4,17 @@ import { camelizeKeys } from '../../utils/camelizeKeys'
 import { sendEmailAsync } from '../../utils/email'
 import formatQueryRes from '../../utils/index'
 import { isArray } from 'lodash';
+import { validateIsLoggedIn } from '../../utils/authValidations';
 const axios = require('axios')
 const moment = require('moment');
 const config = require('config');
 
 const createJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') {
@@ -119,9 +121,10 @@ const createJob = async (request, h) => {
 
 const getSingleJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { jobUuid } = request.params || {};
@@ -296,9 +299,10 @@ const getSingleJob = async (request, h) => {
 
 const getAllJobs = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
@@ -549,9 +553,10 @@ const getAllJobs = async (request, h) => {
 
 const getRecruiterJobs = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
@@ -760,9 +765,10 @@ const getRecruiterJobs = async (request, h) => {
 
 const updateJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') {
@@ -902,9 +908,10 @@ const updateJob = async (request, h) => {
 
 const deleteJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') {
@@ -957,9 +964,10 @@ const deleteJob = async (request, h) => {
 
 const getAllDeletedJobs = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'superadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -1123,9 +1131,10 @@ const getAllDeletedJobs = async (request, h) => {
 
 const restoreDeletedJob = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'superadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -1166,9 +1175,10 @@ const restoreDeletedJob = async (request, h) => {
 
 const createJobQuesResponses = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') {
@@ -1228,9 +1238,10 @@ const createJobQuesResponses = async (request, h) => {
 
 const getJobQuesResponses = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') {
@@ -1284,8 +1295,8 @@ const isUserQuestionnaireDone = async (userId, model) => {
       model: Questiontarget,
       as: "questionTarget",
       where: {
-        targetName: "empauwer_me",        
-        
+        targetName: "empauwer_me",
+
       },
       required: true
     }],

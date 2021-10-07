@@ -10,14 +10,16 @@ import { formatQueryRes } from '../../utils/index';
 import { getDomainURL } from '../../utils/toolbox';
 import { camelizeKeys } from '../../utils/camelizeKeys';
 import { update } from 'lodash';
+import { validateIsLoggedIn } from '../../utils/authValidations';
 const uploadFile = require('../../utils/uploadFile');
 
 
 const createCompanySuperAdmin = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: luserId } = credentials || {};
 
@@ -189,9 +191,10 @@ const createCompanySuperAdmin = async (request, h) => {
 
 const getAllCompanyBySuperadmin = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'superadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -299,9 +302,10 @@ const getAllCompanyBySuperadmin = async (request, h) => {
 
 const getAllUsersBySuperadmin = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'superadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -426,9 +430,10 @@ const getAllUsersBySuperadmin = async (request, h) => {
 // de/re-activate any Company
 const updateCompanyBySuperadmin = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
@@ -526,9 +531,10 @@ const updateCompanyBySuperadmin = async (request, h) => {
 // de/re-activate any User
 const updateUserBySuperadmin = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
@@ -595,9 +601,10 @@ const updateUserBySuperadmin = async (request, h) => {
 
 const resendVerificationEmailBySuperadmin = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'superadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -666,10 +673,10 @@ module.exports = {
 
   getAllCompanyBySuperadmin,
   getAllUsersBySuperadmin,
-  
+
   updateCompanyBySuperadmin,
   updateUserBySuperadmin,
-  
+
   resendVerificationEmailBySuperadmin
 };
 

@@ -1,13 +1,14 @@
 const axios = require('axios')
 const config = require('config');
 const { Sequelize, QueryTypes } = require('sequelize');
+import { validateIsLoggedIn } from '../utils/authValidations';
 import { camelizeKeys } from '../utils/camelizeKeys'
 
 const getAll = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
         let { attributes, search, limit,mode,status, sortBy,sortType,recommendation,offset } = request.query;
         if (sortBy ==="courseTitle"){
             sortBy = "course_title"
@@ -27,9 +28,10 @@ const getAll = async (request, h) => {
 
 const updateStatus = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         let userId = request.auth.credentials.id;
         const { courseId } = request.params || {};
         const { status } = request.payload || {};

@@ -4,6 +4,7 @@ import { camelizeKeys } from '../../utils/camelizeKeys'
 import { sendEmailAsync } from '../../utils/email'
 import formatQueryRes from '../../utils/index'
 import { isArray } from 'lodash';
+import { validateIsLoggedIn } from '../../utils/authValidations';
 const axios = require('axios')
 const moment = require('moment');
 const config = require('config');
@@ -11,9 +12,10 @@ const config = require('config');
 
 const getOnboardingTaskLists = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -91,9 +93,10 @@ const getOnboardingTaskLists = async (request, h) => {
 
 const getOnboardingLists = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -196,9 +199,10 @@ const getOnboardingLists = async (request, h) => {
 
 const getOnboardingDetails = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -245,9 +249,10 @@ const getOnboardingDetails = async (request, h) => {
 
 const updateOnboardingTaskStatus = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);

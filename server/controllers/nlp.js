@@ -1,12 +1,13 @@
 const axios = require('axios')
 const config = require('config');
+import { validateIsLoggedIn } from '../utils/authValidations';
 import { camelizeKeys } from '../utils/camelizeKeys'
 
 const extractSkills = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
         let { cleanHtml } = request.query;
         const { jobDescription } = request.payload || {};
         let skills = await axios.post(`http://${config.dsServer.host}:${config.dsServer.port}/nlp/extract_skills`, { job_description: jobDescription }, { params: { clean_html: cleanHtml } });
@@ -23,9 +24,10 @@ const extractSkills = async (request, h) => {
 
 const recommendSkills = async (request, h) => {
     try {
-        if (!request.auth.isAuthenticated) {
-            return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-        }
+        const authRes = validateIsLoggedIn(request, h);
+        if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
         const { limit } = request.query || {};
         const { jobTitle } = request.payload || {};
         console.log(jobTitle);

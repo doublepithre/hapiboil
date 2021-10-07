@@ -10,13 +10,15 @@ import { formatQueryRes } from '../utils/index';
 import { getDomainURL } from '../utils/toolbox';
 import { camelizeKeys } from '../utils/camelizeKeys';
 import { update } from 'lodash';
+import { validateIsLoggedIn } from '../utils/authValidations';
 const uploadFile = require('../utils/uploadFile');
 
 const getAllCompanyNames = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const db1 = request.getDb('xpaxr');
 
     // get sql statement for getting jobs or jobs count
@@ -42,9 +44,10 @@ const getAllCompanyNames = async (request, h) => {
 
 const getCompanyOptions = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { Companyindustry, Country } = request.getModels('xpaxr');
     const [companyIndustries] = await Promise.all([
       Companyindustry.findAll({ attributes: ['companyIndustryId', 'companyIndustryName'] }),
@@ -62,9 +65,10 @@ const getCompanyOptions = async (request, h) => {
 
 const getOwnCompanyInfo = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -110,9 +114,10 @@ const getOwnCompanyInfo = async (request, h) => {
 
 const getAnyCompanyInfo = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { companyId } = request.params;
@@ -152,9 +157,10 @@ const getAnyCompanyInfo = async (request, h) => {
 
 const getCompanyVisitCount = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
@@ -232,9 +238,10 @@ const getCompanyVisitCount = async (request, h) => {
 
 const getCompanyWorkAccommodations = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -274,9 +281,10 @@ const getCompanyWorkAccommodations = async (request, h) => {
 
 const updateCompanyWorkaccommodationStatus = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -324,9 +332,10 @@ const updateCompanyWorkaccommodationStatus = async (request, h) => {
 
 const updateCompanyProfile = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
 
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -377,7 +386,7 @@ const updateCompanyProfile = async (request, h) => {
       const countryData = countryRecord && countryRecord.toJSON();
       const { countryId: existingCountryId } = countryData || {};
       if (!existingCountryId) return h.response({ error: true, message: 'No country found for this given country id!' }).code(403);
-      
+
       countryId = existingCountryId
     }
 
@@ -456,9 +465,10 @@ const updateCompanyProfile = async (request, h) => {
 
 const createCompanyStaff = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
 
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
@@ -594,9 +604,10 @@ const createCompanyStaff = async (request, h) => {
 
 const updateCompanyStaff = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const userId = credentials.id;
 
@@ -741,9 +752,10 @@ const updateCompanyStaff = async (request, h) => {
 
 const getCompanyStaff = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -875,9 +887,10 @@ const getCompanyStaff = async (request, h) => {
 
 const getFellowCompanyStaff = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy' && luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -983,9 +996,10 @@ const getFellowCompanyStaff = async (request, h) => {
 
 const resendCompanyVerificationEmail = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'companysuperadmin') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -1054,9 +1068,10 @@ const resendCompanyVerificationEmail = async (request, h) => {
 
 const getAllJobsForAParticularCompany = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
 
@@ -1232,9 +1247,10 @@ const getAllJobsForAParticularCompany = async (request, h) => {
 
 const getCompanyJobDetails = async (request, h) => {
   try {
-    if (!request.auth.isAuthenticated) {
-      return h.response({ message: 'Forbidden', code: "xemp-1" }).code(401);
-    }
+    const authRes = validateIsLoggedIn(request, h);
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     const { jobUuid } = request.params || {};

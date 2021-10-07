@@ -52,12 +52,12 @@ const xjwt = {
                     const artifacts = { luser: uinfo, };    // as per docs, artifacts saves only token & decoded info. So luser info won't be saved.
                     const { active } = uinfo || {};
                     let isValid = true;
-                    if (!active) {
-                        isValid = false;
-                        console.log(isValid);
-                        console.log(uinfo);
-                        return h.response({ error: true, message: 'User account is inactive!' }).code(400);
-                    }
+                        // if (!active) {
+                        //     isValid = false;
+                        //     console.log(isValid);
+                        //     console.log(uinfo);
+                        //     return h.response({ error: true, message: 'User account is inactive!' }).code(400);
+                        // }
                     return { isValid: isValid, credentials, artifacts };
                 } else {
                     return { isValid: false, credentials: {}, artifacts: {} };
