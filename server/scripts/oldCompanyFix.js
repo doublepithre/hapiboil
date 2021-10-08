@@ -23,6 +23,41 @@ const sequelize = new Sequelize(
   }
 );
 
+async function fixEmployerEmailTemplates() {
+  const client = new Client({
+    host: config.scriptDB.host, //"localhost",
+    user: config.scriptDB.user,
+    password: config.scriptDB.password,
+    database: config.scriptDB.database,
+  });
+  await client.connect();
+  const allETLessCompaniesRecords = await client.query(`
+    select
+      ui.company_id,
+      ui.user_id,
+      ur.role_name, ur.role_id
+    from hris.userinfo ui
+      inner join hris.userrole ur on ur.role_id=ui.role_id and ur.role_name='employer'
+      left join hris.emailtemplates et on et.company_id=ui.company_id and et.owner_id=ui.user_id
+    where et.company_id is null
+    `);
+  const allETLessCompanies = allETLessCompaniesRecords.rows;
+  console.log(allETLessCompanies);
+  const Emailtemplate = EmailtemplateMF(sequelize, DataTypes);
+
+  for (let e of allETLessCompanies) {
+    // creating company custom email templates (copying the company level ones)
+    const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { isDefaultTemplate: false, isCompanyLevel: true, companyId: e.company_id }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate', 'isCompanyLevel'] } });
+    for (let record of allDefaultTemplatesRecord) {
+      const defaultData = record.toJSON();
+      Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, isCompanyLevel: false, companyId: e.company_id, templateName: defaultData.templateName, ownerId: e.user_id });
+    }
+    console.log(`${e.display_name} DONE!`);
+  }
+  await client.end();
+  return { msg: 'DONE' }
+}
+
 async function fixCompanyEmailTemplates() {
   const client = new Client({
     host: config.scriptDB.host, //"localhost",
@@ -53,11 +88,11 @@ async function fixCompanyEmailTemplates() {
     if (csaList[0]) {
       // creating company custom email templates (copying the default ones)
       const Emailtemplate = EmailtemplateMF(sequelize, DataTypes);
-      const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate'] } });
+      const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate', 'isCompanyLevel'] } });
       for (let record of allDefaultTemplatesRecord) {
         const defaultData = record.toJSON();
         console.log({ templateName: defaultData.templateName })
-        Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, companyId: c.company_id, templateName: defaultData.templateName, ownerId: csaList[0].user_id });
+        Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, isCompanyLevel: true, companyId: c.company_id, templateName: defaultData.templateName, ownerId: csaList[0].user_id });
       }
       console.log(`${c.display_name} DONE!`);
     }
@@ -102,5 +137,6 @@ async function fixCompanyWorkAccommodations() {
   return { msg: 'DONE' }
 }
 
-fixCompanyEmailTemplates()
 fixCompanyWorkAccommodations()
+fixCompanyEmailTemplates()
+fixEmployerEmailTemplates()

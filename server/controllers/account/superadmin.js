@@ -136,10 +136,10 @@ const createCompanySuperAdmin = async (request, h) => {
     };
 
     // creating company custom email templates (copying the default ones)
-    const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate'] } });
+    const allDefaultTemplatesRecord = await Emailtemplate.findAll({ where: { ownerId: null, companyId: null, isDefaultTemplate: true }, attributes: { exclude: ['id', 'createdAt', 'updatedAt', 'isUserTemplate', 'companyId', 'ownerId', 'isDefaultTemplate', 'isCompanyLevel'] } });
     for (let record of allDefaultTemplatesRecord) {
       const defaultData = record.toJSON();
-      Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, companyId: companyId, templateName: defaultData.templateName, ownerId: userId });
+      Emailtemplate.create({ ...defaultData, isDefaultTemplate: false, isCompanyLevel: true, companyId: companyId, templateName: defaultData.templateName, ownerId: userId });
     }
 
     // SENDING THE VERIFICATION EMAIL (confirmation email)

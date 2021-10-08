@@ -92,6 +92,11 @@ module.exports = function(sequelize, DataTypes) {
       type: DataTypes.BOOLEAN,
       allowNull: true,
       field: 'is_default_template'
+    },
+    isCompanyLevel: {
+      type: DataTypes.BOOLEAN,
+      allowNull: true,
+      field: 'is_company_level'
     }
   }, {
     sequelize,
