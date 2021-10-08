@@ -136,7 +136,7 @@ const getSingleJob = async (request, h) => {
     const { Jobvisit, Jobskill, Jobapplication, Userinfo } = request.getModels('xpaxr');
 
     // get the company of the luser (using it only if he is a recruiter)
-    const luserRecord = userId && await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } }) ;
+    const luserRecord = userId && await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
     const luserProfileInfo = luserRecord && luserRecord.toJSON();
     const { companyId: recruiterCompanyId } = luserProfileInfo || {};
 
@@ -172,7 +172,7 @@ const getSingleJob = async (request, h) => {
       sqlStmt += ` where j.active=true and j.is_deleted=false and j.job_uuid=:jobUuid`;
 
       // if he is an employer
-      if (isCandidateView) sqlStmt += ` and j.is_private=false`;
+      // if (isCandidateView) sqlStmt += ` and j.is_private=false`;
       // if (isEmployerView) sqlStmt += ` and j.company_id=:recruiterCompanyId`;
 
       return sqlStmt;
@@ -237,17 +237,25 @@ const getSingleJob = async (request, h) => {
           const res = { questionId, answer: responseVal.answer };
           questions.push(res);
         }
-        
-        if(
+
+        if (
           luserTypeName === 'candidate' ||
           rawJobArray[0].accessLevel === 'creator' ||
           rawJobArray[0].accessLevel === 'administrator'
         ) jqrObj.jobQuestionResponses = questions;
-        
+
         fres.push(jqrObj);
       });
     }
     const responseJob = fres[0];
+
+    if (
+      responseJob.accessLevel !== 'creator' &&
+      responseJob.accessLevel !== 'administrator' && responseJob.isPrivate === true
+    ) {
+      return h.response({ error: true, message: 'No job found!' }).code(400);
+    }
+
 
     // attaching skills
     const { jobskillIds } = responseJob;
@@ -321,7 +329,7 @@ const getAllJobs = async (request, h) => {
 
     const { recommended, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-    const recommendedVal = recommended ? Number(recommended) : luserTypeName=== 'candidate' ? 1 : 0;
+    const recommendedVal = recommended ? Number(recommended) : luserTypeName === 'candidate' ? 1 : 0;
 
     // sort query
     let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'desc'];
@@ -540,7 +548,7 @@ const getAllJobs = async (request, h) => {
       });
     }
 
-    if (luserTypeName === 'candidate' &&  recommendedVal === 1 && recommendations) {
+    if (luserTypeName === 'candidate' && recommendedVal === 1 && recommendations) {
       // recommendations
       // [{job_id: 7, score: 0.9 }]
       const rjMap = new Map();
