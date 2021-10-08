@@ -4,7 +4,7 @@ import { camelizeKeys } from '../../utils/camelizeKeys'
 import { sendEmailAsync } from '../../utils/email'
 import formatQueryRes from '../../utils/index'
 import { isArray } from 'lodash';
-import { validateIsLoggedIn } from '../../utils/authValidations';
+import { validateIsLoggedIn, validateIsNotLoggedIn } from '../../utils/authValidations';
 const axios = require('axios')
 const moment = require('moment');
 const config = require('config');
@@ -121,8 +121,8 @@ const createJob = async (request, h) => {
 
 const getSingleJob = async (request, h) => {
   try {
-    const authRes = validateIsLoggedIn(request, h);
-    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+    // const authRes = validateIsLoggedIn(request, h);
+    // if (authRes.error) return h.response(authRes.response).code(authRes.code);
 
 
     const { credentials } = request.auth || {};
@@ -130,13 +130,13 @@ const getSingleJob = async (request, h) => {
     const { jobUuid } = request.params || {};
 
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-    if (luserTypeName !== 'candidate' && luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+    let luserTypeName = request.auth.artifacts?.decoded?.userTypeName;
+    // if (luserTypeName !== 'candidate' && luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
     const { Jobvisit, Jobskill, Jobapplication, Userinfo } = request.getModels('xpaxr');
 
     // get the company of the luser (using it only if he is a recruiter)
-    const luserRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
+    const luserRecord = userId && await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } }) ;
     const luserProfileInfo = luserRecord && luserRecord.toJSON();
     const { companyId: recruiterCompanyId } = luserProfileInfo || {};
 
@@ -168,12 +168,12 @@ const getSingleJob = async (request, h) => {
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
 
       // if he is an employer
-      if (isEmployerView) sqlStmt += ` inner join hris.jobhiremember jhm on jhm.job_id=j.job_id and jhm.user_id=:userId`;
+      if (isEmployerView) sqlStmt += ` left join hris.jobhiremember jhm on jhm.job_id=j.job_id and jhm.user_id=:userId`;
       sqlStmt += ` where j.active=true and j.is_deleted=false and j.job_uuid=:jobUuid`;
 
       // if he is an employer
       if (isCandidateView) sqlStmt += ` and j.is_private=false`;
-      if (isEmployerView) sqlStmt += ` and j.company_id=:recruiterCompanyId`;
+      // if (isEmployerView) sqlStmt += ` and j.company_id=:recruiterCompanyId`;
 
       return sqlStmt;
     };
@@ -237,7 +237,13 @@ const getSingleJob = async (request, h) => {
           const res = { questionId, answer: responseVal.answer };
           questions.push(res);
         }
-        jqrObj.jobQuestionResponses = questions;
+        
+        if(
+          luserTypeName === 'candidate' ||
+          rawJobArray[0].accessLevel === 'creator' ||
+          rawJobArray[0].accessLevel === 'administrator'
+        ) jqrObj.jobQuestionResponses = questions;
+        
         fres.push(jqrObj);
       });
     }
@@ -299,8 +305,9 @@ const getSingleJob = async (request, h) => {
 
 const getAllJobs = async (request, h) => {
   try {
-    const authRes = validateIsLoggedIn(request, h);
-    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+    // Both logged in and non-logged-in users can see it
+    // const authRes = validateIsLoggedIn(request, h);
+    // if (authRes.error) return h.response(authRes.response).code(authRes.code);
 
 
     const { credentials } = request.auth || {};
@@ -309,12 +316,12 @@ const getAllJobs = async (request, h) => {
     const { Jobapplication } = request.getModels('xpaxr');
 
     // Checking user type from jwt
-    let luserTypeName = request.auth.artifacts.decoded.userTypeName;
-    if (luserTypeName !== 'candidate') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
+    let luserTypeName = request.auth.artifacts?.decoded?.userTypeName;
+    // if (luserTypeName !== 'candidate') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
 
     const { recommended, limit, offset, jobTypeId, jobFunctionId, jobLocationId, jobIndustryId, minExp, sort, startDate, endDate, search } = request.query;
     const searchVal = `%${search ? search.toLowerCase() : ''}%`;
-    const recommendedVal = recommended ? Number(recommended) : 1;
+    const recommendedVal = recommended ? Number(recommended) : luserTypeName=== 'candidate' ? 1 : 0;
 
     // sort query
     let [sortBy, sortType] = sort ? sort.split(':') : (recommendedVal === 1) ? ['score', 'DESC'] : ['created_at', 'desc'];
@@ -339,6 +346,7 @@ const getAllJobs = async (request, h) => {
     if (isNaN(limitNum)) return h.response({ error: true, message: 'Invalid limit query parameter! The limit query parameter must be a number!' }).code(400);
     if (isNaN(offsetNum)) return h.response({ error: true, message: 'Invalid offset query parameter! The offset query parameter must be a number!' }).code(400);
     if (isNaN(recommendedVal) || !isRecommendedValReqValid) return h.response({ error: true, message: 'Invalid recommended query parameter!' }).code(400);
+    if (recommendedVal === 1 && !userId) return h.response({ error: true, message: 'You need to log in to get recommendation!' }).code(400);
 
     if (!sortBy || !isSortReqValid) return h.response({ error: true, message: 'Invalid sort query parameter!' }).code(400);
     if (!isSortTypeReqValid) return h.response({ error: true, message: 'Invalid sort query parameter! Sort type is invalid, it should be either "asc" or "desc"!' }).code(400);
@@ -388,8 +396,8 @@ const getAllJobs = async (request, h) => {
         });
       } catch (error) {
         console.error(error.stack);
-        if (error.response && error.response.data && error.response.status){
-            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        if (error.response && error.response.data && error.response.status) {
+          return h.response(camelizeKeys(error.response.data)).code(error.response.status);
         }
         return h.response({ error: true, message: 'Bad Request' }).code(400);
 
@@ -511,26 +519,28 @@ const getAllJobs = async (request, h) => {
     });
     const allJobs = camelizeKeys(allSQLJobs);
 
-    // check if already applied
-    const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId } });
-    const appliedJobIds = [];
-    rawAllAppliedJobs.forEach(aj => {
-      const { jobId } = aj || {};
-      if (jobId) {
-        appliedJobIds.push(Number(jobId));
-      }
-    });
+    if (luserTypeName === 'candidate') {
+      // check if already applied
+      const rawAllAppliedJobs = await Jobapplication.findAll({ raw: true, nest: true, where: { userId } });
+      const appliedJobIds = [];
+      rawAllAppliedJobs.forEach(aj => {
+        const { jobId } = aj || {};
+        if (jobId) {
+          appliedJobIds.push(Number(jobId));
+        }
+      });
 
-    allJobs.forEach(j => {
-      const { jobId } = j || {};
-      if (appliedJobIds.includes(Number(jobId))) {
-        j.isApplied = true;
-      } else {
-        j.isApplied = false;
-      }
-    });
+      allJobs.forEach(j => {
+        const { jobId } = j || {};
+        if (appliedJobIds.includes(Number(jobId))) {
+          j.isApplied = true;
+        } else {
+          j.isApplied = false;
+        }
+      });
+    }
 
-    if (recommendedVal === 1 && recommendations) {
+    if (luserTypeName === 'candidate' &&  recommendedVal === 1 && recommendations) {
       // recommendations
       // [{job_id: 7, score: 0.9 }]
       const rjMap = new Map();
