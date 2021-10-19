@@ -8,6 +8,7 @@ const fs = require('fs');
 // DB models
 const { Questionnaire } = require('../../tools/sequelizeauto/models/init-models');
 const mcqFinal = require('./helpers/mcqFinal');
+const collectUserDemographicAnalysisData = require('./helpers/userDemographicFinal');
 const sequelize = new Sequelize(
   config.scriptDB.database, config.scriptDB.user, config.scriptDB.password,
   {
@@ -117,16 +118,16 @@ async function collectQuesAnalysisData() {
       // break;
 
     } else {
-      console.log(`NONE OF THEM WORKS******************************************`)
-      console.log(item.question_type_name);
-      console.log(`NONE OF THEM WORKS******************************************`)
+      // console.log(`NONE OF THEM WORKS******************************************`)
+      // console.log(item.question_type_name);
+      // console.log(`NONE OF THEM WORKS******************************************`)
       // break;
     }
 
 
   }
 
-  console.log(`QUES MAP******************************`)
+  // console.log(`QUES MAP******************************`)
   console.log({ pureQuesMap: Object.keys(pureQuesMap).length})
   console.log({ mcQuesMap: Object.keys(mcQuesMap).length})
   console.log(`QUES MAP******************************`)
@@ -134,8 +135,9 @@ async function collectQuesAnalysisData() {
 
   const pureQuesData = { total: Object.keys(pureQuesMap).length, pureQuesMap }
   const mcQuesRawData = { total: Object.keys(mcQuesMap).length, mcQuesMap }
+  
   fs.writeFileSync(pureQuesFile, JSON.stringify(pureQuesData));
-  fs.writeFileSync(mcQuesRawFile, JSON.stringify(mcQuesRawData));
+  // fs.writeFileSync(mcQuesRawFile, JSON.stringify(mcQuesRawData));
   
   const mcqFinalData = mcqFinal(mcQuesRawData);
   fs.writeFileSync(mcQuesFinalFile, JSON.stringify(mcqFinalData));
@@ -145,7 +147,5 @@ async function collectQuesAnalysisData() {
 }
 
 
-
-
-
 collectQuesAnalysisData()
+collectUserDemographicAnalysisData()

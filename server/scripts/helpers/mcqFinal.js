@@ -91,7 +91,6 @@ function mcqFinal(rawJSON) {
     }
   }
 
-  // fs.writeFileSync('./collect/top3AnswerItems.json', JSON.stringify(finalResult));
   return finalResult;
 }
 
