@@ -42,3 +42,7 @@ output/
 
 *.swp
 bk/
+
+
+# Data Collection Folder inside Script folder
+server/scripts/collectData/*
