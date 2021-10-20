@@ -35,6 +35,8 @@ function mcqFinal(rawJSON) {
 
     finalResult.quesMap[quesId] = {
       question_type_name: quesMap[quesId].question_type_name,
+      question_name: quesMap[quesId].question_name,
+      question_config: quesMap[quesId].question_config,
       top3answers: [], //[{ count: maxCount, answer: maxAnswer }]
     }
 

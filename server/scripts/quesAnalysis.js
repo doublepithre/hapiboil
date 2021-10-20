@@ -38,7 +38,7 @@ async function collectQuesAnalysisData() {
 
   const allQIdsRAW = await client.query(`
     select 
-      q.question_id, qtp.question_type_name
+      q.question_id, q.question_name, q.question_config, qtp.question_type_name
     from hris.questionnaire q
       inner join hris.questiontype qtp on qtp.question_type_id=q.question_type_id
       inner join hris.questiontarget qt on qt.target_id=q.question_target_id and qt.target_name='empauwer_me'
@@ -73,6 +73,8 @@ async function collectQuesAnalysisData() {
 
       pureQuesMap[item.question_id] = {
         question_type_name: item.question_type_name,
+        question_name: item.question_name,
+        question_config: item.question_config,
         answersArray: []
       };
 
@@ -102,6 +104,8 @@ async function collectQuesAnalysisData() {
 
       mcQuesMap[item.question_id] = {
         question_type_name: item.question_type_name,
+        question_name: item.question_name,
+        question_config: item.question_config,
         answersArray: []
       };
 
