@@ -598,8 +598,8 @@ const getRecommendedTalents = async (request, h) => {
       });
     } catch (error) {
       console.error(error.stack);
-      if (error.response && error.response.data && error.response.status){
-          return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+      if (error.response && error.response.data && error.response.status) {
+        return h.response(camelizeKeys(error.response.data)).code(error.response.status);
       }
       return h.response({ error: true, message: 'Bad Request' }).code(400);
     }
@@ -769,15 +769,27 @@ const getTalentsAndApplicants = async (request, h) => {
       }
     }
 
+    let totalApplications = [];
     const applicantIds = [];
     const talentUserIds = [];
     let recommendations;
     for (let i = 0; i < allOwnJobIdsSQL.length; i++) {
       const ownJob = allOwnJobIdsSQL[i];
       if (typeReq === 'applicant') {
-        const applications = await Jobapplication.findAll({ where: { jobId: ownJob.job_id }, attributes: ['userId'] });
+        
+        const allApplicationsSqlStmt = `select
+          ja.user_id, ja.application_id, ja.job_id, jn.job_name
+        from hris.jobapplications ja
+          inner join hris.jobs j on j.job_id=ja.job_id
+          inner join hris.jobname jn on jn.job_name_id=j.job_name_id
+        where ja.job_id=:jobId`;
+        const allAppliationsSQL = await sequelize.query(allApplicationsSqlStmt, {
+          type: QueryTypes.SELECT,
+          replacements: { jobId: ownJob.job_id },
+        });
+        const applications = camelizeKeys(allAppliationsSQL);
+        totalApplications.push(...applications);
         applications[0] && applications.forEach((item) => addIdsIfNotExist(item.userId, applicantIds));
-
       } else if (typeReq === 'talent') {
         try {
           const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`, { params: { job_id: ownJob.job_id } })
@@ -792,8 +804,8 @@ const getTalentsAndApplicants = async (request, h) => {
 
         } catch (error) {
           console.error(error.stack);
-          if (error.response && error.response.data && error.response.status){
-              return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+          if (error.response && error.response.data && error.response.status) {
+            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
           }
           return h.response({ error: true, message: 'Bad Request' }).code(400);
 
@@ -815,6 +827,16 @@ const getTalentsAndApplicants = async (request, h) => {
         }
       }
     };
+
+    // MAP userId to jobs: { userId: [jobIds]}
+    const applicantJobsMap = new Map();
+    for (let a of totalApplications) {
+      if (applicantJobsMap.get(a.userId) === undefined) {
+        applicantJobsMap.set(a.userId, [a]);
+      } else {
+        applicantJobsMap.set(a.userId, [...applicantJobsMap.get(a.userId), a]);
+      }
+    }
 
     console.log(applicantIds, talentUserIds);
     const refinedApplicantUnique = new Set([...applicantIds]);
@@ -895,6 +917,12 @@ const getTalentsAndApplicants = async (request, h) => {
       }
       for (let talent of allTalents) {
         talent.score = rtMap.get(talent.userId);
+      }
+    }
+
+    if (typeReq === 'applicant') {
+      for (let talent of allTalents) {
+        talent.appliedJobs = applicantJobsMap.get(talent.userId);
       }
     }
 
