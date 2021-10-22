@@ -2656,11 +2656,32 @@ paths:
             application/json:
               schema:
                 type: object                
-                allOf:
-                  - $ref: "#/components/schemas/paginatedUsers"
+                
                 properties:
                   type:
                     type: string
+                  count:
+                    type: number        
+                  users:
+                    type: array
+                    items:
+                      type: object
+                      allOf:
+                        - $ref: "#/components/schemas/User" 
+                      properties:
+                        jobsApplied:
+                          type: array
+                          items:
+                            type: object
+                            properties:
+                              userId:
+                                type: number
+                              applicationId:
+                                type: number
+                              jobId:
+                                type: number
+                              jobName:
+                                type: string
   
   /job/j/talents/{jobId}?limit={limit}&&offset={skip}&search={searchString}&sort={first_name:asc}:
     get: 
