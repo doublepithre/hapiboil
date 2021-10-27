@@ -152,7 +152,9 @@ const getSingleJob = async (request, h) => {
         sqlStmt = `select count(*)`;
       } else {
         sqlStmt = `select
-                jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name,jqr.response_id,jqr.question_id,jqr.response_val`;
+          c.display_name as company_name, ci.logo,
+          jn.job_name,j.*, jt.*, jf.*,ji.*,jl.*,
+          jqr.response_id,jqr.question_id,jqr.response_val`;
 
         if (isEmployerView) sqlStmt += `, jhm.access_level`
       }
@@ -162,6 +164,7 @@ const getSingleJob = async (request, h) => {
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 left join hris.jobsquesresponses jqr on jqr.job_id=j.job_id
                 inner join hris.company c on c.company_id=j.company_id
+                inner join hris.companyinfo ci on ci.company_id=j.company_id
                 inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
@@ -442,13 +445,14 @@ const getAllJobs = async (request, h) => {
         sqlStmt = `select count(*)`;
       } else {
         sqlStmt = `select
-                    jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+          c.display_name as company_name, ci.logo,jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*`;
       }
 
       sqlStmt += `
             from hris.jobs j
                 inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                 inner join hris.company c on c.company_id=j.company_id
+                inner join hris.companyinfo ci on ci.company_id=j.company_id
                 inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                 inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
@@ -657,13 +661,15 @@ const getRecruiterJobs = async (request, h) => {
         sqlStmt = `select count(*)`;
       } else {
         sqlStmt = `select
-                jhm.access_level, jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*,c.display_name as company_name`;
+          c.display_name as company_name, ci.logo,
+          jhm.access_level, jn.job_name, j.*, jt.*, jf.*,ji.*,jl.*`;
       }
 
       sqlStmt += `                    
                 from hris.jobs j
                     inner join hris.jobname jn on jn.job_name_id=j.job_name_id
                     inner join hris.company c on c.company_id=j.company_id
+                    inner join hris.companyinfo ci on ci.company_id=j.company_id
                     inner join hris.jobtype jt on jt.job_type_id=j.job_type_id                
                     inner join hris.jobfunction jf on jf.job_function_id=j.job_function_id                
                     inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id

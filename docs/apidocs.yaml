@@ -3479,6 +3479,10 @@ components:
         - $ref: "#/components/schemas/job"
         - $ref: "#/components/schemas/jobDetailed"
       properties:        
+        companyName:
+          type: string
+        logo:
+          type: string
         jobTypeName:
           type: string
         jobIndustryName:
