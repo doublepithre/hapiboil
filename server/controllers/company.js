@@ -87,9 +87,10 @@ const getOwnCompanyInfo = async (request, h) => {
 
     const sqlStmt = `select
         cntry.country_full as country_name,	
-        ci.logo, ci.email_bg, ci.banner, c.*
+        ci.logo, ci.email_bg, ci.banner, c.*, cindustry.company_industry_name
       from hris.company c
         inner join hris.companyinfo ci on ci.company_id=c.company_id
+        left join hris.companyindustry cindustry on cindustry.company_industry_id=c.company_industry_id
         left join hris.country cntry on cntry.country_id=c.country_id
       where c.company_id=:luserCompanyId`;
 
@@ -127,9 +128,10 @@ const getAnyCompanyInfo = async (request, h) => {
 
     const sqlStmt = `select
         cntry.country_full as country_name,
-        ci.logo, ci.email_bg, ci.banner, c.*
+        ci.logo, ci.email_bg, ci.banner, c.*, cindustry.company_industry_name
       from hris.company c
         inner join hris.companyinfo ci on c.company_id=ci.company_id
+        left join hris.companyindustry cindustry on cindustry.company_industry_id=c.company_industry_id
         left join hris.country cntry on cntry.country_id=c.country_id
       where c.company_id=:companyId`;
 
