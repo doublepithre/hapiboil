@@ -11,8 +11,8 @@ import { camelizeKeys } from '../utils/camelizeKeys';
 const loginUser = async (request, h) => {
   try {
     const authRes = validateIsNotLoggedIn(request, h);
-    if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
     const { User, Usermeta, Userinfo, Accesstoken, Usertype, Userrole } = request.getModels('xpaxr');
     const { email: rEmail, password, rememberMe, captcha } = request.payload || {};
     const email = rEmail?.toLowerCase();
@@ -20,16 +20,8 @@ const loginUser = async (request, h) => {
     if (!(email && password)) {
       return h.response({ error: true, message: 'Please provide necessary credentials' }).code(400);
     }
-    // if (!captcha) {
-    //   return h.response({ error: true, message: 'Please click on robot captcha' }).code(400);
-    // }
 
-    /* __________________________________________________
-    When pushing to production, 
-    remove the above if (!captcha) validation
-    and uncomment the following captcha validation
-    __________________________________________________ */
-    // //verify captch if exists
+    // verify captch if exists
     let isValidCaptcha = false;
     const recaptchaObj = config.get('recaptcha');
     if (
