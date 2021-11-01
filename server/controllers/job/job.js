@@ -170,9 +170,15 @@ const getSingleJob = async (request, h) => {
                 inner join hris.jobindustry ji on ji.job_industry_id=j.job_industry_id
                 inner join hris.joblocation jl on jl.job_location_id=j.job_location_id`;
 
+
       // if he is an employer
       if (isEmployerView) sqlStmt += ` left join hris.jobhiremember jhm on jhm.job_id=j.job_id and jhm.user_id=:userId`;
       sqlStmt += ` where j.active=true and j.is_deleted=false and j.job_uuid=:jobUuid`;
+
+      // if he is an employer
+      if (!userId) {
+        sqlStmt += ` and j.is_private=false`;
+      }
 
       // if he is an employer
       // if (isCandidateView) sqlStmt += ` and j.is_private=false`;
