@@ -3,10 +3,6 @@ const config = require(`../../config/${envVar}.json`);
 
 const { Client } = require('pg');
 const { DataTypes, Sequelize } = require('sequelize');
-const { sendEmailAsync } = require('../utils/email');
-const { getDomainURL } = require('../utils/toolbox');
-const axios = require('axios');
-const cron = require('node-cron');
 
 // DB models
 const EmailtemplateMF = require('../../tools/sequelizeauto/models/emailtemplate');

@@ -2,20 +2,12 @@ const envVar = process.env.NODE_ENV;
 const config = require(`../../config/${envVar}.json`);
 
 const { Client } = require('pg');
-const { DataTypes, Sequelize } = require('sequelize');
 const fs = require('fs');
 
 // DB models
-const { Questionnaire } = require('../../tools/sequelizeauto/models/init-models');
 const mcqFinal = require('./helpers/mcqFinal');
 const collectUserDemographicAnalysisData = require('./helpers/userDemographicFinal');
-const sequelize = new Sequelize(
-  config.scriptDB.database, config.scriptDB.user, config.scriptDB.password,
-  {
-    host: config.scriptDB.host,
-    dialect: 'postgres'
-  }
-);
+
 
 async function collectQuesAnalysisData() {
   const client = new Client({
