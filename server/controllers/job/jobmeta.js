@@ -1,5 +1,7 @@
 const { Op, Sequelize, QueryTypes, cast, literal } = require('sequelize');
 const validator = require('validator');
+const Qs = require('qs');
+
 import { camelizeKeys } from '../../utils/camelizeKeys'
 import { sendEmailAsync } from '../../utils/email'
 import formatQueryRes from '../../utils/index'
@@ -772,11 +774,12 @@ const getTalentsAndApplicants = async (request, h) => {
     let totalApplications = [];
     const applicantIds = [];
     const talentUserIds = [];
+    const jobIdsArray = [];
     let recommendations;
     for (let i = 0; i < allOwnJobIdsSQL.length; i++) {
       const ownJob = allOwnJobIdsSQL[i];
       if (typeReq === 'applicant') {
-        
+
         const allApplicationsSqlStmt = `select
           ja.user_id, ja.application_id, ja.job_id, jn.job_name
         from hris.jobapplications ja
@@ -790,43 +793,36 @@ const getTalentsAndApplicants = async (request, h) => {
         const applications = camelizeKeys(allAppliationsSQL);
         totalApplications.push(...applications);
         applications[0] && applications.forEach((item) => addIdsIfNotExist(item.userId, applicantIds));
-      } else if (typeReq === 'talent') {
-        try {
-          const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/job/recommendation`, { params: { job_id: ownJob.job_id } })
-          recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
-
-          // storing all the talentUserIds in the given order   
-          recommendations.forEach(item => {
-            talentUserIds.push(item.user_id);
-          });
-
-          recommendations[0] && recommendations.forEach((item) => addIdsIfNotExist(item.user_id, talentUserIds));
-
-        } catch (error) {
-          console.error(error.stack);
-          if (error.response && error.response.data && error.response.status) {
-            return h.response(camelizeKeys(error.response.data)).code(error.response.status);
-          }
-          return h.response({ error: true, message: 'Bad Request' }).code(400);
-
-          // recommendations = [
-          //     { user_id: '167', user_score: '1.0' },
-          //     { user_id: '169', user_score: '0.9' },
-          //     { user_id: '161', user_score: '0.8' },
-          //     { user_id: '164', user_score: '0.7' },
-          //     { user_id: '160', user_score: '0.6' },
-          //     { user_id: '165', user_score: '0.5' },
-          //     { user_id: '162', user_score: '0.4' },
-          //     { user_id: '168', user_score: '0.3' },
-          //     { user_id: '166', user_score: '0.2' },
-          //     { user_id: '163', user_score: '0.1' },
-          // ]
-          // recommendations.forEach(item => {
-          //     talentUserIds.push(item.user_id);
-          // });
-        }
+      }
+      else if (typeReq === 'talent') {
+        jobIdsArray.push(ownJob.job_id);
       }
     };
+
+    if (typeReq === 'talent') {
+      try {
+        const recommendationRes = await axios.get(`http://${config.dsServer.host}:${config.dsServer.port}/recruiter/recommendation/talent`, {
+          params: { job_ids: jobIdsArray },
+          paramsSerializer: function (params) {
+            return Qs.stringify(params, { arrayFormat: 'repeat' })
+          }
+        })
+        recommendations = recommendationRes?.data?.recommendation //this will be  sorted array of {job_id,score}
+
+        // storing all the talentUserIds in the given order   
+        recommendations.forEach(item => {
+          talentUserIds.push(item.user_id);
+        });
+        // recommendations[0] && recommendations.forEach((item) => addIdsIfNotExist(item.user_id, talentUserIds));
+
+      } catch (error) {
+        console.error(error.stack);
+        if (error.response && error.response.data && error.response.status) {
+          return h.response(camelizeKeys(error.response.data)).code(error.response.status);
+        }
+        return h.response({ error: true, message: 'Bad Request' }).code(400);
+      }
+    }
 
     // MAP userId to jobs: { userId: [jobIds]}
     const applicantJobsMap = new Map();
