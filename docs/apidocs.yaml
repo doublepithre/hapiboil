@@ -2501,7 +2501,11 @@ paths:
             application/json:
               schema:
                 type: object
-                $ref: "#/components/schemas/jobApplication" 
+                allOf:
+                  - $ref: "#/components/schemas/jobApplication" 
+                properties:
+                  mentorId:
+                    type: number
 
   /job/onboarding/all?limit={limit}&offset={skip}&sort={sort}&search={searchTEXT}:    
     get: 
