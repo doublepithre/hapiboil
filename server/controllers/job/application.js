@@ -12,9 +12,9 @@ const config = require('config');
 const applyToJob = async (request, h) => {
   try {
     const authRes = validateIsLoggedIn(request, h);
-     if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
       return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -166,9 +166,9 @@ const applyToJob = async (request, h) => {
 const getAppliedJobs = async (request, h) => {
   try {
     const authRes = validateIsLoggedIn(request, h);
-     if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
       return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -334,9 +334,9 @@ const getAppliedJobs = async (request, h) => {
 const withdrawFromAppliedJob = async (request, h) => {
   try {
     const authRes = validateIsLoggedIn(request, h);
-     if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'candidate') {
       return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -485,9 +485,9 @@ const withdrawFromAppliedJob = async (request, h) => {
 const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
   try {
     const authRes = validateIsLoggedIn(request, h);
-     if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -641,9 +641,9 @@ const getAllEmployerApplicantsSelectiveProfile = async (request, h) => {
 const getAllApplicantsSelectiveProfile = async (request, h) => {
   try {
     const authRes = validateIsLoggedIn(request, h);
-     if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     const { credentials } = request.auth || {};
     const { id: userId } = credentials || {};
     // Checking user type from jwt
@@ -801,9 +801,9 @@ const getAllApplicantsSelectiveProfile = async (request, h) => {
 const getApplicantProfile = async (request, h) => {
   try {
     const authRes = validateIsLoggedIn(request, h);
-     if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer' && luserTypeName !== 'supervisor' && luserTypeName !== 'workbuddy') {
@@ -882,9 +882,9 @@ const getApplicantProfile = async (request, h) => {
 const updateApplicationStatus = async (request, h) => {
   try {
     const authRes = validateIsLoggedIn(request, h);
-     if(authRes.error) return h.response(authRes.response).code(authRes.code);
-    
-    
+    if (authRes.error) return h.response(authRes.response).code(authRes.code);
+
+
     // Checking user type from jwt
     let luserTypeName = request.auth.artifacts.decoded.userTypeName;
     if (luserTypeName !== 'employer') return h.response({ error: true, message: 'You are not authorized!' }).code(403);
@@ -903,7 +903,7 @@ const updateApplicationStatus = async (request, h) => {
     const validStatus = ['shortlisted', 'interview', 'closed', 'offer', 'hired'];
     if (!validStatus.includes(status)) return h.response({ error: true, message: 'Invalid status' }).code(400);
 
-    const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo } = request.getModels('xpaxr');
+    const { Userinfo, Jobapplication, Applicationhiremember, Applicationauditlog, Onboarding, Onboardingtask, Onboardingtasktype, Onboardingfixedtask, Emailtemplate, Emaillog, Companyinfo, Mentorcandidatemapping } = request.getModels('xpaxr');
 
     // get the company of the recruiter
     const userRecord = await Userinfo.findOne({ where: { userId }, attributes: { exclude: ['createdAt', 'updatedAt'] } });
@@ -911,7 +911,7 @@ const updateApplicationStatus = async (request, h) => {
     const { companyId: luserCompanyId, firstName: luserFirstName } = userProfileInfo || {};
 
     const sqlStmt = `select  
-                ui.first_name as candidate_first_name, ui.email as candidate_email, c.display_name as company_name,
+                ja.user_id as candidate_id, ui.first_name as candidate_first_name, ui.email as candidate_email, c.display_name as company_name,
                 ja.application_id, ja.job_id, ja.status,
                 jn.job_name, j.user_id as creator_id, j.company_id
             from hris.jobapplications ja
@@ -930,7 +930,7 @@ const updateApplicationStatus = async (request, h) => {
       },
     });
     const applicationJobDetails = camelizeKeys(applicationJobDetailsSQL)[0];
-    const { applicationId: existingApplicationId, companyId: creatorCompanyId, candidateEmail, candidateFirstName, companyName, jobId, jobName, status: oldStatus } = applicationJobDetails || {};
+    const { applicationId: existingApplicationId, candidateId, companyId: creatorCompanyId, candidateEmail, candidateFirstName, companyName, jobId, jobName, status: oldStatus } = applicationJobDetails || {};
 
     if (!existingApplicationId) return h.response({ error: true, message: `No application found!` }).code(400);
     if (luserCompanyId !== creatorCompanyId) return h.response({ error: true, message: `You are not authorized!` }).code(403);
@@ -950,6 +950,11 @@ const updateApplicationStatus = async (request, h) => {
     const updatedData = updatedRecord && updatedRecord.toJSON();
 
     if (updatedData.status === 'hired') {
+      const mentorMappingRecord = await Mentorcandidatemapping.findOne({ where: { candidateId } });
+      const mentorMappingData = mentorMappingRecord && mentorMappingRecord.toJSON();
+      const { mentorId: existingMentorId } = mentorMappingData || {};
+      updatedData.mentorId = existingMentorId;
+
       const onboardingRecord = await Onboarding.create({
         onboardee: updatedData.userId,
         onboarder: userId,
@@ -1013,7 +1018,7 @@ const updateApplicationStatus = async (request, h) => {
     // ----------------end of sending emails     
 
 
-    return h.response(updatedRecord).code(200);
+    return h.response(updatedData).code(200);
   }
   catch (error) {
     console.error(error.stack);
