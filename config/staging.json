@@ -9,8 +9,8 @@
   },
   "jwtSecret": "A?D(G+KbPeShVmYq3t6w9z$B&E)H@McQ",
   "replication": {
-    "read": [{ "host": "localhost", "username": "cira@xempstagdb1", "password": "x0pa" }],
-    "write": { "host": "localhost", "username": "cira@xempstagdb1", "password": "x0pa" }
+    "read": [{ "host": "localhost", "username": "DBUserName", "password": "DBPassword" }],
+    "write": { "host": "localhost", "username": "DBUserName", "password": "DBPassword" }
   },
   "redis": {
     "host": "xpastagingnode.redis.cache.windows.net",
@@ -29,29 +29,24 @@
     }
   },
   "azure": {
-    "docStorageAccountName": "empdevstrg",
-    "docStorageAccountKey" : "3r1eU6cftRZ6tQiy+d1M2d8dSh11YcWvl1dHUH6wOHAcLLjDJhyl0w6DL7NxZwgYGEID4NAuRGXN8uYk2Mplaw",
-    "docContainerName": "stagingContainer"
+    "docStorageAccountName": "xyz",
+    "docStorageAccountKey" : "fdwa;khowifdksahglaidhfasfd",
+    "docContainerName": "defaultContainer"
   },
   "scriptDB": {
     "host": "localhost",
-    "user": "postgres",
-    "password": "$ilven1eaf",
-    "database": "canopus"
-  },
-  "dsServer":{
-    "host":"xempds.southeastasia.azurecontainer.io",
-    "remoteHost":"118.200.108.134",
-    "port": 80
+    "user": "MyUserName",
+    "password": "MyPassword",
+    "database": "DatabaseName"
   },
   "nylas": {
-    "NY_API_URL": "https://api.cronofy.com",
-    "NY_CLIENT_ID": "25b4wykrunl06p9vakclwxypx",
-    "NY_CLIENT_SECRET": "ecnkbk9sni69uwi3u0w5b5861",
-    "NY_REDIRECT_URI": "https://staging.x0pa.ai/nylas/cb"
+    "NY_API_URL": "NylasURL",
+    "NY_CLIENT_ID": "fdsfsf",
+    "NY_CLIENT_SECRET": "fdsaffdafs",
+    "NY_REDIRECT_URI": "https://empnylas.x0pa.ai/nylas/cb"
   },
   "recaptcha": {
-    "secret": "6LeIxAcTAAAAAGG-vFI1TnRWxMZNFuojJ4WifJWe",
+    "secret": "6LeIxAcTAAAAAGG-dsafsffdsafd",
     "captchaVerificationUrl": "https://www.google.com/recaptcha/api/siteverify"
   }
 }
